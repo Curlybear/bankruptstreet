@@ -267,3 +267,95 @@ test('symmetrizeBoard makes edges bidirectional except listed one-way edges', ()
   assert.ok(!destinations.includes('b') || board.c.neighbors.includes('b') === false, 'cannot step backward along one-way edge');
   assert.deepEqual([...destinations].sort(), ['a']);
 });
+
+// ─── Board registry & Torland integrity ───────────────────────────────────────
+
+test('GameManager creates rooms on the requested board', () => {
+  const manager = new GameManager();
+  const state = manager.createRoom('t1', ['alice'], 15000, 'torland');
+  assert.equal(state.boardId, 'torland');
+  assert.ok(state.board.rapids_1);
+  assert.ok(state.properties.moonbrooke_1);
+  assert.equal(state.players.alice.currentNodeId, 'bank');
+
+  const fallback = manager.createRoom('t2', ['alice']);
+  assert.equal(fallback.boardId, 'alefgard');
+  assert.ok(fallback.board.tantegel_1);
+});
+
+test('Torland: every node is reachable from the bank', () => {
+  const manager = new GameManager();
+  const { board } = manager.createRoom('t3', ['alice'], 15000, 'torland');
+
+  const visited = new Set<string>(['bank']);
+  const queue = ['bank'];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    for (const n of board[id].neighbors) {
+      if (!visited.has(n)) { visited.add(n); queue.push(n); }
+    }
+  }
+  const all = Object.keys(board);
+  const unreachable = all.filter(id => !visited.has(id));
+  assert.deepEqual(unreachable, [], `unreachable nodes: ${unreachable.join(', ')}`);
+});
+
+test('Torland: rapids edges are one-way (no backward traversal)', () => {
+  const manager = new GameManager();
+  const { board } = manager.createRoom('t4', ['alice'], 15000, 'torland');
+
+  assert.ok(!board.rapids_1.neighbors.includes('tuhn_2'), 'rapids_1 must not flow back to tuhn_2');
+  assert.ok(!board.venture_mid.neighbors.includes('rapids_1'), 'venture_mid must not flow back');
+  assert.ok(!board.rapids_2.neighbors.includes('venture_mid'), 'rapids_2 must not flow back');
+  assert.ok(!board.stockbroker_east.neighbors.includes('rapids_2'), 'broker must not enter the rapids backward');
+
+  // Forward flow works: from tuhn_2 a roll of 4 can exit the rapids at the broker
+  const { destinations } = findPaths(board, 'tuhn_2', 4);
+  assert.ok(destinations.includes('stockbroker_east'), `expected broker exit, got: ${destinations.join(', ')}`);
+});
+
+test('Torland: no movement traps — every node yields destinations for every roll', () => {
+  const manager = new GameManager();
+  const { board } = manager.createRoom('t5', ['alice'], 15000, 'torland');
+
+  for (const nodeId of Object.keys(board)) {
+    if (board[nodeId].type === 'warp') continue;  // players never rest on warp nodes
+    for (let roll = 1; roll <= 6; roll++) {
+      const { destinations } = findPaths(board, nodeId, roll);
+      assert.ok(
+        destinations.length > 0,
+        `node ${nodeId} with roll ${roll} has no destinations — movement trap`,
+      );
+    }
+  }
+});
+
+test('Torland: districts and properties are consistent', () => {
+  const manager = new GameManager();
+  const { board, properties, districts } = manager.createRoom('t6', ['alice'], 15000, 'torland');
+
+  for (const district of Object.values(districts)) {
+    for (const pid of district.propertyIds) {
+      assert.ok(properties[pid], `district ${district.id} references missing property ${pid}`);
+      assert.equal(properties[pid].districtId, district.id);
+    }
+  }
+  for (const prop of Object.values(properties)) {
+    assert.ok(board[prop.nodeId], `property ${prop.id} sits on missing node ${prop.nodeId}`);
+    assert.ok(districts[prop.districtId], `property ${prop.id} references missing district`);
+    const nodeType = board[prop.nodeId].type;
+    assert.ok(nodeType === 'property' || nodeType === 'vacant',
+      `property ${prop.id} on non-shop node type ${nodeType}`);
+  }
+});
+
+test('join_room rejects unknown boardId', async () => {
+  const c = ioclient(`http://localhost:${TEST_PORT}`);
+  await new Promise<void>(res => c.once('connect', () => res()));
+  const errPromise = nextEvent<{ code: string; message: string }>(c, 'error');
+  c.emit('join_room', { roomId: 'badboard', playerId: 'alice', boardId: 'mordor' });
+  const err = await errPromise;
+  assert.equal(err.code, 'BAD_REQUEST');
+  assert.ok(err.message.includes('unknown boardId'));
+  c.disconnect();
+});

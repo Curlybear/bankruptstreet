@@ -31,6 +31,7 @@ export default function App() {
   const [playerNameInput, setPlayerNameInput] = useState(() => localStorage.getItem('playerName') ?? '');
   const [newRoomName, setNewRoomName] = useState('');
   const [targetNetWorth, setTargetNetWorth] = useState(15000);
+  const [boardChoice, setBoardChoice] = useState('alefgard');
 
   useEffect(() => {
     pendingActionRef.current = false;
@@ -171,6 +172,29 @@ export default function App() {
               </div>
               <div style={{ width: 140 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  Board
+                </label>
+                <select
+                  value={boardChoice}
+                  onChange={(e) => setBoardChoice(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#f8fafc',
+                    fontSize: 14,
+                    fontFamily: "'Outfit', sans-serif",
+                    outline: 'none',
+                  }}
+                >
+                  <option value="alefgard">Alefgard</option>
+                  <option value="torland">Torland</option>
+                </select>
+              </div>
+              <div style={{ width: 140 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
                   Net Worth Limit
                 </label>
                 <select
@@ -201,7 +225,7 @@ export default function App() {
                 if (!playerNameInput.trim()) { alert('Please enter a username'); return; }
                 if (!newRoomName.trim()) { alert('Please enter a room name'); return; }
                 localStorage.setItem('playerName', playerNameInput.trim());
-                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth);
+                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice);
               }}
               style={{
                 padding: '14px',
@@ -292,6 +316,11 @@ export default function App() {
                         <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                           👥 {r.playerCount}/{r.maxPlayers}
                         </span>
+                        {r.boardName && (
+                          <span style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700 }}>
+                            🗺 {r.boardName}
+                          </span>
+                        )}
                       </div>
                     </div>
 

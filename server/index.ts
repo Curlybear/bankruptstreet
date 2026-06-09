@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
 import { GameManager, computeDeltas, makePlayer } from './gameManager.js';
+import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
 import { greedyBotAction } from '../engine/bot.js';
 import type { Action } from '../shared/types.js';
 
@@ -27,7 +28,9 @@ function getRoomsList(manager: GameManager) {
     roomId,
     status: state.status ?? 'LOBBY',
     playerCount: state.turnOrder.length,
-    maxPlayers: 4
+    maxPlayers: 4,
+    boardId: state.boardId ?? DEFAULT_BOARD_ID,
+    boardName: BOARDS[state.boardId ?? DEFAULT_BOARD_ID]?.name ?? state.boardId,
   }));
 }
 
@@ -39,6 +42,12 @@ function validateJoin(p: unknown): string | null {
   if (targetNetWorth !== undefined) {
     if (!Number.isInteger(targetNetWorth) || (targetNetWorth as number) <= 0) {
       return 'targetNetWorth must be a positive integer';
+    }
+  }
+  const { boardId } = p as Record<string, unknown>;
+  if (boardId !== undefined) {
+    if (typeof boardId !== 'string' || !(boardId in BOARDS)) {
+      return `unknown boardId: ${String(boardId)}`;
     }
   }
   return null;
@@ -186,18 +195,18 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       const validErr = validateJoin(payload);
       if (validErr) { socket.emit('error', { code: 'BAD_REQUEST', message: validErr }); return; }
 
-      const { roomId, playerId, targetNetWorth } = payload as { roomId: string; playerId: string; targetNetWorth?: number };
+      const { roomId, playerId, targetNetWorth, boardId } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string };
       let state = manager.getRoom(roomId);
 
       if (!state) {
         if (roomId === 'smoke') {
-          state = manager.createRoom(roomId, [playerId, 'player2'], targetNetWorth ?? 15000);
+          state = manager.createRoom(roomId, [playerId, 'player2'], targetNetWorth ?? 15000, boardId);
           state.status = 'ACTIVE'; // Auto-start smoke room for retrocompatibility tests
           state.log.push(`[SMOKE] Auto-started smoke test room with alice and player2.`);
         } else {
-          state = manager.createRoom(roomId, [playerId], targetNetWorth ?? 15000);
+          state = manager.createRoom(roomId, [playerId], targetNetWorth ?? 15000, boardId);
           state.status = 'LOBBY';
-          log(roomId, `lobby created by ${playerId} with target net worth ${state.targetNetWorth}`);
+          log(roomId, `lobby created by ${playerId} on board ${state.boardId} with target net worth ${state.targetNetWorth}`);
         }
       } else if (state.status === 'LOBBY') {
         if (!state.turnOrder.includes(playerId)) {

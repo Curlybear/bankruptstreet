@@ -11,6 +11,8 @@ export interface ActiveRoom {
   status: 'LOBBY' | 'ACTIVE' | 'FINISHED';
   playerCount: number;
   maxPlayers: number;
+  boardId?: string;
+  boardName?: string;
 }
 
 export function useGameSocket(): {
@@ -20,7 +22,7 @@ export function useGameSocket(): {
   playerId: string | null;
   roomId: string | null;
   joinRoom: (roomId: string, playerId: string) => void;
-  createRoom: (roomId: string, playerId: string, targetNetWorth: number) => void;
+  createRoom: (roomId: string, playerId: string, targetNetWorth: number, boardId: string) => void;
   startGame: () => void;
   leaveLobby: () => void;
   emitAction: (action: Action) => void;
@@ -59,11 +61,11 @@ export function useGameSocket(): {
     }
   }
 
-  function createRoom(rId: string, pId: string, targetNetWorth: number) {
+  function createRoom(rId: string, pId: string, targetNetWorth: number, boardId: string) {
     if (socket) {
       setPlayerId(pId);
       setRoomId(rId);
-      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth });
+      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth, boardId });
     }
   }
 

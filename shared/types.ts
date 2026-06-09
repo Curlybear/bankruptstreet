@@ -120,6 +120,7 @@ export type Action =
 
 export interface GameState {
   roomId: string;
+  boardId?: string;
   players: Record<string, Player>;
   turnOrder: string[];
   currentPlayerId: string;
