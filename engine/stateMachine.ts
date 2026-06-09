@@ -174,6 +174,22 @@ function resolveSpace(state: GameState): GameState {
     return { ...state, currentPhase: 'SPACE_ACTION' };
   }
 
+  if (node.type === 'tax_office') {
+    // Native tax square: pay 5% of net worth to the bank, auto-resolve.
+    const tax = Math.floor(player.netWorth * 0.05);
+    let s: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        [player.id]: { ...player, cash: player.cash - tax },
+      },
+      log: [...state.log, `[TAX] ${player.name} paid ${tax}G in taxes at ${node.id} (5% of net worth).`],
+    };
+    s = checkBankruptcy(s, player.id);
+    s = recalcAllNetWorths(s);
+    return advanceSpaceResolution(s);
+  }
+
   if (node.type === 'vacant') {
     const prop = propertyAtNode(state, node.id);
     if (!prop) {

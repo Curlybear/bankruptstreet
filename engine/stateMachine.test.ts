@@ -499,3 +499,34 @@ test('pass-through salary can push the player over the target and win on the sam
     Math.random = origRandom;
   }
 });
+
+// ─── Native tax office square (board prep) ────────────────────────────────────
+
+test('landing on a tax_office square pays 5% of net worth to the bank and auto-advances', () => {
+  const board: Record<string, Node> = {
+    bank: { id: 'bank', type: 'bank', neighbors: ['tax1'], coordinates: { x: 0, y: 0 } },
+    tax1: { id: 'tax1', type: 'tax_office', neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { cash: 1000, netWorth: 1000 }),
+      p2: makePlayer('p2'),
+    },
+  });
+
+  // Force roll = 1: bank → tax1
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'tax1');
+    assert.equal(next.players.p1.cash, 950);          // floor(1000 × 0.05) = 50 paid to bank
+    assert.equal(next.players.p2.cash, 1000);         // nobody receives it
+    assert.equal(next.currentPlayerId, 'p2');         // auto-resolved, turn advanced
+    assert.equal(next.currentPhase, 'PRE_ROLL');
+    assert.ok(next.log.some(l => l.includes('[TAX]')));
+  } finally {
+    Math.random = origRandom;
+  }
+});

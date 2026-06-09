@@ -322,6 +322,29 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       label.anchor.set(0.5, 0.5);
       label.position.set(px, py);
       camera.addChild(label);
+    } else if (node.type === 'tax_office') {
+      const w = 56;
+      g.roundRect(px - w/2, py - w/2, w, w, 10);
+      g.fill({ color: 0x7f1d1d }); // Deep red — taxes hurt
+      g.roundRect(px - w/2, py - w/2, w, w, 10);
+      g.stroke({ color: 0xfca5a5, width: 2, alpha: 0.7 });
+      camera.addChild(g);
+
+      const taxIcon = new Text({
+        text: '🏛️',
+        style: new TextStyle({ fontSize: 17 }),
+      });
+      taxIcon.anchor.set(0.5, 0.5);
+      taxIcon.position.set(px, py - 6);
+      camera.addChild(taxIcon);
+
+      const taxLabel = new Text({
+        text: 'TAX',
+        style: new TextStyle({ fontSize: 8.5, fill: 0xfecaca, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 0.5 }),
+      });
+      taxLabel.anchor.set(0.5, 0.5);
+      taxLabel.position.set(px, py + 14);
+      camera.addChild(taxLabel);
     } else {
       // Vacant node or built structure
       const prop = Object.values(state.properties).find(p => p.nodeId === node.id);
