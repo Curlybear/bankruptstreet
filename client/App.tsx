@@ -1955,18 +1955,21 @@ export default function App() {
           <div style={{
             background: 'rgba(12, 12, 26, 0.85)',
             border: '2px dashed #facc15',
-            borderRadius: 24, 
-            padding: '36px 40px', 
-            maxWidth: 450,
-            textAlign: 'center', 
-            fontFamily: "'Outfit', sans-serif", 
+            borderRadius: 24,
+            padding: '32px 36px',
+            maxWidth: 640,
+            width: '100%',
+            textAlign: 'center',
+            fontFamily: "'Outfit', sans-serif",
             color: '#f1f5f9',
             boxShadow: '0 0 50px rgba(250, 204, 21, 0.25)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
           }} className="animate-slide-up">
             <div style={{ fontSize: 32, marginBottom: 8 }}>👑</div>
-            <div style={{ 
-              fontSize: 24, 
-              fontWeight: 900, 
+            <div style={{
+              fontSize: 24,
+              fontWeight: 900,
               background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -1975,31 +1978,71 @@ export default function App() {
             }}>
               Victory Achieved
             </div>
-            
-            <div style={{ fontSize: 15, color: '#94a3b8', marginBottom: 18 }}>
-              The district has been thoroughly liquidated.
-            </div>
 
             <div style={{
               background: 'rgba(250, 204, 21, 0.04)',
               border: '1px solid rgba(250, 204, 21, 0.2)',
               borderRadius: 16,
-              padding: '14px 20px',
-              marginBottom: 16,
+              padding: '12px 20px',
+              marginBottom: 18,
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#facc15', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 4 }}>WINNER</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#ffffff' }}>
                 {state.players[state.winnerId]?.name}
               </div>
-              <div style={{ 
-                fontFamily: "'JetBrains Mono', monospace", 
-                fontSize: 15, 
-                fontWeight: 700, 
+              <div style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 15,
+                fontWeight: 700,
                 color: '#10b981',
                 marginTop: 4,
               }}>
                 {g(state.players[state.winnerId]?.netWorth)}
               </div>
+            </div>
+
+            {/* Final rankings with stat breakdown */}
+            <div style={{ textAlign: 'left', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>
+                Final Rankings
+              </div>
+              {[...state.turnOrder]
+                .map(pid => state.players[pid])
+                .sort((a, b) => b.netWorth - a.netWorth)
+                .map((p, rank) => {
+                  const st = state.stats?.[p.id];
+                  return (
+                    <div key={p.id} style={{
+                      background: rank === 0 ? 'rgba(250, 204, 21, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                      border: `1px solid ${rank === 0 ? 'rgba(250, 204, 21, 0.25)' : 'rgba(255, 255, 255, 0.06)'}`,
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      marginBottom: 8,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: st ? 6 : 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800 }}>
+                          {['🥇', '🥈', '🥉', '4.'][rank] ?? `${rank + 1}.`} {p.name}{p.isBankrupt ? ' 💀' : ''}
+                        </span>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: '#10b981' }}>
+                          {g(p.netWorth)}
+                        </span>
+                      </div>
+                      {st && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px 12px', fontSize: 10.5, color: '#94a3b8' }}>
+                          <span>🔁 Laps: <strong style={{ color: '#cbd5e1' }}>{st.lapsCompleted}</strong></span>
+                          <span>💼 Promotions: <strong style={{ color: '#cbd5e1' }}>{st.salariesCollected}</strong></span>
+                          <span>🏪 Shops: <strong style={{ color: '#cbd5e1' }}>{st.propertiesBought}</strong></span>
+                          <span>💰 Rent in: <strong style={{ color: '#cbd5e1' }}>{g(st.rentCollected)}</strong></span>
+                          <span>💸 Rent out: <strong style={{ color: '#cbd5e1' }}>{g(st.rentPaid)}</strong></span>
+                          <span>🏆 Best rent: <strong style={{ color: '#cbd5e1' }}>{g(st.biggestRentCollected)}</strong></span>
+                          <span>📈 Bought: <strong style={{ color: '#cbd5e1' }}>{st.sharesBought}sh</strong></span>
+                          <span>📉 Sold: <strong style={{ color: '#cbd5e1' }}>{st.sharesSold}sh</strong></span>
+                          <span>❓ Ventures: <strong style={{ color: '#cbd5e1' }}>{st.ventureCardsDrawn}</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
 
             <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>

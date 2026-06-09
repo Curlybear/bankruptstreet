@@ -1,4 +1,4 @@
-import type { GameState, District, Property, Player, VentureCard, BuildingType, Node } from '../shared/types.js';
+import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats } from '../shared/types.js';
 
 
 export const BASE_SALARY = 250;
@@ -122,6 +122,30 @@ export function recalcAllNetWorths(state: GameState): GameState {
   return { ...state, players };
 }
 
+export const EMPTY_STATS: PlayerStats = {
+  lapsCompleted: 0, rentPaid: 0, rentCollected: 0, biggestRentCollected: 0,
+  salariesCollected: 0, sharesBought: 0, sharesSold: 0, propertiesBought: 0,
+  ventureCardsDrawn: 0, taxesPaid: 0,
+};
+
+// Additive update of a player's running stats (biggestRentCollected takes the max).
+export function bumpStats(state: GameState, playerId: string, patch: Partial<PlayerStats>): GameState {
+  const current = state.stats?.[playerId] ?? EMPTY_STATS;
+  const next: PlayerStats = {
+    lapsCompleted: current.lapsCompleted + (patch.lapsCompleted ?? 0),
+    rentPaid: current.rentPaid + (patch.rentPaid ?? 0),
+    rentCollected: current.rentCollected + (patch.rentCollected ?? 0),
+    biggestRentCollected: Math.max(current.biggestRentCollected, patch.biggestRentCollected ?? 0),
+    salariesCollected: current.salariesCollected + (patch.salariesCollected ?? 0),
+    sharesBought: current.sharesBought + (patch.sharesBought ?? 0),
+    sharesSold: current.sharesSold + (patch.sharesSold ?? 0),
+    propertiesBought: current.propertiesBought + (patch.propertiesBought ?? 0),
+    ventureCardsDrawn: current.ventureCardsDrawn + (patch.ventureCardsDrawn ?? 0),
+    taxesPaid: current.taxesPaid + (patch.taxesPaid ?? 0),
+  };
+  return { ...state, stats: { ...state.stats, [playerId]: next } };
+}
+
 // ─── Economic actions ─────────────────────────────────────────────────────────
 
 export function buyProperty(state: GameState, playerId: string, propertyId: string): GameState {
@@ -175,7 +199,7 @@ export function buyProperty(state: GameState, playerId: string, propertyId: stri
     },
   };
 
-  return recalcAllNetWorths(s2);
+  return recalcAllNetWorths(bumpStats(s2, playerId, { propertiesBought: 1 }));
 }
 
 export function buyoutProperty(state: GameState, buyerId: string, propertyId: string): GameState {
@@ -249,7 +273,7 @@ export function buyoutProperty(state: GameState, buyerId: string, propertyId: st
     },
   };
 
-  return recalcAllNetWorths(s2);
+  return recalcAllNetWorths(bumpStats(s2, buyerId, { propertiesBought: 1 }));
 }
 
 export function invest(
@@ -421,7 +445,13 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
     }
   }
 
-  const s2 = checkBankruptcy(s1, payerId);
+  let sStats = s1;
+  if (rent > 0) {
+    sStats = bumpStats(sStats, payerId, { rentPaid: rent });
+    sStats = bumpStats(sStats, prop.ownerId, { rentCollected: rent, biggestRentCollected: rent });
+  }
+
+  const s2 = checkBankruptcy(sStats, payerId);
   return recalcAllNetWorths(s2);
 }
 
@@ -480,7 +510,7 @@ export function buyStock(
     }
   }
 
-  return recalcAllNetWorths(s1);
+  return recalcAllNetWorths(bumpStats(s1, playerId, { sharesBought: shares }));
 }
 
 export function sellStock(
@@ -524,7 +554,7 @@ export function sellStock(
     },
   };
 
-  return recalcAllNetWorths(s1);
+  return recalcAllNetWorths(bumpStats(s1, playerId, { sharesSold: shares }));
 }
 
 // requireBankNode=false is used for pass-through salary: the player walked past
@@ -563,7 +593,7 @@ export function collectSalary(state: GameState, playerId: string, requireBankNod
     log: [...state.log, `[SALARY] ${player.name} collected ${salary}g (level ${newLevel})`],
   };
 
-  return recalcAllNetWorths(s1);
+  return recalcAllNetWorths(bumpStats(s1, playerId, { salariesCollected: 1 }));
 }
 
 // requireBankNode=false is used for pass-through wins: walking past the bank
@@ -1418,6 +1448,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
   }
 
   s.log.push(`[VENTURE CARD] ${player.name} drew Card #${card.number}: ${card.title} - ${card.text}`);
+  s = bumpStats(s, playerId, { ventureCardsDrawn: 1 });
 
   // Apply card effect
   switch (card.effectType) {

@@ -94,6 +94,19 @@ export interface Player {
   commissionUntilNextTurn?: number;
 }
 
+export interface PlayerStats {
+  lapsCompleted: number;        // bank passes/landings
+  rentPaid: number;             // total gold paid in rent and tolls
+  rentCollected: number;        // total gold collected in rent and tolls
+  biggestRentCollected: number; // single largest rent payout received
+  salariesCollected: number;    // promotion count
+  sharesBought: number;
+  sharesSold: number;
+  propertiesBought: number;     // purchases + buyouts + plot builds
+  ventureCardsDrawn: number;
+  taxesPaid: number;            // gold lost to tax squares
+}
+
 export type TurnPhase =
   | 'PRE_ROLL'
   | 'ROLLING'
@@ -142,5 +155,6 @@ export interface GameState {
   lastRoll?: Record<string, number>;
   passedBankThisTurn?: boolean;
   passedBankWindowUsed?: boolean;  // bonus SPACE_ACTION (stock window) already granted this turn
+  stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
 }
 

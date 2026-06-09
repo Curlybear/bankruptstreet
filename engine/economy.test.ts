@@ -10,6 +10,7 @@ import {
   checkWinCondition,
   checkBankruptcy,
   buyoutProperty,
+  buyProperty,
   BASE_SALARY,
   PROMO_BONUS_PER_LEVEL,
 } from './economy.js';
@@ -506,3 +507,59 @@ test('checkBankruptcy: ends game and chooses correct winner with turnOrder tiebr
   assert.equal(next.winnerId, 'p3'); // p3 wins due to turnOrder index tiebreaker (index 2 > index 1)
 });
 
+
+// ─── Player stats tracking ────────────────────────────────────────────────────
+
+test('payRent tracks rentPaid/rentCollected/biggestRentCollected stats', () => {
+  const prop = makeProp('shop1', { ownerId: 'p2', currentRent: 50 });
+  const district = makeDistrict({ propertyIds: ['shop1'] });
+  const state = makeState({
+    players: {
+      p1: makePlayer('p1'),
+      p2: makePlayer('p2', { propertyIds: ['shop1'] }),
+    },
+    properties: { shop1: prop },
+    districts: { d1: district },
+  });
+
+  const next = payRent(state, 'p1', 'shop1');
+  assert.equal(next.stats?.p1.rentPaid, 50);
+  assert.equal(next.stats?.p2.rentCollected, 50);
+  assert.equal(next.stats?.p2.biggestRentCollected, 50);
+
+  // Second smaller rent: totals add, biggest stays
+  const prop2 = { ...next.properties.shop1, currentRent: 30 };
+  const again = payRent({ ...next, properties: { shop1: prop2 } }, 'p1', 'shop1');
+  assert.equal(again.stats?.p1.rentPaid, 80);
+  assert.equal(again.stats?.p2.rentCollected, 80);
+  assert.equal(again.stats?.p2.biggestRentCollected, 50);
+});
+
+test('buyStock/sellStock/buyProperty/collectSalary update stats counters', () => {
+  const prop = makeProp('shop1');
+  const district = makeDistrict({ propertyIds: ['shop1'], stockPrice: 10 });
+  let state = makeState({
+    players: { p1: makePlayer('p1', { cash: 5000 }), p2: makePlayer('p2') },
+    properties: { shop1: prop },
+    districts: { d1: district },
+  });
+
+  state = buyStock(state, 'p1', 'd1', 12);
+  assert.equal(state.stats?.p1.sharesBought, 12);
+
+  state = sellStock(state, 'p1', 'd1', 5);
+  assert.equal(state.stats?.p1.sharesSold, 5);
+
+  state = buyProperty(state, 'p1', 'shop1');
+  assert.equal(state.stats?.p1.propertiesBought, 1);
+
+  state = {
+    ...state,
+    players: {
+      ...state.players,
+      p1: { ...state.players.p1, suits: { heart: true, diamond: true, club: true, spade: true } },
+    },
+  };
+  state = collectSalary(state, 'p1');
+  assert.equal(state.stats?.p1.salariesCollected, 1);
+});

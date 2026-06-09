@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
-  recalcAllNetWorths,
+  recalcAllNetWorths, bumpStats,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -101,6 +101,7 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
   // 2. Process Bank pass-through salary
   if (passedBank) {
     s = { ...s, passedBankThisTurn: true };
+    s = bumpStats(s, playerId, { lapsCompleted: 1 });
     const p = s.players[playerId];
     if (p.suits.heart && p.suits.diamond && p.suits.club && p.suits.spade) {
       s = collectSalary(s, playerId, false);  // pass-through: player is past the bank
@@ -128,6 +129,9 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
             [prop.id]: { ...prop, checkpointToll: toll + 10, currentRent: toll + 10 },
           },
         };
+
+        s = bumpStats(s, playerId, { rentPaid: toll });
+        s = bumpStats(s, prop.ownerId, { rentCollected: toll, biggestRentCollected: toll });
 
         // Check bankruptcy immediately
         s = checkBankruptcy(s, playerId);
@@ -200,6 +204,7 @@ function resolveSpace(state: GameState): GameState {
       },
       log: [...state.log, `[TAX] ${player.name} paid ${tax}G in taxes at ${node.id} (5% of net worth).`],
     };
+    s = bumpStats(s, player.id, { taxesPaid: tax });
     s = checkBankruptcy(s, player.id);
     s = recalcAllNetWorths(s);
     return advanceSpaceResolution(s);
