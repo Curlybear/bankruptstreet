@@ -530,3 +530,33 @@ test('landing on a tax_office square pays 5% of net worth to the bank and auto-a
     Math.random = origRandom;
   }
 });
+
+// ─── Take-a-break square ──────────────────────────────────────────────────────
+
+test('landing on a break square grants roll×20G and auto-advances the turn', () => {
+  const board: Record<string, Node> = {
+    bank: { id: 'bank', type: 'bank', neighbors: ['rest1'], coordinates: { x: 0, y: 0 } },
+    rest1: { id: 'rest1', type: 'break', neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { cash: 1000 }),
+      p2: makePlayer('p2'),
+    },
+  });
+
+  // Math.random = 0 → movement roll 1 AND break gift roll 1 (20G)
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'rest1');
+    assert.equal(next.players.p1.cash, 1020);          // 1 × 20G gift
+    assert.equal(next.currentPlayerId, 'p2');          // auto-resolved
+    assert.equal(next.currentPhase, 'PRE_ROLL');
+    assert.ok(next.log.some(l => l.includes('[BREAK]')));
+  } finally {
+    Math.random = origRandom;
+  }
+});

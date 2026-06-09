@@ -193,7 +193,8 @@ const TORLAND_BOARD: Record<string, Node> = {
   moonbrooke_1: { id: 'moonbrooke_1', type: 'property', neighbors: ['moonbrooke_2'], coordinates: { x: 4, y: 5 } },
   moonbrooke_2: { id: 'moonbrooke_2', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 3, y: 5 } },
   spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['moonbrooke_3', 'tuhn_3'], coordinates: { x: 2, y: 5 } },
-  moonbrooke_3: { id: 'moonbrooke_3', type: 'property', neighbors: ['osterfair_1'], coordinates: { x: 1, y: 5 } },
+  moonbrooke_3: { id: 'moonbrooke_3', type: 'property', neighbors: ['break_oasis'], coordinates: { x: 1, y: 5 } },
+  break_oasis: { id: 'break_oasis', type: 'break', neighbors: ['osterfair_1'], coordinates: { x: 0, y: 5 } },
   osterfair_1: { id: 'osterfair_1', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 4 } },
 
   // --- Tuhn Pass (inner west column, two-way shortcut) ---

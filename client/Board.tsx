@@ -322,6 +322,18 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       label.anchor.set(0.5, 0.5);
       label.position.set(px, py);
       camera.addChild(label);
+    } else if (node.type === 'break') {
+      g.circle(px, py, 24).fill({ color: 0x0f3d3e }); // Calm teal — rest stop
+      g.circle(px, py, 24).stroke({ color: 0x2dd4bf, width: 2, alpha: 0.8 });
+      camera.addChild(g);
+
+      const breakIcon = new Text({
+        text: '☕',
+        style: new TextStyle({ fontSize: 16 }),
+      });
+      breakIcon.anchor.set(0.5, 0.5);
+      breakIcon.position.set(px, py);
+      camera.addChild(breakIcon);
     } else if (node.type === 'tax_office') {
       const w = 56;
       g.roundRect(px - w/2, py - w/2, w, w, 10);

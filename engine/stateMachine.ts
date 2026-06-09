@@ -174,6 +174,21 @@ function resolveSpace(state: GameState): GameState {
     return { ...state, currentPhase: 'SPACE_ACTION' };
   }
 
+  if (node.type === 'break') {
+    // Take-a-break square: roll a die, pocket roll × 20G from the bank, rest up.
+    const roll = Math.floor(Math.random() * 6) + 1;
+    const gift = roll * 20;
+    const s: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        [player.id]: { ...player, cash: player.cash + gift },
+      },
+      log: [...state.log, `[BREAK] ${player.name} takes a break at ${node.id}, rolls a ${roll} and pockets ${gift}G!`],
+    };
+    return advanceSpaceResolution(recalcAllNetWorths(s));
+  }
+
   if (node.type === 'tax_office') {
     // Native tax square: pay 5% of net worth to the bank, auto-resolve.
     const tax = Math.floor(player.netWorth * 0.05);
