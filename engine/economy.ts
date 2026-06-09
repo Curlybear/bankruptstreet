@@ -1945,7 +1945,7 @@ export function buildPlot(
     log: [...state.log, `${player.name} built a ${buildingType} on plot ${propertyId} for ${buildCost}G!`],
   };
 
-  return recalcAllNetWorths(s1);
+  return recalcAllNetWorths(bumpStats(s1, playerId, { propertiesBought: 1 }));
 }
 
 export function renovatePlot(

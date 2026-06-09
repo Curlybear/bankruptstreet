@@ -244,6 +244,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 
       // Broadcast updated room list globally
       io.emit('rooms_list', getRoomsList(manager));
+      manager.scheduleSave();
       runBotTurnsIfNeeded(roomId);
     });
 
@@ -292,6 +293,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 
       // Broadcast updated room list globally
       io.emit('rooms_list', getRoomsList(manager));
+      manager.scheduleSave();
       runBotTurnsIfNeeded(roomId);
     });
 
@@ -344,6 +346,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       }
 
       io.emit('rooms_list', getRoomsList(manager));
+      manager.scheduleSave();
     });
 
     socket.on('request_action', (payload: unknown) => {
@@ -414,6 +417,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
             io.to(roomId).emit('state_sync', state);
           }
           io.emit('rooms_list', getRoomsList(manager));
+          manager.scheduleSave();
         }
       }
     });
@@ -422,7 +426,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 
 // Only start listening when invoked directly (not imported by tests).
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const manager = new GameManager();
+  const manager = new GameManager('data');  // rooms survive server restarts
   const io = new Server(PORT, { cors: { origin: '*' } });
   attachHandlers(io, manager);
   console.log(`[${new Date().toISOString()}] server listening on port ${PORT}`);

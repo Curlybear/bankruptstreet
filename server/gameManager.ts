@@ -1,3 +1,5 @@
+import { writeFileSync, readFileSync, existsSync, mkdirSync, renameSync } from 'fs';
+import { join } from 'path';
 import { applyAction } from '../engine/stateMachine.js';
 import { seedVentureGridCardIds } from '../engine/economy.js';
 import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
@@ -263,6 +265,53 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
 
 export class GameManager {
   private rooms = new Map<string, GameState>();
+  private persistDir: string | null;
+  private saveTimer: NodeJS.Timeout | null = null;
+
+  // When persistDir is given, rooms are restored from it on construction and
+  // saved back (debounced) after every change. GameState is JSON-clean by design.
+  constructor(persistDir?: string) {
+    this.persistDir = persistDir ?? null;
+    if (this.persistDir) this.loadRooms();
+  }
+
+  private persistFile(): string {
+    return join(this.persistDir!, 'rooms.json');
+  }
+
+  private loadRooms(): void {
+    try {
+      if (!existsSync(this.persistFile())) return;
+      const entries: [string, GameState][] = JSON.parse(readFileSync(this.persistFile(), 'utf8'));
+      this.rooms = new Map(entries);
+      console.log(`[persistence] restored ${this.rooms.size} room(s) from ${this.persistFile()}`);
+    } catch (e) {
+      console.error(`[persistence] failed to load rooms: ${(e as Error).message}`);
+    }
+  }
+
+  // Immediate atomic write (tmp file + rename).
+  saveNow(): void {
+    if (!this.persistDir) return;
+    try {
+      mkdirSync(this.persistDir, { recursive: true });
+      const tmp = this.persistFile() + '.tmp';
+      writeFileSync(tmp, JSON.stringify([...this.rooms]));
+      renameSync(tmp, this.persistFile());
+    } catch (e) {
+      console.error(`[persistence] failed to save rooms: ${(e as Error).message}`);
+    }
+  }
+
+  // Debounced save — call after any state change. No-op without persistDir.
+  scheduleSave(): void {
+    if (!this.persistDir || this.saveTimer) return;
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      this.saveNow();
+    }, 500);
+    this.saveTimer.unref();
+  }
 
   getRoom(roomId: string): GameState | undefined {
     return this.rooms.get(roomId);
@@ -275,6 +324,7 @@ export class GameManager {
   createRoom(roomId: string, players: string[], targetNetWorth?: number, boardId?: string): GameState {
     const state = makeDefaultState(roomId, players, targetNetWorth, boardId);
     this.rooms.set(roomId, state);
+    this.scheduleSave();
     return state;
   }
 
@@ -283,10 +333,12 @@ export class GameManager {
     if (!before) throw new Error(`Room ${roomId} not found`);
     const after = applyAction(before, action);
     this.rooms.set(roomId, after);
+    this.scheduleSave();
     return { before, after };
   }
 
   deleteRoom(roomId: string): void {
     this.rooms.delete(roomId);
+    this.scheduleSave();
   }
 }

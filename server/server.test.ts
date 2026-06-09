@@ -359,3 +359,44 @@ test('join_room rejects unknown boardId', async () => {
   assert.ok(err.message.includes('unknown boardId'));
   c.disconnect();
 });
+
+// ─── Room persistence ─────────────────────────────────────────────────────────
+
+test('rooms persist to disk and restore into a fresh GameManager', async () => {
+  const { mkdtempSync, rmSync, writeFileSync } = await import('fs');
+  const { tmpdir } = await import('os');
+  const { join } = await import('path');
+  const dir = mkdtempSync(join(tmpdir(), 'bankrupt-persist-'));
+
+  const m1 = new GameManager(dir);
+  const state = m1.createRoom('proom', ['alice', 'bob'], 9000, 'torland');
+  state.status = 'ACTIVE';
+  state.log.push('[TEST] marker entry');
+  m1.saveNow();
+
+  const m2 = new GameManager(dir);
+  const restored = m2.getRoom('proom');
+  assert.ok(restored, 'room must be restored');
+  assert.equal(restored.boardId, 'torland');
+  assert.equal(restored.targetNetWorth, 9000);
+  assert.equal(restored.status, 'ACTIVE');
+  assert.deepEqual(restored.turnOrder, ['alice', 'bob']);
+  assert.ok(restored.log.includes('[TEST] marker entry'));
+  // Full structural equality through JSON round-trip
+  assert.deepEqual(JSON.parse(JSON.stringify(restored)), JSON.parse(JSON.stringify(m1.getRoom('proom'))));
+
+  // Corrupt file must not crash construction
+  writeFileSync(join(dir, 'rooms.json'), '{not json!');
+  const m3 = new GameManager(dir);
+  assert.equal(m3.getRooms().size, 0);
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('GameManager without persistDir neither loads nor saves', () => {
+  const m = new GameManager();
+  m.createRoom('volatile', ['alice']);
+  m.saveNow();         // no-op, must not throw
+  m.scheduleSave();    // no-op, must not throw
+  assert.ok(m.getRoom('volatile'));
+});
