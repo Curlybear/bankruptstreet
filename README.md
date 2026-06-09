@@ -45,7 +45,13 @@ cd client && npm install && cd ..
 
 ### Run
 
-Two processes — server and client:
+One command — installs dependencies if needed, builds, and starts both servers (Ctrl+C stops everything):
+
+```bash
+./start.sh
+```
+
+Or manually, two processes — server and client:
 
 ```bash
 # Terminal 1: game server (Socket.io on :3001)
