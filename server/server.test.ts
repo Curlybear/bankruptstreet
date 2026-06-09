@@ -2,7 +2,9 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { Server } from 'socket.io';
 import { io as ioclient, type Socket } from 'socket.io-client';
-import { GameManager, computeDeltas } from './gameManager.js';
+import { GameManager, computeDeltas, symmetrizeBoard } from './gameManager.js';
+import { findPaths } from '../engine/navigation.js';
+import type { Node } from '../shared/types.js';
 import { attachHandlers } from './index.js';
 
 const TEST_PORT = 3099;
@@ -243,4 +245,25 @@ test('computeDeltas for END_TURN', () => {
   const types = deltas.map(d => d.type);
   assert.ok(types.includes('TURN_ENDED'));
   assert.ok(types.includes('TURN_ADVANCED'));
+});
+
+// ─── symmetrizeBoard: one-way edge support (board prep) ───────────────────────
+
+test('symmetrizeBoard makes edges bidirectional except listed one-way edges', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['b'], coordinates: { x: 0, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['c'], coordinates: { x: 1, y: 0 } },
+    c: { id: 'c', type: 'property', neighbors: ['a'], coordinates: { x: 2, y: 0 } },
+  };
+
+  symmetrizeBoard(board, [['b', 'c']]);
+
+  assert.ok(board.b.neighbors.includes('a'), 'a→b becomes bidirectional');
+  assert.ok(board.a.neighbors.includes('c'), 'c→a becomes bidirectional');
+  assert.ok(!board.c.neighbors.includes('b'), 'b→c stays one-way');
+
+  // Movement respects the direction: from c with roll 1 you can only reach a or b? — only a (and back along c→a reverse... a is bidirectional)
+  const { destinations } = findPaths(board, 'c', 1);
+  assert.ok(!destinations.includes('b') || board.c.neighbors.includes('b') === false, 'cannot step backward along one-way edge');
+  assert.deepEqual([...destinations].sort(), ['a']);
 });

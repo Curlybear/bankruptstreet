@@ -155,21 +155,34 @@ const DEFAULT_DISTRICTS: Record<string, District> = {
   bridges:  { id: 'bridges',  name: 'Bridges',  stockPrice: 5, propertyIds: ['bridge_north_1', 'bridge_north_2', 'bridge_south_1', 'bridge_south_2'], playerHoldings: {} },
 };
 
-function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 15000): GameState {
-  const players: Record<string, Player> = {};
-  for (const id of playerIds) {
-    players[id] = makePlayer(id);
-  }
-
-  const board = structuredClone(DEFAULT_BOARD);
+// Make every edge bidirectional, except edges listed in oneWayEdges
+// ([from, to] stays traversable from→to only). Boards are authored with
+// forward edges; this fills in the reverse direction for normal walking.
+// Mutates and returns the given board — pass a clone.
+export function symmetrizeBoard(
+  board: Record<string, Node>,
+  oneWayEdges: ReadonlyArray<readonly [string, string]> = [],
+): Record<string, Node> {
+  const oneWay = new Set(oneWayEdges.map(([from, to]) => `${from}>${to}`));
   for (const [nodeId, node] of Object.entries(board)) {
     for (const neighborId of node.neighbors) {
+      if (oneWay.has(`${nodeId}>${neighborId}`)) continue;
       const neighbor = board[neighborId];
       if (neighbor && !neighbor.neighbors.includes(nodeId)) {
         neighbor.neighbors.push(nodeId);
       }
     }
   }
+  return board;
+}
+
+function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 15000): GameState {
+  const players: Record<string, Player> = {};
+  for (const id of playerIds) {
+    players[id] = makePlayer(id);
+  }
+
+  const board = symmetrizeBoard(structuredClone(DEFAULT_BOARD));
 
   return {
     roomId,
