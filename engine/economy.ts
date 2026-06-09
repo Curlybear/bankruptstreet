@@ -1,11 +1,11 @@
 import type { GameState, District, Property, Player, VentureCard, BuildingType, Node } from '../shared/types.js';
 
 
-export const BASE_SALARY = 250;
-export const PROMO_BONUS_PER_LEVEL = 150;
-export const MAX_INVEST_PER_TURN = 999;
+export const BASE_SALARY = 100;
+export const PROMO_BONUS_PER_LEVEL = 50;
+export const MAX_SHARES_PER_DISTRICT = 99;
 export const STOCK_PRICE_CHANGE_THRESHOLD = 10;
-export const DISTRESS_SALE_RATE = 0.75;
+export const DISTRESS_SALE_RATE = 0.5;
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -195,7 +195,8 @@ export function buyoutProperty(state: GameState, buyerId: string, propertyId: st
     throw new Error(`Cannot afford buyout of ${propertyId} (need ${buyoutCost}g, have ${buyer.cash}g)`);
   }
 
-  const sellerPayout = prop.currentPrice * 3;
+  // Owner receives the full buyout price, as in the original game.
+  const sellerPayout = buyoutCost;
   const district = state.districts[prop.districtId];
 
   const updatedProps = {
@@ -305,7 +306,6 @@ export function invest(
     return recalcAllNetWorths(s1);
   }
 
-  if (amount > MAX_INVEST_PER_TURN) throw new Error(`Investment exceeds ${MAX_INVEST_PER_TURN}g cap`);
   if (amount > prop.maxCapital - prop.capitalInvested) throw new Error(`Investment exceeds maxCapital`);
   if (player.cash < amount) throw new Error(`Cannot afford investment`);
 
@@ -437,7 +437,10 @@ export function buyStock(
   if (!district) throw new Error(`District ${districtId} not found`);
   const cost = shares * district.stockPrice;
   if (!Number.isInteger(shares) || shares < 1) throw new Error(`Shares must be a positive integer`);
-  if (shares > 99) throw new Error(`Cannot purchase more than 99 stocks in one district at a time`);
+  const held = district.playerHoldings[playerId] ?? 0;
+  if (held + shares > MAX_SHARES_PER_DISTRICT) {
+    throw new Error(`Cannot hold more than ${MAX_SHARES_PER_DISTRICT} shares per district (holding ${held})`);
+  }
   if (player.cash < cost) throw new Error(`Cannot afford ${shares} shares (need ${cost}g)`);
 
   let newStockPrice = district.stockPrice;
@@ -1052,71 +1055,6 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
   }
 ];
 
-function getLineLength(grid: { cleared: boolean }[], index: number, dRow: number, dCol: number): number {
-  const row = Math.floor(index / 8);
-  const col = index % 8;
-  let count = 1; // counts the cell itself
-
-  // Go forward
-  let r = row + dRow;
-  let c = col + dCol;
-  while (r >= 0 && r < 8 && c >= 0 && c < 8) {
-    const idx = r * 8 + c;
-    if (grid[idx]?.cleared) {
-      count++;
-      r += dRow;
-      c += dCol;
-    } else {
-      break;
-    }
-  }
-
-  // Go backward
-  r = row - dRow;
-  c = col - dCol;
-  while (r >= 0 && r < 8 && c >= 0 && c < 8) {
-    const idx = r * 8 + c;
-    if (grid[idx]?.cleared) {
-      count++;
-      r -= dRow;
-      c -= dCol;
-    } else {
-      break;
-    }
-  }
-
-  return count;
-}
-
-function payoutForLength(len: number): number {
-  if (len === 4) return 40;
-  if (len === 5) return 50;
-  if (len === 6) return 60;
-  if (len === 7) return 70;
-  if (len >= 8) return 200;
-  return 0;
-}
-
-export function checkLineCompletions(grid: { cleared: boolean }[], index: number): number {
-  const directions = [
-    { dRow: 0, dCol: 1 },  // horizontal
-    { dRow: 1, dCol: 0 },  // vertical
-    { dRow: 1, dCol: 1 },  // diagonal main (\)
-    { dRow: 1, dCol: -1 }  // diagonal anti (/)
-  ];
-
-  let totalPayout = 0;
-
-  for (const { dRow, dCol } of directions) {
-    const len = getLineLength(grid, index, dRow, dCol);
-    if (len >= 4) {
-      totalPayout += payoutForLength(len);
-    }
-  }
-
-  return totalPayout;
-}
-
 function findNearestNodeOfType(state: GameState, startNodeId: string, type: Node['type']): string | null {
   const queue: string[] = [startNodeId];
   const visited = new Set<string>([startNodeId]);
@@ -1178,12 +1116,9 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
   const cardNumber = state.ventureGridCardIds[cardIndex];
   if (cardNumber === undefined) throw new Error(`Invalid cardIndex ${cardIndex}`);
 
-  // 1. Mark cleared
+  // Mark cleared
   const updatedGrid = [...state.ventureGrid];
   updatedGrid[cardIndex] = { cleared: true, playerId };
-
-  // 2. Check line completions
-  const linePayout = checkLineCompletions(updatedGrid, cardIndex);
 
   // Get template
   const cardListIndex = (cardNumber - 1) % VENTURE_CARDS_LIST.length;
@@ -1204,13 +1139,6 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
     ventureGrid: updatedGrid,
     activeVentureCard: card
   };
-
-  // Pay line payout
-  if (linePayout > 0) {
-    const p = s.players[playerId];
-    s.players[playerId] = { ...p, cash: p.cash + linePayout };
-    s.log.push(`[VENTURE LINE] ${p.name} completed a line! Received ${linePayout}G bonus.`);
-  }
 
   s.log.push(`[VENTURE CARD] ${player.name} drew Card #${card.number}: ${card.title} - ${card.text}`);
 
@@ -1241,14 +1169,20 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
         }
       }
       const dist = s.districts[bestDistrictId];
+      const held = dist.playerHoldings[playerId] ?? 0;
+      const grant = Math.min(5, MAX_SHARES_PER_DISTRICT - held);
+      if (grant <= 0) {
+        s.log.push(`[VENTURE EFFECT] ${player.name} already holds the maximum ${MAX_SHARES_PER_DISTRICT} shares of ${dist.name}.`);
+        break;
+      }
       s.districts[bestDistrictId] = {
         ...dist,
         playerHoldings: {
           ...dist.playerHoldings,
-          [playerId]: (dist.playerHoldings[playerId] ?? 0) + 5
+          [playerId]: held + grant
         }
       };
-      s.log.push(`[VENTURE EFFECT] ${player.name} received 5 shares of ${dist.name}.`);
+      s.log.push(`[VENTURE EFFECT] ${player.name} received ${grant} shares of ${dist.name}.`);
       break;
     }
 

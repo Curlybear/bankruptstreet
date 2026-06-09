@@ -1,3 +1,4 @@
+import { MAX_SHARES_PER_DISTRICT } from './economy.js';
 import type { GameState, Action } from '../shared/types.js';
 
 // Purchase price tracking for sell-on-drop logic (rule 1).
@@ -63,10 +64,12 @@ function pickStockBuy(state: GameState, botPlayerId: string): Action | null {
   if (!bestDistrictId) return null;
 
   const district = state.districts[bestDistrictId];
-  const cost = 10 * district.stockPrice;
-  if (district.stockPrice > 0 && player.cash >= cost) {
+  const held = district.playerHoldings[botPlayerId] ?? 0;
+  const shares = Math.min(10, MAX_SHARES_PER_DISTRICT - held);
+  const cost = shares * district.stockPrice;
+  if (shares > 0 && district.stockPrice > 0 && player.cash >= cost) {
     purchasePrices.set(`${botPlayerId}:${bestDistrictId}`, district.stockPrice);
-    return { type: 'BUY_STOCK', districtId: bestDistrictId, shares: 10 };
+    return { type: 'BUY_STOCK', districtId: bestDistrictId, shares };
   }
   return null;
 }
@@ -116,42 +119,11 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
 
     const node = state.board[player.currentNodeId];
 
-    if (node?.type === 'venture' || node?.type === 'suit') {
-      const grid = state.ventureGrid ?? Array.from({ length: 64 }, () => ({ cleared: false, playerId: null }));
-      let bestIndex = -1;
-      let highestScore = -1;
-      for (let i = 0; i < 64; i++) {
-        if (grid[i]?.cleared) continue;
-
-        const row = Math.floor(i / 8);
-        const col = i % 8;
-        let score = 0;
-
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            if (dr === 0 && dc === 0) continue;
-            const r = row + dr;
-            const c = col + dc;
-            if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-              const neighborIdx = r * 8 + c;
-              if (grid[neighborIdx]?.cleared) {
-                score++;
-              }
-            }
-          }
-        }
-
-        if (score > highestScore) {
-          highestScore = score;
-          bestIndex = i;
-        }
-      }
-
-      if (bestIndex === -1) {
-        bestIndex = grid.findIndex(cell => !cell.cleared);
-      }
-
-      return { type: 'CHOOSE_VENTURE_CARD', cardIndex: bestIndex };
+    if (node?.type === 'venture') {
+      // Cards are face-down and there is no line bonus — any uncleared pick is equal.
+      const grid = state.ventureGrid ?? [];
+      const firstUncleared = grid.findIndex(cell => !cell.cleared);
+      return { type: 'CHOOSE_VENTURE_CARD', cardIndex: firstUncleared === -1 ? 0 : firstUncleared };
     }
     if (node.type === 'vacant') {
       const prop = Object.values(state.properties).find(p => p.nodeId === node.id);

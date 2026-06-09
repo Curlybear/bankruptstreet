@@ -10,8 +10,6 @@ interface Props {
 
 function g(n: number) { return `${n}G`; }
 
-const MAX_INVEST = 999;
-
 function projectedRent(prop: Property, extra: number): number {
   const newCapital = prop.capitalInvested + extra;
   return Math.floor((prop.baseRent + Math.floor(newCapital / 10)) * prop.shopMultiplier);
@@ -22,7 +20,8 @@ export function ShopManagement({ state, property, emitAction, playerId }: Props)
 
   const isActive = playerId === state.currentPlayerId;
   const remaining = property.maxCapital - property.capitalInvested;
-  const maxInput = Math.min(Math.min(MAX_INVEST, remaining), state.players[playerId]?.cash ?? 0);
+  // No per-turn cap — invest up to capital headroom, bounded by cash.
+  const maxInput = Math.min(remaining, state.players[playerId]?.cash ?? 0);
   const district = state.districts[property.districtId];
   const fullyDone = remaining <= 0;
   const canInvest = isActive && !fullyDone && maxInput > 0;

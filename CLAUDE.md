@@ -62,7 +62,7 @@ All three phases are fully implemented. The engine is the source of truth — th
 `vacant` nodes hold a `Property` with optional `buildingType`. `BUILD_PLOT` (in `SPACE_ACTION`) and `RENOVATE_PLOT` (in `PRE_ROLL`) let players construct buildings. Building types: `checkpoint`, `circus`, `balloonport`, `tax_office`, `home`, `estate_agency`, `three_star_shop`. Each has custom rent/price logic in `recalcDistrictMultipliers` and `payRent`.
 
 ### Venture card grid
-`GameState.ventureGrid` is a 64-cell grid (8×8). Landing on a `venture` or `suit` node triggers `CHOOSE_VENTURE_CARD`. Lines of 4+ cleared cells pay bonuses. Grid reshuffles when all 64 are cleared.
+`GameState.ventureGrid` is a 64-cell grid (8×8) of face-down cards, each cell a unique card (1:1 with `VENTURE_CARDS_LIST`). Landing on a `venture` node triggers `CHOOSE_VENTURE_CARD` (suit nodes grant the suit only). Grid reshuffles when all 64 are cleared.
 
 ### Socket protocol
 Client emits `join_room` / `request_action`. Server responds with `state_sync` (full state, on join/reconnect) or `state_delta` (minimal diff, on every action). Client re-joins after each delta to get a fresh `state_sync` — this is intentional (see feedback memory).
@@ -123,7 +123,7 @@ This section contains the actual game rules reverse-engineered from the Wii game
 - Rent scales with capital invested. The price multiplier on the shop's `currentPrice` is re-applied when calculating rent.
 
 ### Investing in shops
-- When a player **lands on their own shop**, they may invest up to **999 gold per turn** (hard cap).
+- When a player **lands on their own shop**, they may invest any amount up to the shop's remaining `maxCapital` headroom (no per-turn cap, as in the original game).
 - There is no per-investment tier system — it is a continuous investment up to `maxCapital`.
 - Investing increases `capitalInvested` and raises `currentRent`.
 - Investing also raises the district's `stockPrice` (see stock price formula below).
@@ -141,9 +141,9 @@ stockPrice = floor(average(currentPrice of all shops in district) * 0.04)
 
 ### Buying and selling stock
 - Stock can be bought at: **bank square** (passing or landing), **stockbroker square** (landing only).
-- Players can buy **1 to 99 shares per transaction** in a single district.
+- Players can hold a maximum of **99 shares per district** (hard cap, as in the original game).
 - **Selling stock happens at the start of a turn (PRE_ROLL phase)**, before rolling the die. Players may sell from multiple districts before rolling.
-- There is **no fixed total share count** — the bank has unlimited shares to sell.
+- The bank has unlimited shares to sell — the only limit is the 99-share per-district holding cap.
 
 **Price impact of transactions (only triggers at 10+ shares):**
 - Buying or selling fewer than 10 shares → **no price change**
@@ -170,13 +170,13 @@ salary = baseSalary + floor(totalOwnedShopValue * 0.10) + promotionalBonus(level
 - After collecting, reset all 4 suits to false and increment `player.level`
 
 ### Win condition
-- A player wins by reaching `targetNetWorth` AND then **returning to the bank square**.
+- A player wins by reaching `targetNetWorth` AND then **returning to the bank square** (landing on it or passing it — both count).
 - Net worth = `player.cash + Σ(shares × stockPrice) + Σ(currentPrice of owned shops)`
 - The game also ends immediately if a player goes bankrupt (net worth < 0); the player with the highest net worth at that point wins.
 
 ### Bankruptcy
 - If a player's `cash` goes below 0, they must sell stocks or shops to cover the debt.
-- Bank buys shops at 75% of `currentPrice` when the player is in debt (distress sale).
+- Bank buys shops at 50% of `currentPrice` when the player is in debt (distress sale).
 - If net worth drops below 0 after liquidation, the player is bankrupt and eliminated.
 
 ---
@@ -319,9 +319,9 @@ Legal action map (node type matters within SPACE_ACTION):
 ```ts
 const BASE_SALARY = 100
 const PROMO_BONUS_PER_LEVEL = 50
-const MAX_INVEST_PER_TURN = 999
+const MAX_SHARES_PER_DISTRICT = 99        // hard cap on holdings per district per player
 const STOCK_PRICE_CHANGE_THRESHOLD = 10   // minimum shares for price to move
-const DISTRESS_SALE_RATE = 0.75           // bank buys at 75% when player is in debt
+const DISTRESS_SALE_RATE = 0.5            // bank buys at 50% when player is in debt
 ```
 
 **Functions:**
@@ -354,7 +354,7 @@ function buyProperty(state: GameState, playerId: string, propertyId: string): Ga
 
 // Player invests in their own shop (landed on it)
 function invest(state: GameState, playerId: string, propertyId: string, amount: number): GameState
-// - amount must be <= MAX_INVEST_PER_TURN and <= (maxCapital - capitalInvested)
+// - amount must be <= (maxCapital - capitalInvested); no per-turn cap
 // - Deduct from player.cash, add to property.capitalInvested
 // - Increase currentRent proportionally
 // - Call recalcStockPrice (investment raises shop value which drives stock price)
@@ -402,14 +402,15 @@ function collectSalary(state: GameState, playerId: string): GameState
 
 // Check if player has won (call after any net worth change)
 function checkWinCondition(state: GameState, playerId: string): GameState
-// - If player.netWorth >= state.targetNetWorth AND player is at a bank node:
+// - If player.netWorth >= state.targetNetWorth AND player is at a bank node
+//   (or just passed the bank this move — pass-through counts):
 //     set state.winnerId = playerId
 
 // Check and handle bankruptcy (call after any cash reduction)
 function checkBankruptcy(state: GameState, playerId: string): GameState
 // - If player.cash < 0, trigger forced liquidation:
 //     sell stocks at current price until cash >= 0 or no stocks remain
-//     if still cash < 0, sell shops at DISTRESS_SALE_RATE (75%) until cash >= 0
+//     if still cash < 0, sell shops at DISTRESS_SALE_RATE (50%) until cash >= 0
 //     if net worth < 0 after all liquidation, set player.isBankrupt = true
 //     increment state.bankruptCount
 
@@ -521,7 +522,7 @@ Priority order:
 
 7. **Commission is paid by the bank.** The 10% dividend shareholders receive does not reduce the renter's payment. It is a separate bank payout.
 
-8. **Win requires returning to bank.** Reaching targetNetWorth mid-board does not win. The player must then reach a bank square.
+8. **Win requires returning to bank.** Reaching targetNetWorth mid-board does not win. The player must then reach a bank square — landing on it or passing it both count.
 
 9. **Salary is not a flat bonus.** It is `baseSalary + 10% of owned shop value + level bonus`. It grows as the player builds up shops.
 
