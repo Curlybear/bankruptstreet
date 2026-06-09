@@ -89,6 +89,7 @@ export interface Player {
   propertyIds: string[];
   isBankrupt: boolean;
   characterId?: string;  // roster character (drives bot personality; cosmetic for humans)
+  arrivedFromNodeId?: string;  // node walked from on arrival — next roll can't start back that way
   shopsClosedUntilNextTurn?: boolean;
   shopPricesHalvedUntilNextTurn?: boolean;
   shopRentsDoubledUntilNextTurn?: boolean;

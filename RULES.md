@@ -21,7 +21,7 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 ## Your Turn
 
 1. **Before rolling** you may **sell stock** (any number of districts) and renovate plots you own.
-2. **Roll the die** and move. At branching paths, you choose the direction. You cannot reverse mid-move.
+2. **Roll the die** and move. At branching paths, you choose the direction. You cannot reverse mid-move, and you cannot start your move back the way you came last turn (unless it's your only exit). Teleports reset your direction.
 3. **Resolve the square** you land on (see Squares below).
 4. Turn passes to the next player.
 

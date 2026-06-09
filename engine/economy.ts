@@ -1548,7 +1548,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
 
     case 'WARP_BANK': {
       const p = s.players[playerId];
-      s.players[playerId] = { ...p, currentNodeId: 'bank' };
+      s.players[playerId] = { ...p, currentNodeId: 'bank', arrivedFromNodeId: undefined };
       s.log.push(`[VENTURE EFFECT] ${p.name} teleported to the Bank!`);
       break;
     }
@@ -1557,7 +1557,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
       const p = s.players[playerId];
       const vacantNodeId = findNearestVacantProperty(s, p.currentNodeId);
       if (vacantNodeId) {
-        s.players[playerId] = { ...p, currentNodeId: vacantNodeId };
+        s.players[playerId] = { ...p, currentNodeId: vacantNodeId, arrivedFromNodeId: undefined };
         s.log.push(`[VENTURE EFFECT] ${p.name} warped to nearest vacant node ${vacantNodeId}!`);
       } else {
         s.log.push(`[VENTURE EFFECT] No vacant properties available to warp to.`);
@@ -1841,7 +1841,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
       const p = s.players[playerId];
       const brokerNodeId = findNearestNodeOfType(s, p.currentNodeId, 'stockbroker');
       if (brokerNodeId) {
-        s.players[playerId] = { ...p, currentNodeId: brokerNodeId };
+        s.players[playerId] = { ...p, currentNodeId: brokerNodeId, arrivedFromNodeId: undefined };
         s.log.push(`[VENTURE EFFECT] ${p.name} was carried to the stockbroker at ${brokerNodeId}!`);
       } else {
         s.log.push(`[VENTURE EFFECT] No stockbroker on this board — the carriage goes nowhere.`);

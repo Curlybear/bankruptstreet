@@ -101,7 +101,7 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
   // Player movement (ROLL_DICE auto-resolve, or CHOOSE_PATH)
   if (bPlayer.currentNodeId !== aPlayer.currentNodeId) {
     const roll = after.lastRoll?.[pid];
-    const path = getPath(after.board, bPlayer.currentNodeId, aPlayer.currentNodeId, roll);
+    const path = getPath(after.board, bPlayer.currentNodeId, aPlayer.currentNodeId, roll, bPlayer.arrivedFromNodeId);
     deltas.push({ type: 'PLAYER_MOVED', payload: { playerId: pid, path, finalNodeId: aPlayer.currentNodeId } });
   }
 

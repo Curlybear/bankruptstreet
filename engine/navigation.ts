@@ -8,7 +8,8 @@ export interface PathResult {
 export function findPaths(
   board: Record<string, Node>,
   startNodeId: string,
-  diceRoll: number
+  diceRoll: number,
+  blockedFirstStep?: string,   // arrival direction — the first step may not go back this way
 ): PathResult {
   const destinations = new Set<string>();
   const decisionPoints = new Set<string>();
@@ -43,6 +44,8 @@ export function findPaths(
     for (const neighborId of node.neighbors) {
       // Prevent immediate backtracking
       if (neighborId === prevNodeId) continue;
+      // The very first step may not return the way the player arrived last move
+      if (stepsLeft === diceRoll && neighborId === blockedFirstStep) continue;
 
       const newStepsLeft = stepsLeft - 1;
       const neighbor = board[neighborId];
@@ -66,10 +69,28 @@ export function getPath(
   board: Record<string, Node>,
   from: string,
   to: string,
-  roll?: number
+  roll?: number,
+  blockedFirstStep?: string,
 ): string[] {
   if (from === to) return [from];
 
+  // Prefer honoring the first-step block; if no path exists that way
+  // (player was trapped and allowed to backtrack), retry without it.
+  if (blockedFirstStep !== undefined) {
+    const blockedResult = findExactOrShortestPath(board, from, to, roll, blockedFirstStep);
+    if (blockedResult) return blockedResult;
+  }
+  return findExactOrShortestPath(board, from, to, roll) ?? [from, to];
+}
+
+// Returns null when no path exists under the given constraints.
+function findExactOrShortestPath(
+  board: Record<string, Node>,
+  from: string,
+  to: string,
+  roll?: number,
+  blockedFirstStep?: string,
+): string[] | null {
   if (roll !== undefined && roll > 0) {
     // Find a path of exactly 'roll' steps without immediate backtracking
     const queue: Array<{ nodeId: string; path: string[]; steps: number }> = [
@@ -90,6 +111,10 @@ export function getPath(
       for (const neighborId of node.neighbors) {
         // Prevent immediate backtracking
         if (path.length > 1 && neighborId === path[path.length - 2]) {
+          continue;
+        }
+        // First step may not return the way the player arrived
+        if (path.length === 1 && neighborId === blockedFirstStep) {
           continue;
         }
 
@@ -122,6 +147,7 @@ export function getPath(
 
     for (const neighborId of node.neighbors) {
       if (visited.has(neighborId)) continue;
+      if (path.length === 1 && neighborId === blockedFirstStep) continue;
       visited.add(neighborId);
 
       const newPath = [...path, neighborId];
@@ -139,5 +165,5 @@ export function getPath(
     }
   }
 
-  return [from, to];
+  return null;
 }

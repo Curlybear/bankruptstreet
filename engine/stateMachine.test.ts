@@ -560,3 +560,107 @@ test('landing on a break square grants roll×20G and auto-advances the turn', ()
     Math.random = origRandom;
   }
 });
+
+// ─── No walking back the way you came ─────────────────────────────────────────
+
+test('roll cannot start back the way the player arrived', () => {
+  // Linear corridor a—b—c (bidirectional). Player at b, arrived from a.
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['b'], coordinates: { x: 0, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['a', 'c'], coordinates: { x: 1, y: 0 } },
+    c: { id: 'c', type: 'bank', neighbors: ['b'], coordinates: { x: 2, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'b', arrivedFromNodeId: 'a' }),
+      p2: makePlayer('p2', { currentNodeId: 'c' }),
+    },
+  });
+
+  // Roll 1: only forward to c is legal (a is the arrival direction) — no branch choice
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'c');       // forced forward
+    assert.equal(next.players.p1.arrivedFromNodeId, 'b');   // memory updated
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('without arrival memory the same roll offers both directions', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['b'], coordinates: { x: 0, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['a', 'c'], coordinates: { x: 1, y: 0 } },
+    c: { id: 'c', type: 'bank', neighbors: ['b'], coordinates: { x: 2, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'b' }),   // no arrivedFromNodeId
+      p2: makePlayer('p2', { currentNodeId: 'c' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.currentPhase, 'CHOOSING_PATH');
+    assert.deepEqual([...(next.pendingDestinations ?? [])].sort(), ['a', 'c']);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('dead-end node: backtracking allowed when it is the only way out', () => {
+  // cul: only neighbor is b; player arrived from b. Block would strand them.
+  const board: Record<string, Node> = {
+    b: { id: 'b', type: 'bank', neighbors: ['cul'], coordinates: { x: 0, y: 0 } },
+    cul: { id: 'cul', type: 'property', neighbors: ['b'], coordinates: { x: 1, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'cul', arrivedFromNodeId: 'b' }),
+      p2: makePlayer('p2', { currentNodeId: 'b' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'b');   // fallback let them out
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('teleport clears arrival memory (free direction choice after warping)', () => {
+  const board: Record<string, Node> = {
+    bank: { id: 'bank', type: 'bank', neighbors: ['bp'], coordinates: { x: 0, y: 0 } },
+    bp: { id: 'bp', type: 'vacant', neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
+  };
+  const balloonport: Property = {
+    id: 'bp', nodeId: 'bp', districtId: 'd1', ownerId: 'p1',
+    basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 200,
+    capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'balloonport',
+  };
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'bp', arrivedFromNodeId: 'bank', propertyIds: ['bp'] }),
+      p2: makePlayer('p2'),
+    },
+    properties: { bp: balloonport },
+    districts: { d1: { id: 'd1', name: 'D1', stockPrice: 8, propertyIds: ['bp'], playerHoldings: {} } },
+  });
+
+  const next = applyAction(state, { type: 'TELEPORT', nodeId: 'bank' });
+  assert.equal(next.players.p1.currentNodeId, 'bank');
+  assert.equal(next.players.p1.arrivedFromNodeId, undefined);
+});

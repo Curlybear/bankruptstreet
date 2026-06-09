@@ -56,7 +56,8 @@ export function Rules({ onClose }: Props) {
         <div style={h2}>Your Turn</div>
         <div style={p}>
           <strong>1.</strong> Before rolling: sell stock, renovate your plots.{' '}
-          <strong>2.</strong> Roll and move — you pick the direction at forks, no reversing mid-move.{' '}
+          <strong>2.</strong> Roll and move — you pick the direction at forks; no reversing mid-move,
+          and no starting back the way you came last turn (unless trapped).{' '}
           <strong>3.</strong> Resolve the square you land on.
           Suits you walk over are collected automatically; passing the bank earns a stock-buying
           chance, your salary (with all 4 suits), and the win check.

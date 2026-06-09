@@ -285,6 +285,9 @@ function findPaths(board: Record<string, Node>, startNodeId: string, diceRoll: n
 - A `decisionPoint` is a mid-move node with more than 1 neighbor (not the final destination).
 - Warp nodes: teleport to `pairedNodeId` and continue counting steps from there.
 - Return all valid destinations so the UI can present a choice.
+- `blockedFirstStep` (the player's `arrivedFromNodeId`) forbids starting the move back the way
+  the player came; ROLL_DICE retries unblocked if that leaves zero destinations (dead-end nodes).
+  Teleports/warps clear `arrivedFromNodeId`.
 
 ---
 

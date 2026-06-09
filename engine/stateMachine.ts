@@ -237,7 +237,7 @@ function resolveSpace(state: GameState): GameState {
         const movedPlayers = { ...state.players };
         for (const pid of state.turnOrder) {
           if (pid !== player.id) {
-            movedPlayers[pid] = { ...movedPlayers[pid], currentNodeId: node.id };
+            movedPlayers[pid] = { ...movedPlayers[pid], currentNodeId: node.id, arrivedFromNodeId: undefined };
           }
         }
         const s: GameState = {
@@ -303,7 +303,14 @@ export function applyAction(state: GameState, action: Action): GameState {
         throw new Error(`Illegal action ROLL_DICE in phase ${currentPhase}`);
       }
       const roll = Math.floor(Math.random() * 6) + 1;
-      const { destinations, decisionPoints } = findPaths(state.board, player.currentNodeId, roll);
+      // The first step may not go back the way the player arrived. If that
+      // leaves no legal move (dead-end node), allow backtracking as fallback.
+      const blocked = player.arrivedFromNodeId;
+      let result = findPaths(state.board, player.currentNodeId, roll, blocked);
+      if (result.destinations.length === 0) {
+        result = findPaths(state.board, player.currentNodeId, roll);
+      }
+      const { destinations, decisionPoints } = result;
       const logMsg = `${player.name} rolled a ${roll}!`;
       const nextLastRoll = { ...state.lastRoll, [currentPlayerId]: roll };
 
@@ -317,14 +324,21 @@ export function applyAction(state: GameState, action: Action): GameState {
         };
       }
 
+      const path = getPath(state.board, player.currentNodeId, destinations[0], roll, blocked);
       const nextState = {
         ...state,
-        players: { ...state.players, [currentPlayerId]: { ...player, currentNodeId: destinations[0] } },
+        players: {
+          ...state.players,
+          [currentPlayerId]: {
+            ...player,
+            currentNodeId: destinations[0],
+            arrivedFromNodeId: path.length >= 2 ? path[path.length - 2] : undefined,
+          },
+        },
         lastRoll: nextLastRoll,
         log: [...state.log, logMsg],
       };
 
-      const path = getPath(state.board, player.currentNodeId, destinations[0], roll);
       const stateWithSuits = processPathMovement(nextState, currentPlayerId, path);
       if (stateWithSuits.winnerId) return stateWithSuits;
 
@@ -339,14 +353,21 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (!validDests.includes(action.nodeId)) {
         throw new Error(`Node ${action.nodeId} is not a valid destination`);
       }
+      const roll = state.lastRoll?.[currentPlayerId] ?? 0;
+      const path = getPath(state.board, player.currentNodeId, action.nodeId, roll, player.arrivedFromNodeId);
       const nextState = {
         ...state,
-        players: { ...state.players, [currentPlayerId]: { ...player, currentNodeId: action.nodeId } },
+        players: {
+          ...state.players,
+          [currentPlayerId]: {
+            ...player,
+            currentNodeId: action.nodeId,
+            arrivedFromNodeId: path.length >= 2 ? path[path.length - 2] : undefined,
+          },
+        },
         pendingDestinations: undefined,
       };
 
-      const roll = state.lastRoll?.[currentPlayerId] ?? 0;
-      const path = getPath(state.board, player.currentNodeId, action.nodeId, roll);
       const stateWithSuits = processPathMovement(nextState, currentPlayerId, path);
       if (stateWithSuits.winnerId) return stateWithSuits;
 
@@ -498,7 +519,7 @@ export function applyAction(state: GameState, action: Action): GameState {
         log: [...state.log, `[TELEPORT] ${player.name} traveled from ${node.id} to ${nodeId} via Balloonport!`],
         players: {
           ...state.players,
-          [currentPlayerId]: { ...player, currentNodeId: nodeId },
+          [currentPlayerId]: { ...player, currentNodeId: nodeId, arrivedFromNodeId: undefined },
         },
       };
 
