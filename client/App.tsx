@@ -5,6 +5,7 @@ import { PlayerStats } from './modals/PlayerStats';
 import { StockExchange } from './modals/StockExchange';
 import { ShopManagement } from './modals/ShopManagement';
 import { CHARACTERS } from '../shared/characters';
+import { Rules } from './modals/Rules';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
@@ -26,6 +27,7 @@ export default function App() {
   const [pendingAction, setPendingAction] = useState(false);
   const pendingActionRef = useRef(false);
   const [showStockMatrix, setShowStockMatrix] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   // Main menu inputs
@@ -93,7 +95,27 @@ export default function App() {
           <p style={{ color: '#64748b', fontSize: 14, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>
             Itadaki Street Clone • Dragon Quest Edition
           </p>
+          <button
+            onClick={() => setShowRules(true)}
+            style={{
+              marginTop: 12,
+              background: 'rgba(250, 204, 21, 0.08)',
+              border: '1px solid rgba(250, 204, 21, 0.25)',
+              padding: '6px 18px',
+              borderRadius: 20,
+              cursor: 'pointer',
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#facc15',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+            }}
+          >
+            📜 How to Play
+          </button>
         </div>
+
+        {showRules && <Rules onClose={() => setShowRules(false)} />}
 
         <div style={{
           display: 'flex',
@@ -1698,6 +1720,29 @@ export default function App() {
           📊 Stock Holdings Matrix
         </button>
 
+        {/* Rules Button */}
+        <button
+          onClick={() => setShowRules(true)}
+          style={{
+            background: 'rgba(250, 204, 21, 0.08)',
+            border: '1px solid rgba(250, 204, 21, 0.25)',
+            padding: '5px 14px',
+            borderRadius: 20,
+            cursor: 'pointer',
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: '#facc15',
+            letterSpacing: '0.8px',
+            textTransform: 'uppercase',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+        >
+          📜 Rules
+        </button>
+
         {/* User Identity tag */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10.5, fontWeight: 600, color: '#64748b' }}>PILOT CARD:</span>
@@ -2077,6 +2122,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 4b. Rules Modal Overlay */}
+      {showRules && <Rules onClose={() => setShowRules(false)} />}
 
       {/* 5. Stock Holdings Matrix Modal Overlay */}
       {showStockMatrix && state && (
