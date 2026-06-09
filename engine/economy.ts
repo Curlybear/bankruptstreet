@@ -1,4 +1,4 @@
-import type { GameState, District, Property, Player, VentureCard, BuildingType } from '../shared/types.js';
+import type { GameState, District, Property, Player, VentureCard, BuildingType, Node } from '../shared/types.js';
 
 
 export const BASE_SALARY = 250;
@@ -363,11 +363,14 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
 
   const isClosed = !!owner.shopsClosedUntilNextTurn;
   const isHalved = !isClosed && !!owner.shopPricesHalvedUntilNextTurn;
+  const isDoubled = !isClosed && !isHalved && !!owner.shopRentsDoubledUntilNextTurn;
 
   if (isClosed) {
     rent = 0;
   } else if (isHalved) {
     rent = Math.floor(rent / 2);
+  } else if (isDoubled) {
+    rent = rent * 2;
   }
 
   const totalShares = Object.values(district.playerHoldings).reduce((s, n) => s + n, 0);
@@ -397,6 +400,8 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
     s1.log.push(`[RENT] ${owner.name}'s shop at ${propertyId} is temporarily closed! Rent of ${prop.currentRent}g is waived.`);
   } else if (isHalved) {
     s1.log.push(`[RENT] ${payer.name} paid halved rent of ${rent}g (originally ${prop.currentRent}g) to ${owner.name}.`);
+  } else if (isDoubled) {
+    s1.log.push(`[RENT] ${payer.name} paid doubled rent of ${rent}g (originally ${prop.currentRent}g) to ${owner.name}.`);
   }
 
   // Boon/Boom Player commissions on rent
@@ -663,7 +668,7 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
   {
     title: 'Income Tax',
     text: 'The kingdom demands taxes! Pay 100G cash.',
-    payout: 0,
+    payout: 100,
     effectType: 'CASH_LOSS'
   },
   {
@@ -737,7 +742,7 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
   {
     title: 'Charity Tax',
     text: 'Supporting the community! Pay 150G cash.',
-    payout: 0,
+    payout: 150,
     effectType: 'CASH_LOSS'
   },
   {
@@ -797,8 +802,249 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
   {
     title: 'Big Commission',
     text: 'Boon times! Receive a 50% commission funded by the bank on all other players\' payments until your next turn.',
-    payout: 0,
+    payout: 50,
     effectType: 'COMMISSION_TEMP'
+  },
+  // ── Cards 25-64: expanded pool modeled on the original game's venture deck ──
+  {
+    title: 'Venture On!',
+    text: 'Adventure calls! Roll the die again after this turn ends.',
+    payout: 0,
+    effectType: 'ROLL_AGAIN'
+  },
+  {
+    title: 'Roadside Coins',
+    text: 'You spot coins glinting in the dirt! Gain 100G cash.',
+    payout: 100,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Hidden Treasure Chest',
+    text: 'You pry open a forgotten chest! Gain 500G cash.',
+    payout: 500,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Highway Robbery',
+    text: 'Bandits ambush you on the road! Pay 200G cash.',
+    payout: 200,
+    effectType: 'CASH_LOSS'
+  },
+  {
+    title: 'Seniority Bonus',
+    text: 'Experience pays! Receive 40G for each promotion level you hold.',
+    payout: 40,
+    effectType: 'CASH_GAIN_PER_LEVEL'
+  },
+  {
+    title: 'Suit Collector\'s Purse',
+    text: 'Style rewarded! Receive 50G for each suit symbol you hold.',
+    payout: 50,
+    effectType: 'CASH_GAIN_PER_SUIT'
+  },
+  {
+    title: 'Birthday Celebration',
+    text: 'It\'s your birthday! Every other player gives you 30G.',
+    payout: 30,
+    effectType: 'CASH_FROM_EACH_PLAYER'
+  },
+  {
+    title: 'Round of Drinks',
+    text: 'Generosity strikes! Pay every other player 20G.',
+    payout: 20,
+    effectType: 'CASH_TO_EACH_PLAYER'
+  },
+  {
+    title: 'Capital Gains Levy',
+    text: 'The taxman eyes your portfolio! Pay 10% of your total stock value.',
+    payout: 0,
+    effectType: 'STOCK_TAX_10'
+  },
+  {
+    title: 'Free Renovation',
+    text: 'A master builder volunteers! 100G of free capital is invested into your most valuable shop.',
+    payout: 100,
+    effectType: 'FREE_CAPITAL'
+  },
+  {
+    title: 'Property Boom',
+    text: 'Land values soar! All your shops increase base value and rent by 10%.',
+    payout: 0,
+    effectType: 'ALL_SHOPS_PRICE_UP'
+  },
+  {
+    title: 'Express Carriage',
+    text: 'A carriage whisks you away to the nearest stockbroker!',
+    payout: 0,
+    effectType: 'WARP_BROKER'
+  },
+  {
+    title: 'Insider Tip',
+    text: 'A friendly broker slips you 5 bonus shares in your strongest district.',
+    payout: 0,
+    effectType: 'STOCK_GAIN'
+  },
+  {
+    title: 'Trading Frenzy',
+    text: 'The exchange erupts! Stock price in all districts increases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_BUFF'
+  },
+  {
+    title: 'Market Correction',
+    text: 'Panicked selling! Stock price in a random district decreases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_SLUMP'
+  },
+  {
+    title: 'Generous Traveler',
+    text: 'A kindly stranger gifts you a missing suit card!',
+    payout: 0,
+    effectType: 'SUIT_GIFT'
+  },
+  {
+    title: 'Heartfelt Gift',
+    text: 'Freebie! Take a heart! (If you already have a heart, you get 100G instead.)',
+    payout: 0,
+    effectType: 'SUIT_HEART_OR_CASH'
+  },
+  {
+    title: 'Royal Summons',
+    text: 'The king demands your presence! You are teleported directly to the Bank.',
+    payout: 0,
+    effectType: 'WARP_BANK'
+  },
+  {
+    title: 'Land Rush',
+    text: 'Opportunity knocks! Warp to the nearest vacant shop.',
+    payout: 0,
+    effectType: 'WARP_VACANT'
+  },
+  {
+    title: 'Pickpocketed',
+    text: 'A cutpurse strikes! You lose 10% of your ready cash.',
+    payout: 0,
+    effectType: 'CASH_PERCENT_LOSS'
+  },
+  {
+    title: 'Quarterly Dividend',
+    text: 'Special bonus! You receive a 10% dividend on your stocks!',
+    payout: 0,
+    effectType: 'STOCK_DIVIDEND_10'
+  },
+  {
+    title: 'Annual Dividend',
+    text: 'Special bonus! You receive a 20% dividend on your stocks!',
+    payout: 0,
+    effectType: 'STOCK_DIVIDEND_20'
+  },
+  {
+    title: 'Dicey Gamble',
+    text: 'Roll a die. If odd, your shops close until your next turn. If even, all other players\' shops close!',
+    payout: 0,
+    effectType: 'DICEY_CLOSED'
+  },
+  {
+    title: 'Clearance Sale',
+    text: 'Stock must go! Your shop rents are halved until your next turn.',
+    payout: 0,
+    effectType: 'HALF_RENT_TEMP'
+  },
+  {
+    title: 'Sales Frenzy',
+    text: 'Customers flood in! Your shop rents are doubled until your next turn.',
+    payout: 0,
+    effectType: 'DOUBLE_RENT_TEMP'
+  },
+  {
+    title: 'Broker\'s Cut',
+    text: 'Boon times! Receive a 25% commission funded by the bank on all other players\' payments until your next turn.',
+    payout: 25,
+    effectType: 'COMMISSION_TEMP'
+  },
+  {
+    title: 'Renovation Award',
+    text: 'Recognition! One of your properties boosts base value and rent by 20%.',
+    payout: 0,
+    effectType: 'PROP_BUFF'
+  },
+  {
+    title: 'Franchise Bonus',
+    text: 'Special bonus! You receive 35 times the number of shops you own in gold coins from the bank!',
+    payout: 35,
+    effectType: 'SHOP_MULTIPLIER_BONUS'
+  },
+  {
+    title: 'Lucky Find',
+    text: 'Fortune smiles! Gain 150G cash.',
+    payout: 150,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Royal Reward',
+    text: 'The crown honors your service! Gain 250G cash.',
+    payout: 250,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Toll Road',
+    text: 'An unexpected toll gate! Pay 50G cash.',
+    payout: 50,
+    effectType: 'CASH_LOSS'
+  },
+  {
+    title: 'Executive Bonus',
+    text: 'Rank has its privileges! Receive 60G for each promotion level you hold.',
+    payout: 60,
+    effectType: 'CASH_GAIN_PER_LEVEL'
+  },
+  {
+    title: 'Victory Parade',
+    text: 'The crowd showers you with gifts! Every other player gives you 50G.',
+    payout: 50,
+    effectType: 'CASH_FROM_EACH_PLAYER'
+  },
+  {
+    title: 'Second Wind',
+    text: 'Energy surges through you! Roll the die again after this turn ends.',
+    payout: 0,
+    effectType: 'ROLL_AGAIN'
+  },
+  {
+    title: 'District Speculation',
+    text: 'Rumors spread fast! Stock price in all districts increases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_BUFF'
+  },
+  {
+    title: 'Bubble Burst',
+    text: 'Confidence wavers! Stock price in a random district decreases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_SLUMP'
+  },
+  {
+    title: 'Guild Sponsorship',
+    text: 'The merchants\' guild backs you! 100G of free capital is invested into your most valuable shop.',
+    payout: 100,
+    effectType: 'FREE_CAPITAL'
+  },
+  {
+    title: 'Urban Renewal',
+    text: 'The whole street prospers! All your shops increase base value and rent by 10%.',
+    payout: 0,
+    effectType: 'ALL_SHOPS_PRICE_UP'
+  },
+  {
+    title: 'Windfall',
+    text: 'A grateful merchant repays an old debt! Gain 300G cash.',
+    payout: 300,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Royal Audience',
+    text: 'The court admires your finery! Receive 75G for each suit symbol you hold.',
+    payout: 75,
+    effectType: 'CASH_GAIN_PER_SUIT'
   }
 ];
 
@@ -865,6 +1111,28 @@ export function checkLineCompletions(grid: { cleared: boolean }[], index: number
   }
 
   return totalPayout;
+}
+
+function findNearestNodeOfType(state: GameState, startNodeId: string, type: Node['type']): string | null {
+  const queue: string[] = [startNodeId];
+  const visited = new Set<string>([startNodeId]);
+
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    const node = state.board[curr];
+    if (!node) continue;
+
+    if (node.type === type && curr !== startNodeId) return curr;
+
+    for (const neighborId of node.neighbors) {
+      if (!visited.has(neighborId)) {
+        visited.add(neighborId);
+        queue.push(neighborId);
+      }
+    }
+  }
+
+  return null;
 }
 
 function findNearestVacantProperty(state: GameState, startNodeId: string): string | null {
@@ -952,7 +1220,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
 
     case 'CASH_LOSS': {
       const p = s.players[playerId];
-      const loss = card.title === 'Income Tax' ? 100 : 150;
+      const loss = card.payout > 0 ? card.payout : 100;
       s.players[playerId] = { ...p, cash: p.cash - loss };
       s = checkBankruptcy(s, playerId);
       break;
@@ -1083,7 +1351,8 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
 
     case 'SHOP_MULTIPLIER_BONUS': {
       const p = s.players[playerId];
-      const bonus = p.propertyIds.length * 27;
+      const perShop = card.payout > 0 ? card.payout : 27;
+      const bonus = p.propertyIds.length * perShop;
       s.players[playerId] = { ...p, cash: p.cash + bonus };
       s.log.push(`[VENTURE EFFECT] ${p.name} owns ${p.propertyIds.length} shops and receives a bonus of ${bonus}G!`);
       break;
@@ -1197,11 +1466,155 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
     }
 
     case 'COMMISSION_TEMP': {
+      const pct = card.payout > 0 ? card.payout : 50;
       s.players[playerId] = {
         ...s.players[playerId],
-        commissionUntilNextTurn: 50
+        commissionUntilNextTurn: pct
       };
-      s.log.push(`[VENTURE EFFECT] ${player.name} gets a 50% commission on all other players' transactions until their next turn!`);
+      s.log.push(`[VENTURE EFFECT] ${player.name} gets a ${pct}% commission on all other players' transactions until their next turn!`);
+      break;
+    }
+
+    case 'CASH_GAIN_PER_LEVEL': {
+      const p = s.players[playerId];
+      const gain = card.payout * p.level;
+      s.players[playerId] = { ...p, cash: p.cash + gain };
+      s.log.push(`[VENTURE EFFECT] ${p.name} (level ${p.level}) received ${gain}G!`);
+      break;
+    }
+
+    case 'CASH_GAIN_PER_SUIT': {
+      const p = s.players[playerId];
+      const suitCount = (['heart', 'diamond', 'club', 'spade'] as const)
+        .filter(suit => p.suits[suit]).length;
+      const gain = card.payout * suitCount;
+      s.players[playerId] = { ...p, cash: p.cash + gain };
+      s.log.push(`[VENTURE EFFECT] ${p.name} holds ${suitCount} suits and received ${gain}G!`);
+      break;
+    }
+
+    case 'CASH_FROM_EACH_PLAYER': {
+      let collected = 0;
+      const payers: string[] = [];
+      for (const pId of Object.keys(s.players)) {
+        if (pId === playerId || s.players[pId].isBankrupt) continue;
+        const payer = s.players[pId];
+        s.players[pId] = { ...payer, cash: payer.cash - card.payout };
+        collected += card.payout;
+        payers.push(pId);
+      }
+      const p = s.players[playerId];
+      s.players[playerId] = { ...p, cash: p.cash + collected };
+      s.log.push(`[VENTURE EFFECT] Every player paid ${p.name} ${card.payout}G (${collected}G total)!`);
+      for (const pId of payers) {
+        s = checkBankruptcy(s, pId);
+      }
+      break;
+    }
+
+    case 'CASH_TO_EACH_PLAYER': {
+      let paid = 0;
+      for (const pId of Object.keys(s.players)) {
+        if (pId === playerId || s.players[pId].isBankrupt) continue;
+        const receiver = s.players[pId];
+        s.players[pId] = { ...receiver, cash: receiver.cash + card.payout };
+        paid += card.payout;
+      }
+      const p = s.players[playerId];
+      s.players[playerId] = { ...p, cash: p.cash - paid };
+      s.log.push(`[VENTURE EFFECT] ${p.name} paid every player ${card.payout}G (${paid}G total)!`);
+      s = checkBankruptcy(s, playerId);
+      break;
+    }
+
+    case 'STOCK_TAX_10': {
+      const p = s.players[playerId];
+      let stockValue = 0;
+      for (const district of Object.values(s.districts)) {
+        const shares = district.playerHoldings[playerId] ?? 0;
+        stockValue += shares * district.stockPrice;
+      }
+      const tax = Math.floor(stockValue * 0.10);
+      s.players[playerId] = { ...p, cash: p.cash - tax };
+      s.log.push(`[VENTURE EFFECT] ${p.name} paid a capital gains levy of ${tax}G (10% of stock value)!`);
+      s = checkBankruptcy(s, playerId);
+      break;
+    }
+
+    case 'FREE_CAPITAL': {
+      const p = s.players[playerId];
+      // Best = highest-value owned shop that still has capital headroom
+      const candidates = p.propertyIds
+        .map(pid => s.properties[pid])
+        .filter((prop): prop is Property => !!prop && prop.maxCapital > prop.capitalInvested)
+        .sort((a, b) => b.currentPrice - a.currentPrice);
+      if (candidates.length === 0) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} has no shop with room for free capital.`);
+        break;
+      }
+      const target = candidates[0];
+      const amount = Math.min(card.payout > 0 ? card.payout : 100, target.maxCapital - target.capitalInvested);
+      const newCapital = target.capitalInvested + amount;
+      s.properties[target.id] = {
+        ...target,
+        capitalInvested: newCapital,
+        currentPrice: target.basePrice * target.shopMultiplier + newCapital,
+        currentRent: Math.floor((target.baseRent + Math.floor(newCapital / 10)) * target.shopMultiplier),
+      };
+      const dist = s.districts[target.districtId];
+      s.properties = recalcDistrictMultipliers(dist, s.properties, s.players);
+      s.districts[target.districtId] = { ...dist, stockPrice: recalcStockPrice(dist, s.properties) };
+      s.log.push(`[VENTURE EFFECT] ${p.name}'s shop ${target.id} received ${amount}G of free capital!`);
+      break;
+    }
+
+    case 'ALL_SHOPS_PRICE_UP': {
+      const p = s.players[playerId];
+      const shopIds = p.propertyIds.filter(pid => {
+        const prop = s.properties[pid];
+        return prop && prop.buildingType === undefined;
+      });
+      if (shopIds.length === 0) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} owns no shops to boost.`);
+        break;
+      }
+      const affectedDistricts = new Set<string>();
+      for (const pid of shopIds) {
+        const prop = s.properties[pid];
+        s.properties[pid] = {
+          ...prop,
+          basePrice: Math.floor(prop.basePrice * 1.10),
+          baseRent: Math.floor(prop.baseRent * 1.10),
+        };
+        affectedDistricts.add(prop.districtId);
+      }
+      for (const dId of affectedDistricts) {
+        const dist = s.districts[dId];
+        s.properties = recalcDistrictMultipliers(dist, s.properties, s.players);
+        s.districts[dId] = { ...dist, stockPrice: recalcStockPrice(dist, s.properties) };
+      }
+      s.log.push(`[VENTURE EFFECT] All ${shopIds.length} of ${p.name}'s shops boosted base value & rent by 10%!`);
+      break;
+    }
+
+    case 'WARP_BROKER': {
+      const p = s.players[playerId];
+      const brokerNodeId = findNearestNodeOfType(s, p.currentNodeId, 'stockbroker');
+      if (brokerNodeId) {
+        s.players[playerId] = { ...p, currentNodeId: brokerNodeId };
+        s.log.push(`[VENTURE EFFECT] ${p.name} was carried to the stockbroker at ${brokerNodeId}!`);
+      } else {
+        s.log.push(`[VENTURE EFFECT] No stockbroker on this board — the carriage goes nowhere.`);
+      }
+      break;
+    }
+
+    case 'DOUBLE_RENT_TEMP': {
+      s.players[playerId] = {
+        ...s.players[playerId],
+        shopRentsDoubledUntilNextTurn: true
+      };
+      s.log.push(`[VENTURE EFFECT] ${player.name}'s shop rents are doubled until their next turn!`);
       break;
     }
   }

@@ -21,7 +21,16 @@ export interface VentureCard {
     | 'STOCK_DIVIDEND_20'
     | 'DICEY_CLOSED'
     | 'HALF_RENT_TEMP'
-    | 'COMMISSION_TEMP';
+    | 'COMMISSION_TEMP'
+    | 'CASH_GAIN_PER_LEVEL'      // payout × player level
+    | 'CASH_GAIN_PER_SUIT'       // payout × suits held
+    | 'CASH_FROM_EACH_PLAYER'    // each opponent pays payout to player
+    | 'CASH_TO_EACH_PLAYER'      // player pays payout to each opponent
+    | 'STOCK_TAX_10'             // pay 10% of stock value
+    | 'FREE_CAPITAL'             // 100G free capital into best shop
+    | 'ALL_SHOPS_PRICE_UP'       // all owned shops +10% base value & rent
+    | 'WARP_BROKER'              // warp to nearest stockbroker
+    | 'DOUBLE_RENT_TEMP';        // own shop rents ×2 until next turn
   targetId?: string; // districtId, suit, etc.
 }
 
@@ -81,6 +90,7 @@ export interface Player {
   isBankrupt: boolean;
   shopsClosedUntilNextTurn?: boolean;
   shopPricesHalvedUntilNextTurn?: boolean;
+  shopRentsDoubledUntilNextTurn?: boolean;
   commissionUntilNextTurn?: number;
 }
 

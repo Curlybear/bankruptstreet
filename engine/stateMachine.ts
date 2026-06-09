@@ -29,6 +29,7 @@ function advanceTurn(state: GameState): GameState {
     ...incomingPlayer,
     shopsClosedUntilNextTurn: false,
     shopPricesHalvedUntilNextTurn: false,
+    shopRentsDoubledUntilNextTurn: false,
     commissionUntilNextTurn: 0,
   } : undefined;
 
@@ -501,7 +502,7 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (state.activeVentureCard) {
         const isRollAgain = state.activeVentureCard.effectType === 'ROLL_AGAIN';
         const effect = state.activeVentureCard.effectType;
-        const isWarp = effect === 'WARP_BANK' || effect === 'WARP_VACANT';
+        const isWarp = effect === 'WARP_BANK' || effect === 'WARP_VACANT' || effect === 'WARP_BROKER';
         const clearedState = {
           ...state,
           activeVentureCard: null
