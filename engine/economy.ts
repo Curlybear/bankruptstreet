@@ -1049,8 +1049,213 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
     text: 'The court admires your finery! Receive 75G for each suit symbol you hold.',
     payout: 75,
     effectType: 'CASH_GAIN_PER_SUIT'
+  },
+  // ── Cards 65-96: extended pool. Each game's grid seeds a random 64-card
+  //    subset (seedVentureGridCardIds), so decks vary between matches. ──
+  {
+    title: 'Slime Stampede',
+    text: 'A herd of slimes trample your stall! Pay 120G cash.',
+    payout: 120,
+    effectType: 'CASH_LOSS'
+  },
+  {
+    title: 'Metal Slime Bounty',
+    text: 'You corner a metal slime! Gain 400G cash.',
+    payout: 400,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Pilgrim\'s Alms',
+    text: 'Travelers leave offerings! Gain 80G cash.',
+    payout: 80,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Royal Pension',
+    text: 'The treasury honors seniority! Receive 50G for each promotion level you hold.',
+    payout: 50,
+    effectType: 'CASH_GAIN_PER_LEVEL'
+  },
+  {
+    title: 'Tailor\'s Commission',
+    text: 'Your fine suits inspire fashion! Receive 60G for each suit symbol you hold.',
+    payout: 60,
+    effectType: 'CASH_GAIN_PER_SUIT'
+  },
+  {
+    title: 'Festival Tribute',
+    text: 'The town celebrates you! Every other player gives you 40G.',
+    payout: 40,
+    effectType: 'CASH_FROM_EACH_PLAYER'
+  },
+  {
+    title: 'Charity Gala',
+    text: 'You host a grand feast! Pay every other player 30G.',
+    payout: 30,
+    effectType: 'CASH_TO_EACH_PLAYER'
+  },
+  {
+    title: 'Audit Season',
+    text: 'The exchequer reviews your books! Pay 10% of your total stock value.',
+    payout: 0,
+    effectType: 'STOCK_TAX_10'
+  },
+  {
+    title: 'Artisan Guild Grant',
+    text: 'Master craftsmen pitch in! 100G of free capital is invested into your most valuable shop.',
+    payout: 100,
+    effectType: 'FREE_CAPITAL'
+  },
+  {
+    title: 'Trade Route Opens',
+    text: 'New caravans arrive! All your shops increase base value and rent by 10%.',
+    payout: 0,
+    effectType: 'ALL_SHOPS_PRICE_UP'
+  },
+  {
+    title: 'Chimaera Wing',
+    text: 'The wing flutters! You are whisked to the nearest stockbroker.',
+    payout: 0,
+    effectType: 'WARP_BROKER'
+  },
+  {
+    title: 'Return Spell',
+    text: 'Zoom! You are teleported directly to the Bank node.',
+    payout: 0,
+    effectType: 'WARP_BANK'
+  },
+  {
+    title: 'Pioneer\'s Calling',
+    text: 'Unclaimed land beckons! Warp to the nearest vacant shop.',
+    payout: 0,
+    effectType: 'WARP_VACANT'
+  },
+  {
+    title: 'Haste Spell',
+    text: 'Accelerated! Roll the die again after this turn ends.',
+    payout: 0,
+    effectType: 'ROLL_AGAIN'
+  },
+  {
+    title: 'Broker\'s Favor',
+    text: 'A grateful broker slips you 5 bonus shares in your strongest district.',
+    payout: 0,
+    effectType: 'STOCK_GAIN'
+  },
+  {
+    title: 'Merchant Optimism',
+    text: 'Confidence sweeps the exchange! Stock price in all districts increases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_BUFF'
+  },
+  {
+    title: 'Caravan Raid',
+    text: 'Bandits hit the trade routes! Stock price in a random district decreases by 10%.',
+    payout: 0,
+    effectType: 'STOCK_SLUMP'
+  },
+  {
+    title: 'Fairy\'s Blessing',
+    text: 'A fairy takes pity! She gifts you a missing suit card.',
+    payout: 0,
+    effectType: 'SUIT_GIFT'
+  },
+  {
+    title: 'Heart of Gold',
+    text: 'Freebie! Take a heart! (If you already have a heart, you get 100G instead.)',
+    payout: 0,
+    effectType: 'SUIT_HEART_OR_CASH'
+  },
+  {
+    title: 'Leaky Coin Purse',
+    text: 'A hole in your pocket! You lose 10% of your ready cash.',
+    payout: 0,
+    effectType: 'CASH_PERCENT_LOSS'
+  },
+  {
+    title: 'Modest Dividend',
+    text: 'Special bonus! You receive a 10% dividend on your stocks!',
+    payout: 0,
+    effectType: 'STOCK_DIVIDEND_10'
+  },
+  {
+    title: 'Bumper Dividend',
+    text: 'Special bonus! You receive a 20% dividend on your stocks!',
+    payout: 0,
+    effectType: 'STOCK_DIVIDEND_20'
+  },
+  {
+    title: 'Coin Toss of Fate',
+    text: 'Roll a die. If odd, your shops close until your next turn. If even, all other players\' shops close!',
+    payout: 0,
+    effectType: 'DICEY_CLOSED'
+  },
+  {
+    title: 'Renovation Closure',
+    text: 'Dust everywhere! Your shop rents are halved until your next turn.',
+    payout: 0,
+    effectType: 'HALF_RENT_TEMP'
+  },
+  {
+    title: 'Market Day',
+    text: 'The whole town shops at your stalls! Your shop rents are doubled until your next turn.',
+    payout: 0,
+    effectType: 'DOUBLE_RENT_TEMP'
+  },
+  {
+    title: 'Banker\'s Patronage',
+    text: 'Boon times! Receive a 30% commission funded by the bank on all other players\' payments until your next turn.',
+    payout: 30,
+    effectType: 'COMMISSION_TEMP'
+  },
+  {
+    title: 'Award-Winning Storefront',
+    text: 'Recognition! One of your properties boosts base value and rent by 20%.',
+    payout: 0,
+    effectType: 'PROP_BUFF'
+  },
+  {
+    title: 'Chain Store Royalties',
+    text: 'Special bonus! You receive 30 times the number of shops you own in gold coins from the bank!',
+    payout: 30,
+    effectType: 'SHOP_MULTIPLIER_BONUS'
+  },
+  {
+    title: 'Dragon\'s Hoard Scraps',
+    text: 'You sweep up after a dragon! Gain 350G cash.',
+    payout: 350,
+    effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Bridge Toll Evasion Fine',
+    text: 'Caught skipping the toll! Pay 80G cash.',
+    payout: 80,
+    effectType: 'CASH_LOSS'
+  },
+  {
+    title: 'Crowdfunded Venture',
+    text: 'Supporters rally to you! Every other player gives you 25G.',
+    payout: 25,
+    effectType: 'CASH_FROM_EACH_PLAYER'
+  },
+  {
+    title: 'Royal Treasury Bond',
+    text: 'Your investment matures! Gain 200G cash.',
+    payout: 200,
+    effectType: 'CASH_GAIN'
   }
 ];
+
+// Pick a random 64-card subset of the pool for a fresh venture grid.
+// Returns 64 distinct card numbers (1-based indexes into VENTURE_CARDS_LIST).
+export function seedVentureGridCardIds(): number[] {
+  const all = Array.from({ length: VENTURE_CARDS_LIST.length }, (_, i) => i + 1);
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, 64);
+}
 
 function getLineLength(grid: { cleared: boolean }[], index: number, dRow: number, dCol: number): number {
   const row = Math.floor(index / 8);
@@ -1627,7 +1832,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
   if (updatedGrid.every(cell => cell.cleared)) {
     s.log.push(`[VENTURE] All grid cards cleared! Re-seeding and shuffling grid.`);
     s.ventureGrid = Array.from({ length: 64 }, () => ({ cleared: false, playerId: null }));
-    s.ventureGridCardIds = Array.from({ length: 64 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    s.ventureGridCardIds = seedVentureGridCardIds();
   }
 
   return recalcAllNetWorths(s);

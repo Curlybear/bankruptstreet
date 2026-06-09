@@ -1,5 +1,6 @@
 import { applyAction } from '../engine/stateMachine.js';
 import { greedyBotAction } from '../engine/bot.js';
+import { seedVentureGridCardIds } from '../engine/economy.js';
 import type { GameState, Node, Property, District, Player } from '../shared/types.js';
 
 // ─── Board definition ─────────────────────────────────────────────────────────
@@ -79,7 +80,7 @@ let state: GameState = {
   bankruptCount: 0,
   log: [],
   ventureGrid: Array.from({ length: 64 }, () => ({ cleared: false, playerId: null })),
-  ventureGridCardIds: Array.from({ length: 64 }, (_, i) => i + 1).sort(() => Math.random() - 0.5),
+  ventureGridCardIds: seedVentureGridCardIds(),
   activeVentureCard: null,
 };
 

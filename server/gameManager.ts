@@ -1,4 +1,5 @@
 import { applyAction } from '../engine/stateMachine.js';
+import { seedVentureGridCardIds } from '../engine/economy.js';
 import { getPath } from '../engine/navigation.js';
 import type { GameState, Action, Node, Property, District, Player } from '../shared/types.js';
 
@@ -199,7 +200,7 @@ function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 
     bankruptCount: 0,
     log: [],
     ventureGrid: Array.from({ length: 64 }, () => ({ cleared: false, playerId: null })),
-    ventureGridCardIds: Array.from({ length: 64 }, (_, i) => i + 1).sort(() => Math.random() - 0.5),
+    ventureGridCardIds: seedVentureGridCardIds(),
     activeVentureCard: null,
     status: 'LOBBY',
     creatorId: playerIds[0],

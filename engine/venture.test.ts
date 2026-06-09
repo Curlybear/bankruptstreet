@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkLineCompletions, resolveVentureCard, VENTURE_CARDS_LIST } from './economy.js';
+import { checkLineCompletions, resolveVentureCard, VENTURE_CARDS_LIST, seedVentureGridCardIds } from './economy.js';
 import { applyAction } from './stateMachine.js';
 import { greedyBotAction } from './bot.js';
 import type { GameState, Player, Node } from '../shared/types.js';
@@ -278,8 +278,15 @@ test('greedyBotAction returns END_TURN when activeVentureCard is set, even if bo
 
 // ─── Expanded card pool (cards 25-64, original-game alignment) ────────────────
 
-test('venture card list has exactly 64 cards (one per grid cell, no repeats via modulo)', () => {
-  assert.equal(VENTURE_CARDS_LIST.length, 64);
+test('venture card pool exceeds grid size; seeding picks 64 distinct valid cards', () => {
+  assert.ok(VENTURE_CARDS_LIST.length >= 64, `pool has ${VENTURE_CARDS_LIST.length} cards, need >= 64`);
+
+  const seeded = seedVentureGridCardIds();
+  assert.equal(seeded.length, 64);
+  assert.equal(new Set(seeded).size, 64, 'seeded card numbers must be distinct');
+  for (const n of seeded) {
+    assert.ok(n >= 1 && n <= VENTURE_CARDS_LIST.length, `card number ${n} out of pool range`);
+  }
 });
 
 test('CASH_FROM_EACH_PLAYER: every opponent pays the player', () => {
