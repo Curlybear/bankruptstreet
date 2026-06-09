@@ -166,8 +166,8 @@ function resolveSpace(state: GameState): GameState {
   const node = state.board[player.currentNodeId];
 
   if (node.type === 'suit') {
-    // Suit already collected during path movement — nothing more to resolve.
-    return advanceSpaceResolution(state);
+    // Landing on a suit node awards a venture card! Put player in SPACE_ACTION phase.
+    return { ...state, currentPhase: 'SPACE_ACTION' };
   }
 
   if (node.type === 'venture') {
@@ -474,8 +474,8 @@ export function applyAction(state: GameState, action: Action): GameState {
         throw new Error(`Illegal action CHOOSE_VENTURE_CARD in phase ${currentPhase}`);
       }
       const node = currentNode(state);
-      if (node.type !== 'venture') {
-        throw new Error(`CHOOSE_VENTURE_CARD requires a venture node, got ${node.type}`);
+      if (node.type !== 'venture' && node.type !== 'suit') {
+        throw new Error(`CHOOSE_VENTURE_CARD requires a venture or suit node, got ${node.type}`);
       }
       if (state.activeVentureCard) {
         throw new Error(`Venture card already active`);
@@ -523,13 +523,13 @@ export function applyAction(state: GameState, action: Action): GameState {
         }
         if (isWarp) {
           const destNode = clearedState.board[currentPlayer(clearedState).currentNodeId];
-          if (destNode.type !== 'venture') {
+          if (destNode.type !== 'venture' && destNode.type !== 'suit') {
             return resolveSpace(clearedState);
           }
         }
         return advanceSpaceResolution(checkWinCondition(clearedState, currentPlayerId));
       }
-      if (node.type === 'venture' && !inStockWindow) {
+      if ((node.type === 'venture' || node.type === 'suit') && !inStockWindow) {
         throw new Error(`Must choose a venture card before ending turn`);
       }
       return advanceSpaceResolution(checkWinCondition(state, currentPlayerId));

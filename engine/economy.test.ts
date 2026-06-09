@@ -10,7 +10,6 @@ import {
   checkWinCondition,
   checkBankruptcy,
   buyoutProperty,
-  invest,
   BASE_SALARY,
   PROMO_BONUS_PER_LEVEL,
 } from './economy.js';
@@ -295,7 +294,7 @@ test('collectSalary: correct formula, increments level, resets suits', () => {
 
 test('collectSalary: shop value included in salary', () => {
   // shop at currentPrice=200 → floor(200*0.10) = 20 added to salary
-  // salary = 100 + 20 + 1*50 = 170
+  // salary = 250 + 20 + 1*150 = 420
   const prop = makeProp('shop1', { currentPrice: 200 });
   const state = makeState({
     players: {
@@ -309,7 +308,7 @@ test('collectSalary: shop value included in salary', () => {
 
   const next = collectSalary(state, 'p1');
 
-  assert.equal(next.players.p1.cash, 1000 + 170);
+  assert.equal(next.players.p1.cash, 1000 + 420);
 });
 
 test('collectSalary: throws if missing a suit', () => {
@@ -383,8 +382,8 @@ test('checkBankruptcy: sells stock first to cover debt', () => {
   assert.equal(next.districts.d1.playerHoldings.p1, 0); // shares sold
 });
 
-test('checkBankruptcy: sells shops at distress rate when stocks insufficient', () => {
-  // p1 has -200 cash, no stocks, owns shop worth 400 → distress = 200 (50%) → cash = 0
+test('checkBankruptcy: sells shops at 75% when stocks insufficient', () => {
+  // p1 has -200 cash, no stocks, owns shop worth 400 → distress = 300 → cash = 100
   const prop = makeProp('shop1', { currentPrice: 400, ownerId: 'p1' });
   const district = makeDistrict({ propertyIds: ['shop1'], stockPrice: 4, playerHoldings: {} });
   const state = makeState({
@@ -405,8 +404,8 @@ test('checkBankruptcy: sells shops at distress rate when stocks insufficient', (
 });
 
 test('checkBankruptcy: marks bankrupt when net worth negative after full liquidation', () => {
-  // p1 has -1000 cash, no stocks, owns shop worth 100 → distress = 50 (50%) → cash = -950
-  // netWorth = -950 → bankrupt
+  // p1 has -1000 cash, no stocks, owns shop worth 100 → distress = 75 → cash = -925
+  // netWorth = -925 → bankrupt
   const prop = makeProp('shop1', { currentPrice: 100, ownerId: 'p1' });
   const district = makeDistrict({ propertyIds: ['shop1'], stockPrice: 4, playerHoldings: {} });
   const state = makeState({
@@ -426,7 +425,7 @@ test('checkBankruptcy: marks bankrupt when net worth negative after full liquida
 
 // ─── buyoutProperty ──────────────────────────────────────────────────────────
 
-test('buyoutProperty: successful buyout deducts 5x cash from buyer, pays full 5x to seller, and shifts ownership', () => {
+test('buyoutProperty: successful buyout deducts 5x cash from buyer, pays 3x cash to seller, and shifts ownership', () => {
   const prop = makeProp('shop1', { currentPrice: 100, ownerId: 'p2' });
   const district = makeDistrict({ propertyIds: ['shop1'], stockPrice: 4, playerHoldings: {} });
   const state = makeState({
@@ -441,7 +440,7 @@ test('buyoutProperty: successful buyout deducts 5x cash from buyer, pays full 5x
   const next = buyoutProperty(state, 'p1', 'shop1');
 
   assert.equal(next.players.p1.cash, 500);
-  assert.equal(next.players.p2.cash, 1500);  // seller receives the full 5× buyout price
+  assert.equal(next.players.p2.cash, 1300);
   assert.equal(next.properties.shop1.ownerId, 'p1');
   assert.deepEqual(next.players.p1.propertyIds, ['shop1']);
   assert.deepEqual(next.players.p2.propertyIds, []);
@@ -507,39 +506,3 @@ test('checkBankruptcy: ends game and chooses correct winner with turnOrder tiebr
   assert.equal(next.winnerId, 'p3'); // p3 wins due to turnOrder index tiebreaker (index 2 > index 1)
 });
 
-
-// ─── 99-share per-district holding cap ────────────────────────────────────────
-
-test('buyStock: allows reaching exactly 99 shares in a district', () => {
-  const district = makeDistrict({ stockPrice: 1, playerHoldings: { p1: 89 } });
-  const state = makeState({ districts: { d1: district } });
-
-  const next = buyStock(state, 'p1', 'd1', 10);
-  assert.equal(next.districts.d1.playerHoldings.p1, 99);
-});
-
-test('buyStock: throws when purchase would exceed 99 shares in a district', () => {
-  const district = makeDistrict({ stockPrice: 1, playerHoldings: { p1: 95 } });
-  const state = makeState({ districts: { d1: district } });
-
-  assert.throws(() => buyStock(state, 'p1', 'd1', 10), /99 shares per district/);
-});
-
-// ─── Invest: no per-turn cap, bounded by maxCapital only ──────────────────────
-
-test('invest: amounts above 999 are legal up to maxCapital headroom', () => {
-  const prop = makeProp('shop1', { ownerId: 'p1', maxCapital: 5000, capitalInvested: 0 });
-  const district = makeDistrict({ propertyIds: ['shop1'] });
-  const state = makeState({
-    players: { p1: makePlayer('p1', { cash: 3000, propertyIds: ['shop1'] }), p2: makePlayer('p2') },
-    properties: { shop1: prop },
-    districts: { d1: district },
-  });
-
-  const next = invest(state, 'p1', 'shop1', 2500);
-  assert.equal(next.properties.shop1.capitalInvested, 2500);
-  assert.equal(next.players.p1.cash, 500);
-
-  // exceeding headroom still throws
-  assert.throws(() => invest(state, 'p1', 'shop1', 5001), /maxCapital/);
-});

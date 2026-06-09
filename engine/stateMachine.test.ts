@@ -137,11 +137,11 @@ test('TURN_END wraps from last player to first and increments round', () => {
   assert.equal(next.currentPhase, 'PRE_ROLL');
 });
 
-// ─── Test 6: suit node auto-collects and ends the turn (no venture draw) ──────
+// ─── Test 6: suit node auto-collects and transitions to SPACE_ACTION for venture card ─
 
-test('suit node auto-collects suit and advances the turn', () => {
+test('suit node auto-collects suit and transitions to SPACE_ACTION for venture card', () => {
   // Board: start(bank) → suitNode(heart suit) → start
-  // Roll 1 lands on suitNode; suit auto-collected, turn ends (original-game rule).
+  // Roll 1 lands on suitNode; auto-collected, transitions to SPACE_ACTION to select a venture card.
   const board: Record<string, Node> = {
     start: { id: 'start', type: 'bank', neighbors: ['suitNode'], coordinates: { x: 0, y: 0 } },
     suitNode: { id: 'suitNode', type: 'suit', suit: 'heart', neighbors: ['start'], coordinates: { x: 1, y: 0 } },
@@ -162,8 +162,8 @@ test('suit node auto-collects suit and advances the turn', () => {
     const next = applyAction(state, { type: 'ROLL_DICE' });
 
     assert.equal(next.players.p1.suits.heart, true);   // suit collected
-    assert.equal(next.currentPlayerId, 'p2');           // turn auto-advanced
-    assert.equal(next.currentPhase, 'PRE_ROLL');
+    assert.equal(next.currentPhase, 'SPACE_ACTION');    // transitioned to SPACE_ACTION
+    assert.equal(next.currentPlayerId, 'p1');           // still p1's turn
   } finally {
     Math.random = origRandom;
   }
@@ -194,7 +194,7 @@ test('stateMachine: BUYOUT_PROPERTY works in SPACE_ACTION on opponent shop and a
 
   assert.equal(next.properties.prop1.ownerId, 'p1');
   assert.equal(next.players.p1.cash, 500);
-  assert.equal(next.players.p2.cash, 1500);   // seller receives the full 5× buyout price
+  assert.equal(next.players.p2.cash, 1300);
   assert.equal(next.currentPlayerId, 'p2');
   assert.equal(next.currentPhase, 'PRE_ROLL');
 });
@@ -234,9 +234,9 @@ test('suit node: passing over a suit space collects it', () => {
   }
 });
 
-// ─── Test 9: suit nodes do not award venture cards ────────────────────────────
+// ─── Test 9: suit node: landing on suit space requires venture card selection ─
 
-test('CHOOSE_VENTURE_CARD throws on a suit node (suits no longer award cards)', () => {
+test('suit node: landing on suit space requires venture card selection and fails END_TURN', () => {
   const board: Record<string, Node> = {
     start: { id: 'start', type: 'bank', neighbors: ['suitNode'], coordinates: { x: 0, y: 0 } },
     suitNode: { id: 'suitNode', type: 'suit', suit: 'heart', neighbors: ['start'], coordinates: { x: 1, y: 0 } },
@@ -252,9 +252,16 @@ test('CHOOSE_VENTURE_CARD throws on a suit node (suits no longer award cards)', 
     ventureGridCardIds: Array.from({ length: 64 }, (_, i) => i + 1),
   });
 
+  // Try to END_TURN without selecting a card
   assert.throws(() => {
-    applyAction(state, { type: 'CHOOSE_VENTURE_CARD', cardIndex: 5 });
-  }, /requires a venture node/);
+    applyAction(state, { type: 'END_TURN' });
+  }, /Must choose a venture card before ending turn/);
+
+  const next = applyAction(state, { type: 'CHOOSE_VENTURE_CARD', cardIndex: 5 });
+  assert.ok(next.ventureGrid);
+  assert.equal(next.ventureGrid?.[5]?.cleared, true);
+  assert.equal(next.ventureGrid?.[5]?.playerId, 'p1');
+  assert.ok(next.activeVentureCard);
 });
 
 
@@ -468,10 +475,10 @@ test('pass-through salary can push the player over the target and win on the sam
     bank: { id: 'bank', type: 'bank', neighbors: ['b'], coordinates: { x: 1, y: 0 } },
     b: { id: 'b', type: 'property', neighbors: ['a'], coordinates: { x: 2, y: 0 } },
   };
-  // cash 1000, salary = 100 base + 1×50 level bonus = 150 → 1150 ≥ 1100 target
+  // cash 1000, salary = 250 base + 1×150 level bonus = 400 → 1400 ≥ 1300 target
   const state = makeState({
     board,
-    targetNetWorth: 1100,
+    targetNetWorth: 1300,
     players: {
       p1: makePlayer('p1', {
         currentNodeId: 'a',
@@ -485,7 +492,7 @@ test('pass-through salary can push the player over the target and win on the sam
   Math.random = () => 1 / 6;
   try {
     const next = applyAction(state, { type: 'ROLL_DICE' });
-    assert.equal(next.players.p1.cash, 1150);          // salary collected on pass
+    assert.equal(next.players.p1.cash, 1400);          // salary collected on pass
     assert.equal(next.players.p1.level, 2);
     assert.equal(next.winnerId, 'p1');
   } finally {

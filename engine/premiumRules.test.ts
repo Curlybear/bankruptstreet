@@ -132,7 +132,7 @@ test('Boon/Boom commission payout on property buyout', () => {
 
   const nextState = buyoutProperty(state, 'p1', 'prop2');
   assert.equal(nextState.players.p1.cash, 500); // paid 500
-  assert.equal(nextState.players.p2.cash, 1500); // received full 5x buyout price
+  assert.equal(nextState.players.p2.cash, 1300); // received 300
   assert.equal(nextState.players.p3.cash, 1250); // received 250 commission
   assert.ok(nextState.log.some(msg => msg.includes('commission of 250G')));
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveVentureCard, VENTURE_CARDS_LIST } from './economy.js';
+import { checkLineCompletions, resolveVentureCard, VENTURE_CARDS_LIST } from './economy.js';
 import { applyAction } from './stateMachine.js';
 import { greedyBotAction } from './bot.js';
 import type { GameState, Player, Node } from '../shared/types.js';
@@ -47,6 +47,34 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     ...overrides,
   };
 }
+
+// ─── Test 1: checkLineCompletions ─────────────────────────────────────────────
+
+test('checkLineCompletions calculates horizontal line payouts correctly', () => {
+  const grid = Array.from({ length: 64 }, () => ({ cleared: false }));
+  // Set horizontal line of length 4 (indices 0, 1, 2, 3)
+  grid[0].cleared = true;
+  grid[1].cleared = true;
+  grid[2].cleared = true;
+  grid[3].cleared = true;
+
+  // Index 3 completes the line of length 4
+  const payout = checkLineCompletions(grid, 3);
+  assert.equal(payout, 40); // 40G payout for length 4
+});
+
+test('checkLineCompletions calculates diagonal line payouts correctly', () => {
+  const grid = Array.from({ length: 64 }, () => ({ cleared: false }));
+  // Set main diagonal line of length 5 (indices 0, 9, 18, 27, 36)
+  grid[0].cleared = true;
+  grid[9].cleared = true;
+  grid[18].cleared = true;
+  grid[27].cleared = true;
+  grid[36].cleared = true;
+
+  const payout = checkLineCompletions(grid, 27);
+  assert.equal(payout, 50); // 50G payout for length 5
+});
 
 // ─── Test 2: landing on venture transitions to SPACE_ACTION and blocks END_TURN ───
 
@@ -204,7 +232,7 @@ test('CHOOSE_VENTURE_CARD resolves WARP_VACANT effect and END_TURN resolves spac
 
 // ─── Test 4: Bot greedy heuristic choice ─────────────────────────────────────
 
-test('greedyBotAction picks an uncleared venture card', () => {
+test('greedyBotAction makes an intelligent adjacent choice in venture grid', () => {
   const state = makeState({
     currentPhase: 'SPACE_ACTION',
     players: {
@@ -213,15 +241,18 @@ test('greedyBotAction picks an uncleared venture card', () => {
     }
   });
 
-  // Pre-clear index 0 — bot must not pick a cleared cell
+  // Pre-clear index 0
   assert.ok(state.ventureGrid);
   state.ventureGrid[0].cleared = true;
   state.ventureGrid[0].playerId = 'p2';
 
   const action = greedyBotAction(state, 'p1');
   assert.equal(action.type, 'CHOOSE_VENTURE_CARD');
+  
+  // Heuristic should choose an uncleared card that has the highest number of cleared neighbors.
+  // Index 1, 8, 9 are direct neighbors of 0. Heuristic should prefer one of these!
   const chosenIndex = (action as { cardIndex: number }).cardIndex;
-  assert.ok(!state.ventureGrid[chosenIndex].cleared, `Bot picked an already-cleared cell ${chosenIndex}`);
+  assert.ok([1, 8, 9].includes(chosenIndex), `Bot should choose adjacent neighbor of cleared index 0, got ${chosenIndex}`);
 });
 
 test('greedyBotAction returns END_TURN when activeVentureCard is set, even if bot was warped to bank', () => {

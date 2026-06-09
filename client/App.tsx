@@ -615,7 +615,7 @@ export default function App() {
 
 
 
-  const isVentureSpace = phase === 'SPACE_ACTION' && node?.type === 'venture';
+  const isVentureSpace = phase === 'SPACE_ACTION' && (node?.type === 'venture' || node?.type === 'suit');
   const showVentureGrid = isVentureSpace && !state.activeVentureCard;
   const showVentureCard = !!state.activeVentureCard;
   const ventureGrid = state.ventureGrid ?? [];
@@ -1283,12 +1283,8 @@ export default function App() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 16 }}>
             {Object.values(state.districts).map(d => {
-              const held = d.playerHoldings[playerId] ?? 0;
-              const headroom = 99 - held;          // 99-share per-district cap
-              const buy10 = Math.min(10, headroom);
-              const buyMax = headroom;
-              const cost10 = d.stockPrice * buy10;
-              const canAfford = buy10 > 0 && currentPlayer.cash >= cost10;
+              const cost10 = d.stockPrice * 10;
+              const canAfford = currentPlayer.cash >= cost10;
               return (
                 <div 
                   key={d.id} 
@@ -1316,28 +1312,28 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
-                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: buy10 })}
+                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: 10 })}
                       disabled={!isMyTurn || !canAfford}
                       style={{
                         ...overlayBtn(true),
-                        padding: '4px 10px',
+                        padding: '4px 10px', 
                         fontSize: 10.5,
                       }}
                     >
-                      +{buy10} ({g(cost10)})
+                      +10 ({g(cost10)})
                     </button>
                     <button
-                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: buyMax })}
-                      disabled={!isMyTurn || buyMax <= 0 || currentPlayer.cash < d.stockPrice * buyMax}
+                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: 99 })}
+                      disabled={!isMyTurn || currentPlayer.cash < d.stockPrice * 99}
                       style={{
                         ...overlayBtn(true),
-                        padding: '4px 10px',
+                        padding: '4px 10px', 
                         fontSize: 10.5,
                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)',
                       }}
                     >
-                      +{buyMax} ({g(d.stockPrice * buyMax)})
+                      +99 ({g(d.stockPrice * 99)})
                     </button>
                   </div>
                 </div>
