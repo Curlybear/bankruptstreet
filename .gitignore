@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local scratch
+temp
+
+# Claude Code local settings
+.claude/settings.local.json
