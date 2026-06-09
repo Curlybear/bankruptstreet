@@ -136,6 +136,12 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
     }
   }
 
+  // 4. Passing the bank counts as returning to it — win check (after tolls,
+  // so net worth is final for this move).
+  if (s.passedBankThisTurn && !s.players[playerId].isBankrupt) {
+    s = checkWinCondition(s, playerId, false);
+  }
+
   return s;
 }
 
@@ -284,6 +290,7 @@ export function applyAction(state: GameState, action: Action): GameState {
 
       const path = getPath(state.board, player.currentNodeId, destinations[0], roll);
       const stateWithSuits = processPathMovement(nextState, currentPlayerId, path);
+      if (stateWithSuits.winnerId) return stateWithSuits;
 
       return resolveSpace(stateWithSuits);
     }
@@ -305,6 +312,7 @@ export function applyAction(state: GameState, action: Action): GameState {
       const roll = state.lastRoll?.[currentPlayerId] ?? 0;
       const path = getPath(state.board, player.currentNodeId, action.nodeId, roll);
       const stateWithSuits = processPathMovement(nextState, currentPlayerId, path);
+      if (stateWithSuits.winnerId) return stateWithSuits;
 
       return resolveSpace(stateWithSuits);
     }

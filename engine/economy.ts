@@ -566,13 +566,17 @@ export function collectSalary(state: GameState, playerId: string, requireBankNod
   return recalcAllNetWorths(s1);
 }
 
-export function checkWinCondition(state: GameState, playerId: string): GameState {
+// requireBankNode=false is used for pass-through wins: walking past the bank
+// counts as returning to it, even though the player stops on a later node.
+export function checkWinCondition(state: GameState, playerId: string, requireBankNode = true): GameState {
   if (state.winnerId) return state;
   const player = state.players[playerId];
   if (!player) return state;
   if (player.netWorth < state.targetNetWorth) return state;
-  const node = state.board[player.currentNodeId];
-  if (!node || node.type !== 'bank') return state;
+  if (requireBankNode) {
+    const node = state.board[player.currentNodeId];
+    if (!node || node.type !== 'bank') return state;
+  }
   return { ...state, winnerId: playerId };
 }
 

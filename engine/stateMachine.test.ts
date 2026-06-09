@@ -413,3 +413,89 @@ test('CHOOSE_PATH over an opponent checkpoint does not mutate the input state', 
   assert.equal(next.players.p2.cash, 1000 + 200);   // toll received
   assert.equal(next.properties.cp.checkpointToll, 210);  // toll incremented
 });
+
+// ─── Win on passing the bank ──────────────────────────────────────────────────
+
+test('passing the bank with target net worth met wins immediately', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 0 } },
+    bank: { id: 'bank', type: 'bank', neighbors: ['b'], coordinates: { x: 1, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['a'], coordinates: { x: 2, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    targetNetWorth: 500,  // already exceeded (cash 1000)
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'a' }),
+      p2: makePlayer('p2', { currentNodeId: 'a' }),
+    },
+  });
+
+  // Force roll = 2: a → bank → b (passes bank, lands on b)
+  const origRandom = Math.random;
+  Math.random = () => 1 / 6;  // floor(1/6 * 6) + 1 = 2
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'b');
+    assert.equal(next.winnerId, 'p1');
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('passing the bank below target net worth does not win', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 0 } },
+    bank: { id: 'bank', type: 'bank', neighbors: ['b'], coordinates: { x: 1, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['a'], coordinates: { x: 2, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    targetNetWorth: 10000,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'a' }),
+      p2: makePlayer('p2', { currentNodeId: 'a' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 1 / 6;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'b');
+    assert.equal(next.winnerId, null);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('pass-through salary can push the player over the target and win on the same pass', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 0 } },
+    bank: { id: 'bank', type: 'bank', neighbors: ['b'], coordinates: { x: 1, y: 0 } },
+    b: { id: 'b', type: 'property', neighbors: ['a'], coordinates: { x: 2, y: 0 } },
+  };
+  // cash 1000, salary = 250 base + 1×150 level bonus = 400 → 1400 ≥ 1300 target
+  const state = makeState({
+    board,
+    targetNetWorth: 1300,
+    players: {
+      p1: makePlayer('p1', {
+        currentNodeId: 'a',
+        suits: { heart: true, diamond: true, club: true, spade: true },
+      }),
+      p2: makePlayer('p2', { currentNodeId: 'a' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 1 / 6;
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.cash, 1400);          // salary collected on pass
+    assert.equal(next.players.p1.level, 2);
+    assert.equal(next.winnerId, 'p1');
+  } finally {
+    Math.random = origRandom;
+  }
+});
