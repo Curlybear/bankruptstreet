@@ -88,6 +88,7 @@ export interface Player {
   suits: { heart: boolean; diamond: boolean; club: boolean; spade: boolean };
   propertyIds: string[];
   isBankrupt: boolean;
+  characterId?: string;  // roster character (drives bot personality; cosmetic for humans)
   shopsClosedUntilNextTurn?: boolean;
   shopPricesHalvedUntilNextTurn?: boolean;
   shopRentsDoubledUntilNextTurn?: boolean;

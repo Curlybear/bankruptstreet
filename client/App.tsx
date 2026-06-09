@@ -4,6 +4,7 @@ import { Board } from './Board';
 import { PlayerStats } from './modals/PlayerStats';
 import { StockExchange } from './modals/StockExchange';
 import { ShopManagement } from './modals/ShopManagement';
+import { CHARACTERS } from '../shared/characters';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
@@ -32,6 +33,7 @@ export default function App() {
   const [newRoomName, setNewRoomName] = useState('');
   const [targetNetWorth, setTargetNetWorth] = useState(15000);
   const [boardChoice, setBoardChoice] = useState('alefgard');
+  const [characterChoice, setCharacterChoice] = useState('erdrick');
 
   useEffect(() => {
     pendingActionRef.current = false;
@@ -170,6 +172,30 @@ export default function App() {
                   }}
                 />
               </div>
+              <div style={{ width: 160 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  Character
+                </label>
+                <select
+                  value={characterChoice}
+                  onChange={(e) => setCharacterChoice(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#f8fafc',
+                    fontSize: 14,
+                    fontFamily: "'Outfit', sans-serif",
+                    outline: 'none',
+                  }}
+                >
+                  {Object.values(CHARACTERS).map(c => (
+                    <option key={c.id} value={c.id}>{c.emoji} {c.name} — {c.title}</option>
+                  ))}
+                </select>
+              </div>
               <div style={{ width: 140 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
                   Board
@@ -225,7 +251,7 @@ export default function App() {
                 if (!playerNameInput.trim()) { alert('Please enter a username'); return; }
                 if (!newRoomName.trim()) { alert('Please enter a room name'); return; }
                 localStorage.setItem('playerName', playerNameInput.trim());
-                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice);
+                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice, characterChoice);
               }}
               style={{
                 padding: '14px',
@@ -329,7 +355,7 @@ export default function App() {
                         onClick={() => {
                           if (!playerNameInput.trim()) { alert('Please enter a username first'); return; }
                           localStorage.setItem('playerName', playerNameInput.trim());
-                          joinRoom(r.roomId, playerNameInput.trim());
+                          joinRoom(r.roomId, playerNameInput.trim(), characterChoice);
                         }}
                         style={{
                           padding: '8px 16px',
@@ -350,7 +376,7 @@ export default function App() {
                         onClick={() => {
                           if (!playerNameInput.trim()) { alert('Please enter a username first'); return; }
                           localStorage.setItem('playerName', playerNameInput.trim());
-                          joinRoom(r.roomId, playerNameInput.trim());
+                          joinRoom(r.roomId, playerNameInput.trim(), characterChoice);
                         }}
                         style={{
                           padding: '8px 16px',

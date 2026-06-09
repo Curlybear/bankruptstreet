@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
-import { GameManager, computeDeltas, makePlayer } from './gameManager.js';
+import { GameManager, computeDeltas, makePlayer, pickUnusedCharacter } from './gameManager.js';
 import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
+import { CHARACTERS } from '../shared/characters.js';
 import { greedyBotAction } from '../engine/bot.js';
 import type { Action } from '../shared/types.js';
 
@@ -48,6 +49,12 @@ function validateJoin(p: unknown): string | null {
   if (boardId !== undefined) {
     if (typeof boardId !== 'string' || !(boardId in BOARDS)) {
       return `unknown boardId: ${String(boardId)}`;
+    }
+  }
+  const { characterId } = p as Record<string, unknown>;
+  if (characterId !== undefined) {
+    if (typeof characterId !== 'string' || !(characterId in CHARACTERS)) {
+      return `unknown characterId: ${String(characterId)}`;
     }
   }
   return null;
@@ -195,7 +202,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       const validErr = validateJoin(payload);
       if (validErr) { socket.emit('error', { code: 'BAD_REQUEST', message: validErr }); return; }
 
-      const { roomId, playerId, targetNetWorth, boardId } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string };
+      const { roomId, playerId, targetNetWorth, boardId, characterId } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string; characterId?: string };
       let state = manager.getRoom(roomId);
 
       if (!state) {
@@ -206,6 +213,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
         } else {
           state = manager.createRoom(roomId, [playerId], targetNetWorth ?? 15000, boardId);
           state.status = 'LOBBY';
+          if (characterId) state.players[playerId] = makePlayer(playerId, characterId);
           log(roomId, `lobby created by ${playerId} on board ${state.boardId} with target net worth ${state.targetNetWorth}`);
         }
       } else if (state.status === 'LOBBY') {
@@ -214,7 +222,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
             socket.emit('error', { code: 'ROOM_FULL', message: `Room ${roomId} is full` });
             return;
           }
-          state.players[playerId] = makePlayer(playerId);
+          state.players[playerId] = makePlayer(playerId, characterId);
           state.turnOrder.push(playerId);
           log(roomId, `${playerId} joined lobby`);
         } else {
@@ -276,7 +284,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       while (state.turnOrder.length < 4) {
         const botId = `bot${botIndex}`;
         if (!state.turnOrder.includes(botId)) {
-          state.players[botId] = makePlayer(botId);
+          state.players[botId] = makePlayer(botId, pickUnusedCharacter(state));
           state.turnOrder.push(botId);
         }
         botIndex++;

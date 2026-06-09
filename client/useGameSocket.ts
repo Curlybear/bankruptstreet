@@ -21,8 +21,8 @@ export function useGameSocket(): {
   roomsList: ActiveRoom[];
   playerId: string | null;
   roomId: string | null;
-  joinRoom: (roomId: string, playerId: string) => void;
-  createRoom: (roomId: string, playerId: string, targetNetWorth: number, boardId: string) => void;
+  joinRoom: (roomId: string, playerId: string, characterId?: string) => void;
+  createRoom: (roomId: string, playerId: string, targetNetWorth: number, boardId: string, characterId?: string) => void;
   startGame: () => void;
   leaveLobby: () => void;
   emitAction: (action: Action) => void;
@@ -53,19 +53,19 @@ export function useGameSocket(): {
     };
   }, []);
 
-  function joinRoom(rId: string, pId: string) {
+  function joinRoom(rId: string, pId: string, characterId?: string) {
     if (socket) {
       setPlayerId(pId);
       setRoomId(rId);
-      socket.emit('join_room', { roomId: rId, playerId: pId });
+      socket.emit('join_room', { roomId: rId, playerId: pId, characterId });
     }
   }
 
-  function createRoom(rId: string, pId: string, targetNetWorth: number, boardId: string) {
+  function createRoom(rId: string, pId: string, targetNetWorth: number, boardId: string, characterId?: string) {
     if (socket) {
       setPlayerId(pId);
       setRoomId(rId);
-      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth, boardId });
+      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth, boardId, characterId });
     }
   }
 

@@ -4,16 +4,20 @@ import { applyAction } from '../engine/stateMachine.js';
 import { seedVentureGridCardIds } from '../engine/economy.js';
 import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
 import { getPath } from '../engine/navigation.js';
+import { CHARACTERS, CHARACTER_IDS } from '../shared/characters.js';
 import type { GameState, Action, Node, Property, District, Player } from '../shared/types.js';
 
-export function makePlayer(id: string): Player {
-  let name = id;
-  if (id === 'bot1') name = '🛡️ Dragonlord';
-  else if (id === 'bot2') name = '🧙 Princess Gwaelin';
-  else if (id === 'bot3') name = '⚔️ Erdrick';
+export function makePlayer(id: string, characterId?: string): Player {
+  const character = characterId ? CHARACTERS[characterId] : undefined;
+  // Bots take the character's name; humans keep their own with the emoji as avatar.
+  const isBot = id.startsWith('bot');
+  const name = character
+    ? (isBot ? `${character.emoji} ${character.name}` : `${character.emoji} ${id}`)
+    : id;
 
   return {
     id, name,
+    characterId: character?.id,
     cash: 1500, netWorth: 1500,
     currentNodeId: 'bank',
     level: 1,
@@ -21,6 +25,13 @@ export function makePlayer(id: string): Player {
     propertyIds: [],
     isBankrupt: false,
   };
+}
+
+// Pick a character not already used by anyone in the room (bots get distinct
+// personalities; falls back to the first roster entry if all are taken).
+export function pickUnusedCharacter(state: GameState): string {
+  const taken = new Set(Object.values(state.players).map(p => p.characterId).filter(Boolean));
+  return CHARACTER_IDS.find(cid => !taken.has(cid)) ?? CHARACTER_IDS[0];
 }
 
 // Make every edge bidirectional, except edges listed in oneWayEdges

@@ -1,3 +1,4 @@
+import { CHARACTERS, DEFAULT_PERSONALITY, type BotPersonality } from '../shared/characters.js';
 import type { GameState, Action } from '../shared/types.js';
 
 // Purchase price tracking for sell-on-drop logic (rule 1).
@@ -47,10 +48,22 @@ function nearestBankDist(state: GameState, fromNodeId: string): number {
   return bfsDistTo(state, fromNodeId, nodeId => state.board[nodeId]?.type === 'bank');
 }
 
-// Buy 10 shares in the district where the bot owns the most shops, if affordable.
-function pickStockBuy(state: GameState, botPlayerId: string): Action | null {
+function nearestStockVenueDist(state: GameState, fromNodeId: string): number {
+  return bfsDistTo(state, fromNodeId, nodeId => {
+    const t = state.board[nodeId]?.type;
+    return t === 'stockbroker' || t === 'bank';
+  });
+}
+
+function personalityOf(state: GameState, playerId: string): BotPersonality {
+  const charId = state.players[playerId]?.characterId;
+  return (charId && CHARACTERS[charId]?.personality) || DEFAULT_PERSONALITY;
+}
+
+// Buy a personality-sized batch in the district where the bot owns the most shops.
+function pickStockBuy(state: GameState, botPlayerId: string, personality: BotPersonality): Action | null {
   const player = state.players[botPlayerId];
-  if (player.cash <= 200) return null;
+  if (player.cash <= personality.cashReserve) return null;
 
   let bestDistrictId: string | null = null;
   let bestCount = 0;
@@ -63,10 +76,11 @@ function pickStockBuy(state: GameState, botPlayerId: string): Action | null {
   if (!bestDistrictId) return null;
 
   const district = state.districts[bestDistrictId];
-  const cost = 10 * district.stockPrice;
+  const shares = personality.stockBatch;
+  const cost = shares * district.stockPrice;
   if (district.stockPrice > 0 && player.cash >= cost) {
     purchasePrices.set(`${botPlayerId}:${bestDistrictId}`, district.stockPrice);
-    return { type: 'BUY_STOCK', districtId: bestDistrictId, shares: 10 };
+    return { type: 'BUY_STOCK', districtId: bestDistrictId, shares };
   }
   return null;
 }
@@ -74,14 +88,17 @@ function pickStockBuy(state: GameState, botPlayerId: string): Action | null {
 export function greedyBotAction(state: GameState, botPlayerId: string): Action {
   const player = state.players[botPlayerId];
   const phase = state.currentPhase;
+  const personality = personalityOf(state, botPlayerId);
 
   // 1 & 2 — PRE_ROLL
   if (phase === 'PRE_ROLL') {
-    for (const [districtId, district] of Object.entries(state.districts)) {
-      const held = district.playerHoldings[botPlayerId] ?? 0;
-      const pricePaid = purchasePrices.get(`${botPlayerId}:${districtId}`);
-      if (held > 0 && pricePaid !== undefined && district.stockPrice < pricePaid) {
-        return { type: 'SELL_STOCK', districtId, shares: held };
+    if (personality.sellOnDip) {
+      for (const [districtId, district] of Object.entries(state.districts)) {
+        const held = district.playerHoldings[botPlayerId] ?? 0;
+        const pricePaid = purchasePrices.get(`${botPlayerId}:${districtId}`);
+        if (held > 0 && pricePaid !== undefined && district.stockPrice < pricePaid) {
+          return { type: 'SELL_STOCK', districtId, shares: held };
+        }
       }
     }
     return { type: 'ROLL_DICE' };
@@ -91,9 +108,12 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
   if (phase === 'CHOOSING_PATH') {
     const destinations = state.pendingDestinations ?? [];
     const { suits } = player;
-    const distFn = (suits.heart && suits.diamond && suits.club && suits.spade)
-      ? nearestBankDist
-      : nearestUnownedShopDist;
+    const allSuits = suits.heart && suits.diamond && suits.club && suits.spade;
+    const preferredFn =
+      personality.pathPreference === 'bank' ? nearestBankDist :
+      personality.pathPreference === 'stocks' ? nearestStockVenueDist :
+      nearestUnownedShopDist;
+    const distFn = allSuits ? nearestBankDist : preferredFn;
     let bestDest = destinations[0];
     let bestDist = distFn(state, bestDest);
     for (let i = 1; i < destinations.length; i++) {
@@ -111,7 +131,7 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
 
     // Post-bank stock window: only BUY_STOCK or END_TURN are legal.
     if (state.passedBankWindowUsed) {
-      return pickStockBuy(state, botPlayerId) ?? { type: 'END_TURN' };
+      return pickStockBuy(state, botPlayerId, personality) ?? { type: 'END_TURN' };
     }
 
     const node = state.board[player.currentNodeId];
@@ -157,9 +177,9 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
       const prop = Object.values(state.properties).find(p => p.nodeId === node.id);
       if (prop) {
         if (prop.ownerId === null) {
-          if (player.cash >= 1000) {
+          if (personality.preferThreeStar && player.cash >= 1000) {
             return { type: 'BUILD_PLOT', propertyId: prop.id, buildingType: 'three_star_shop' };
-          } else if (player.cash >= 200) {
+          } else if (player.cash >= 200 + personality.cashReserve) {
             return { type: 'BUILD_PLOT', propertyId: prop.id, buildingType: 'checkpoint' };
           }
           return { type: 'END_TURN' };
@@ -181,9 +201,9 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
             const myShops = Object.values(state.properties).filter(
               p => p.ownerId === botPlayerId && p.maxCapital > p.capitalInvested
             );
-            if (myShops.length > 0 && player.cash > 200) {
+            if (myShops.length > 0 && player.cash > personality.cashReserve) {
               const target = myShops[0];
-              const amount = Math.min(100, target.maxCapital - target.capitalInvested);
+              const amount = Math.min(personality.investAmount, target.maxCapital - target.capitalInvested, player.cash);
               return { type: 'INVEST', propertyId: target.id, amount };
             }
           }
@@ -206,7 +226,7 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
         } else {
           const buyoutCost = prop.currentPrice * 5;
           if (player.cash >= buyoutCost && prop.buildingType !== 'estate_agency' && prop.buildingType !== 'vacant') {
-            if (player.cash >= buyoutCost * 2.5) {
+            if (player.cash >= buyoutCost * personality.buyoutCashMultiplier) {
               return { type: 'BUYOUT_PROPERTY', propertyId: prop.id };
             }
           }
@@ -222,9 +242,9 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
         if (prop.ownerId === null && player.cash >= prop.currentPrice) {
           return { type: 'BUY_PROPERTY', propertyId: prop.id };
         }
-        // 5. Own shop, cash > 200, room to invest
-        if (prop.ownerId === botPlayerId && player.cash > 200 && prop.capitalInvested < prop.maxCapital) {
-          const amount = Math.min(100, prop.maxCapital - prop.capitalInvested);
+        // 5. Own shop, cash above reserve, room to invest
+        if (prop.ownerId === botPlayerId && player.cash > personality.cashReserve && prop.capitalInvested < prop.maxCapital) {
+          const amount = Math.min(personality.investAmount, prop.maxCapital - prop.capitalInvested, player.cash);
           return { type: 'INVEST', propertyId: prop.id, amount };
         }
         // 6. Opponent shop — consider buyout before paying rent
@@ -241,7 +261,7 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
             const opponentOwnedOthers = siblingProps.filter(p => p.id !== prop.id && p.ownerId === opponentId).length;
             const breaksMonopoly = opponentOwnedOthers === siblingProps.length - 1 && siblingProps.length > 1;
 
-            const hasMassiveCash = player.cash >= buyoutCost * 2.5;
+            const hasMassiveCash = player.cash >= buyoutCost * personality.buyoutCashMultiplier;
 
             if (completesDomination || breaksMonopoly || hasMassiveCash) {
               return { type: 'BUYOUT_PROPERTY', propertyId: prop.id };
@@ -255,8 +275,8 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
     if (node.type === 'bank' || node.type === 'stockbroker' || state.passedBankThisTurn) {
       // Salary is auto-collected by resolveSpace on bank landing — no explicit action needed here.
 
-      // 7. Cash > 200 → buy stock in district where bot owns most shops
-      const stockBuy = pickStockBuy(state, botPlayerId);
+      // 7. Cash above reserve → buy stock in district where bot owns most shops
+      const stockBuy = pickStockBuy(state, botPlayerId, personality);
       if (stockBuy) return stockBuy;
     }
 

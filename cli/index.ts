@@ -49,9 +49,9 @@ const districts: Record<string, District> = {
   d2: { id: 'd2', name: 'Downtown', stockPrice: 9,  propertyIds: ['d2s1','d2s2','d2s3','d2s4'], playerHoldings: {} },
 };
 
-function makePlayer(id: string, name: string): Player {
+function makePlayer(id: string, name: string, characterId?: string): Player {
   return {
-    id, name,
+    id, name, characterId,
     cash: 1000,
     netWorth: 1000,
     currentNodeId: 'bank',
@@ -65,8 +65,8 @@ function makePlayer(id: string, name: string): Player {
 let state: GameState = {
   roomId: 'cli',
   players: {
-    alice: makePlayer('alice', 'Alice'),
-    bob:   makePlayer('bob',   'Bob'),
+    alice: makePlayer('alice', 'Alice 🐉 (Dragonlord AI)', 'dragonlord'),
+    bob:   makePlayer('bob',   'Bob 👸 (Gwaelin AI)', 'gwaelin'),
   },
   turnOrder: ['alice', 'bob'],
   currentPlayerId: 'alice',
