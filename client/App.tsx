@@ -27,6 +27,7 @@ export default function App() {
   const [pendingAction, setPendingAction] = useState(false);
   const pendingActionRef = useRef(false);
   const [showStockMatrix, setShowStockMatrix] = useState(false);
+  const [stockQty, setStockQty] = useState<Record<string, number>>({});
   const [showRules, setShowRules] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -692,23 +693,28 @@ export default function App() {
 
 
 
-  const isVentureSpace = phase === 'SPACE_ACTION' && (node?.type === 'venture' || node?.type === 'suit');
+  // Post-bank stock window: the landed space is already resolved; only
+  // BUY_STOCK / END_TURN are legal, so show the trading desk instead of
+  // whatever panel the node type would normally trigger.
+  const inStockWindow = phase === 'SPACE_ACTION' && !!state.passedBankWindowUsed;
+
+  const isVentureSpace = phase === 'SPACE_ACTION' && !inStockWindow && (node?.type === 'venture' || node?.type === 'suit');
   const showVentureGrid = isVentureSpace && !state.activeVentureCard;
   const showVentureCard = !!state.activeVentureCard;
   const ventureGrid = state.ventureGrid ?? [];
 
   // Find what property (if any) the current player is standing on.
   const propAtNode    = Object.values(state.properties).find(p => p.nodeId === nodeId) ?? null;
-  const ownShop       = phase === 'SPACE_ACTION' && propAtNode?.ownerId === currentPlayer?.id
+  const ownShop       = phase === 'SPACE_ACTION' && !inStockWindow && propAtNode?.ownerId === currentPlayer?.id
     ? propAtNode
     : null;
-  const unownedShop   = phase === 'SPACE_ACTION' && propAtNode?.ownerId === null
+  const unownedShop   = phase === 'SPACE_ACTION' && !inStockWindow && propAtNode?.ownerId === null
     ? propAtNode
     : null;
-  const opponentShop  = phase === 'SPACE_ACTION' && propAtNode?.ownerId !== null && propAtNode?.ownerId !== currentPlayer?.id
+  const opponentShop  = phase === 'SPACE_ACTION' && !inStockWindow && propAtNode?.ownerId !== null && propAtNode?.ownerId !== currentPlayer?.id
     ? propAtNode
     : null;
-  const atBroker      = phase === 'SPACE_ACTION' && (node?.type === 'bank' || node?.type === 'stockbroker');
+  const atBroker      = phase === 'SPACE_ACTION' && (node?.type === 'bank' || node?.type === 'stockbroker' || inStockWindow);
 
   // Unified overlay button style helper
   function overlayBtn(primary: boolean, danger = false): React.CSSProperties {
@@ -1344,38 +1350,56 @@ export default function App() {
       );
     }
 
-    // 6. SPACE_ACTION: bank/broker trading desk inline
+    // 6. SPACE_ACTION: bank/broker trading desk inline (also shown during the
+    // post-bank stock window, where BUY_STOCK / END_TURN are the only legal actions)
     if (atBroker) {
       return (
-        <div style={{ ...consoleInnerPanelStyle, maxWidth: 520 }} className="animate-slide-up">
+        <div style={{ ...consoleInnerPanelStyle, maxWidth: 560 }} className="animate-slide-up">
           <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
             🏦 BROKERAGE REGISTRATION DESK
           </div>
           <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 18, marginBottom: 6 }}>
-            {node?.type === 'bank' ? 'Bank Stock Brokerage' : 'District Stockbroker'}
+            {node?.type === 'bank' ? 'Bank Stock Brokerage'
+              : node?.type === 'stockbroker' ? 'District Stockbroker'
+              : 'Bank Pass — Stock Window'}
           </div>
           <div style={{ fontSize: 12.5, color: '#94a3b8', marginBottom: 14 }}>
-            Buy shares in blocks of 10. Cash Available: <strong style={{ color: '#10b981', fontFamily: "'JetBrains Mono', monospace" }}>{g(currentPlayer.cash)}</strong>
+            Buy 1–99 shares per district. Trades of 10+ shares move the price. Cash Available: <strong style={{ color: '#10b981', fontFamily: "'JetBrains Mono', monospace" }}>{g(currentPlayer.cash)}</strong>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 16 }}>
             {Object.values(state.districts).map(d => {
-              const cost10 = d.stockPrice * 10;
-              const canAfford = currentPlayer.cash >= cost10;
+              const price = d.stockPrice;
+              const maxAffordable = price > 0 ? Math.min(99, Math.floor(currentPlayer.cash / price)) : 0;
+              const qty = Math.max(1, Math.min(99, stockQty[d.id] ?? 10));
+              const cost = qty * price;
+              const canAfford = maxAffordable >= 1 && qty <= maxAffordable;
+              // Mirror buyStock in engine/economy.ts: 10+ shares raise price by floor(price/16)+1
+              const newPrice = qty >= 10 ? price + Math.floor(price / 16) + 1 : price;
+              const held = d.playerHoldings[currentPlayer.id] ?? 0;
+              const holdingsGain = held * (newPrice - price);
+              const setQty = (n: number) => setStockQty(q => ({ ...q, [d.id]: Math.max(1, Math.min(99, n)) }));
+              const presetBtn = (active: boolean): React.CSSProperties => ({
+                ...overlayBtn(false),
+                padding: '3px 8px',
+                fontSize: 10,
+                background: active ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                border: active ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              });
               return (
-                <div 
-                  key={d.id} 
+                <div
+                  key={d.id}
                   style={{
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    padding: '10px 12px',
                     borderRadius: 10,
                     background: 'rgba(0, 0, 0, 0.2)',
                     border: '1px solid rgba(255, 255, 255, 0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{
                         width: 6,
@@ -1385,39 +1409,66 @@ export default function App() {
                       }} />
                       <span style={{ fontWeight: 700, fontSize: 12.5, color: '#f8fafc' }}>{d.name}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: '#64748b', fontFamily: "'JetBrains Mono', monospace", marginLeft: 12 }}>{g(d.stockPrice)}/sh</span>
+                    <span style={{ fontSize: 10, color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {g(price)}/sh{held > 0 ? ` · own ${held}sh` : ''}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: 10 })}
-                      disabled={!isMyTurn || !canAfford}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={qty}
+                      onChange={e => setQty(parseInt(e.target.value, 10) || 1)}
+                      disabled={!isMyTurn}
                       style={{
-                        ...overlayBtn(true),
-                        padding: '4px 10px', 
-                        fontSize: 10.5,
+                        width: 52,
+                        padding: '4px 6px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        color: '#f8fafc',
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 12,
                       }}
-                    >
-                      +10 ({g(cost10)})
-                    </button>
+                    />
+                    <button onClick={() => setQty(10)} disabled={!isMyTurn} style={presetBtn(qty === 10)}>10</button>
                     <button
-                      onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: 99 })}
-                      disabled={!isMyTurn || currentPlayer.cash < d.stockPrice * 99}
-                      style={{
-                        ...overlayBtn(true),
-                        padding: '4px 10px', 
-                        fontSize: 10.5,
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)',
-                      }}
+                      onClick={() => setQty(maxAffordable)}
+                      disabled={!isMyTurn || maxAffordable < 1}
+                      style={presetBtn(maxAffordable >= 1 && qty === maxAffordable)}
                     >
-                      +99 ({g(d.stockPrice * 99)})
+                      Max ({maxAffordable})
                     </button>
                   </div>
+
+                  <div style={{ fontSize: 10, color: '#94a3b8', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.5 }}>
+                    Cost: <span style={{ color: canAfford ? '#10b981' : '#f43f5e' }}>{g(cost)}</span>
+                    {' · '}Price: {qty >= 10
+                      ? <span style={{ color: '#facc15' }}>{g(price)} → {g(newPrice)} (+{newPrice - price})</span>
+                      : <span>{g(price)} (no impact)</span>}
+                    {held > 0 && newPrice !== price && (
+                      <> · Your {held}sh: <span style={{ color: '#10b981' }}>+{holdingsGain}G</span></>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => emitAction({ type: 'BUY_STOCK', districtId: d.id, shares: qty })}
+                    disabled={!isMyTurn || !canAfford}
+                    style={{
+                      ...overlayBtn(true),
+                      padding: '6px 10px',
+                      fontSize: 11,
+                    }}
+                  >
+                    Buy {qty} ({g(cost)})
+                  </button>
                 </div>
               );
             })}
           </div>
-          
+
           <button
             onClick={() => emitAction({ type: 'END_TURN' })}
             disabled={!isMyTurn}
