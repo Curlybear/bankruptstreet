@@ -66,7 +66,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
       background: 'rgba(10, 10, 22, 0.65)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid rgba(139, 92, 246, 0.15)',
+      border: '1px solid rgba(250, 204, 21, 0.12)',
       borderRadius: 16,
       padding: '16px 20px',
       color: '#f1f5f9',
@@ -88,7 +88,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
           <span style={{
             fontSize: '15px',
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #00f2fe 0%, #8b5cf6 100%)',
+            background: 'linear-gradient(135deg, #fde047 0%, #22d3ee 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             letterSpacing: '0.5px',
@@ -328,7 +328,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
                   disabled={!isActive}
                   style={{
                     background: activePlotId === p.id ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.02)',
-                    border: activePlotId === p.id ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.06)',
+                    border: activePlotId === p.id ? '1px solid #22d3ee' : '1px solid rgba(255, 255, 255, 0.06)',
                     borderRadius: '6px',
                     padding: '3px 8px',
                     fontSize: '10.5px',
@@ -356,7 +356,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
             }}>
               <div style={{ fontSize: '11px', color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
-                  Currently: <strong style={{ color: '#a855f7' }}>{activePlot.buildingType?.toUpperCase()}</strong> in <strong style={{ color: '#06b6d4' }}>{state.districts[activePlot.districtId]?.name}</strong>
+                  Currently: <strong style={{ color: '#22d3ee' }}>{activePlot.buildingType?.toUpperCase()}</strong> in <strong style={{ color: '#06b6d4' }}>{state.districts[activePlot.districtId]?.name}</strong>
                 </div>
                 <span style={{ fontSize: '9px', color: '#64748b' }}>
                   Renovation includes <span style={{ color: '#f59e0b', fontWeight: 600 }}>150G surcharge</span>
@@ -411,7 +411,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
                           onClick={() => emitAction({ type: 'RENOVATE_PLOT', propertyId: activePlot.id, buildingType: opt.type })}
                           disabled={renovateDisabled}
                           style={{
-                            background: renovateDisabled ? 'rgba(255, 255, 255, 0.01)' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                            background: renovateDisabled ? 'rgba(255, 255, 255, 0.01)' : 'linear-gradient(135deg, #22d3ee 0%, #0891b2 100%)',
                             color: renovateDisabled ? '#475569' : '#ffffff',
                             boxShadow: renovateDisabled ? 'none' : '0 2px 6px rgba(168, 85, 247, 0.25)',
                             border: 'none',
@@ -442,16 +442,16 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
           width: '100%',
           padding: '10px 0',
           background: isActive
-            ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+            ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)'
             : 'rgba(255, 255, 255, 0.02)',
-          color: isActive ? '#ffffff' : '#475569',
+          color: isActive ? '#190f00' : '#475569',
           border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
           borderRadius: 8,
           cursor: isActive ? 'pointer' : 'default',
           fontSize: '13px',
           fontWeight: 800,
           letterSpacing: '1px',
-          boxShadow: isActive ? '0 4px 12px rgba(139, 92, 246, 0.3)' : 'none',
+          boxShadow: isActive ? '0 4px 14px rgba(245, 158, 11, 0.35)' : 'none',
           textTransform: 'uppercase',
           transition: 'all 0.2s ease',
         }}

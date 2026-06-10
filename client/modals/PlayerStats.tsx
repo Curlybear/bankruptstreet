@@ -138,10 +138,11 @@ export function PlayerStats({ state, playerId }: Props) {
           <div style={{
             fontSize: '10px',
             fontWeight: 800,
-            letterSpacing: '1.5px',
+            letterSpacing: '2.5px',
             color: '#64748b',
             textTransform: 'uppercase',
             marginBottom: '4px',
+            fontFamily: "'Unbounded', sans-serif",
           }}>
             SYSTEM MONITOR
           </div>
@@ -153,7 +154,7 @@ export function PlayerStats({ state, playerId }: Props) {
             <span style={{
               fontSize: '20px',
               fontWeight: 800,
-              background: 'linear-gradient(135deg, #a855f7 0%, #06b6d4 100%)',
+              background: 'linear-gradient(135deg, #fde047 0%, #22d3ee 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>
@@ -363,7 +364,7 @@ export function PlayerStats({ state, playerId }: Props) {
                       width: `${pct * 100}%`,
                       background: near 
                         ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)' 
-                        : `linear-gradient(90deg, #8b5cf6 0%, ${playerColor} 100%)`,
+                        : `linear-gradient(90deg, #fde047 0%, ${playerColor} 100%)`,
                       borderRadius: '3px',
                       transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                       boxShadow: near ? '0 0 6px rgba(16, 185, 129, 0.4)' : 'none',
@@ -504,8 +505,9 @@ export function PlayerStats({ state, playerId }: Props) {
             fontSize: '9.5px',
             fontWeight: 800,
             letterSpacing: '1px',
-            color: '#8b5cf6',
+            color: '#22d3ee',
             textTransform: 'uppercase',
+            fontFamily: "'Unbounded', sans-serif",
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
@@ -514,8 +516,8 @@ export function PlayerStats({ state, playerId }: Props) {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: '#8b5cf6',
-              boxShadow: '0 0 6px #8b5cf6',
+              backgroundColor: '#22d3ee',
+              boxShadow: '0 0 6px rgba(34, 211, 238, 0.8)',
               animation: 'spin 4s linear infinite',
             }} />
             TACTICAL ANALYSIS FEED

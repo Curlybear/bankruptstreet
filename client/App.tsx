@@ -641,8 +641,8 @@ export default function App() {
         <div style={{
           width: 40,
           height: 40,
-          border: '3px solid rgba(139, 92, 246, 0.1)',
-          borderTop: '3px solid #8b5cf6',
+          border: '3px solid rgba(250, 204, 21, 0.1)',
+          borderTop: '3px solid #fde047',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
         }} />
@@ -695,10 +695,10 @@ export default function App() {
           position: 'relative',
           overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, #8b5cf6 0%, #d946ef 100%)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, #fde047 0%, #22d3ee 100%)' }} />
 
           <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#a855f7', letterSpacing: '3px', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#fde047', letterSpacing: '3px', textTransform: 'uppercase', fontFamily: "'Unbounded', sans-serif" }}>
               🛰 LOBBY STATION
             </span>
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: '6px 0 2px 0', letterSpacing: '0.5px' }}>
@@ -931,20 +931,21 @@ export default function App() {
         : danger
           ? 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)'
           : primary
-            ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+            ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)'
             : 'rgba(255, 255, 255, 0.04)',
       color: !isMyTurn ? '#475569'
-        : (danger || primary) ? '#ffffff'
+        : danger ? '#ffffff'
+        : primary ? '#190f00'
         : '#cbd5e1',
-      border: !isMyTurn 
-        ? '1px solid rgba(255,255,255,0.02)' 
-        : primary || danger 
-          ? 'none' 
+      border: !isMyTurn
+        ? '1px solid rgba(255,255,255,0.02)'
+        : primary || danger
+          ? 'none'
           : '1px solid rgba(255, 255, 255, 0.08)',
-      boxShadow: isMyTurn && primary 
-        ? '0 4px 12px rgba(139, 92, 246, 0.35)' 
-        : isMyTurn && danger 
-          ? '0 4px 12px rgba(244, 63, 94, 0.3)' 
+      boxShadow: isMyTurn && primary
+        ? '0 4px 14px rgba(245, 158, 11, 0.35)'
+        : isMyTurn && danger
+          ? '0 4px 12px rgba(244, 63, 94, 0.3)'
           : 'none',
       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     };
@@ -972,7 +973,7 @@ export default function App() {
 
       return (
         <div style={{ ...consoleInnerPanelStyle, maxWidth: 560 }} className="animate-slide-up">
-          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#f43f5e', marginBottom: 4 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#f43f5e', marginBottom: 4 }}>
             ⚠ DEBT SETTLEMENT OFFICE
           </div>
           <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 18, marginBottom: 6 }}>
@@ -1152,7 +1153,7 @@ export default function App() {
     if (phase === 'CHOOSING_PATH') {
       return (
         <div style={consoleInnerPanelStyle} className="animate-slide-up">
-          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#f59e0b', marginBottom: 4 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#f59e0b', marginBottom: 4 }}>
             🛰 NAVIGATION BRANCH MODULE
           </div>
           <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 8 }}>
@@ -1204,7 +1205,7 @@ export default function App() {
 
           return (
             <div style={consoleInnerPanelStyle} className="animate-slide-up glow-border-cyber">
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#06b6d4', marginBottom: 4 }}>
                 🎪 CIRCUS TENT GROUND
               </div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 6 }}>
@@ -1265,7 +1266,7 @@ export default function App() {
 
           return (
             <div style={{ ...consoleInnerPanelStyle, maxWidth: 520 }} className="animate-slide-up glow-border-success">
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#10b981', marginBottom: 4 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#10b981', marginBottom: 4 }}>
                 {ownShop.buildingType === 'checkpoint' ? '🛃 CHECKPOINT STATION' : '⭐⭐⭐ 3-STAR SHOP CENTER'}
               </div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 6 }}>
@@ -1364,7 +1365,7 @@ export default function App() {
 
           return (
             <div style={{ ...consoleInnerPanelStyle, maxWidth: 520 }} className="animate-slide-up glow-border-cyber">
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#06b6d4', marginBottom: 4 }}>
                 🏢 ESTATE AGENCY CONSOLE
               </div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 6 }}>
@@ -1443,7 +1444,7 @@ export default function App() {
 
           return (
             <div style={{ ...consoleInnerPanelStyle, maxWidth: 520 }} className="animate-slide-up glow-border-cyber">
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#c084fc', marginBottom: 4 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#22d3ee', marginBottom: 4 }}>
                 🎈 BALLOONPORT FLIGHT DECK
               </div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 6 }}>
@@ -1524,7 +1525,7 @@ export default function App() {
       if (isVacantPlotNode) {
         return (
           <div style={{ ...consoleInnerPanelStyle, maxWidth: 580 }} className="animate-slide-up glow-border-cyber">
-            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#06b6d4', marginBottom: 4 }}>
               🏢 VACANT PLOT DEVELOPMENT
             </div>
             <div style={{ fontWeight: 800, fontSize: 17, color: '#f8fafc', marginBottom: 6 }}>
@@ -1624,7 +1625,7 @@ export default function App() {
       const canAfford = currentPlayer.cash >= unownedShop.currentPrice;
       return (
         <div style={consoleInnerPanelStyle} className="animate-slide-up glow-border-cyber">
-          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#06b6d4', marginBottom: 4 }}>
             🏬 VACANT PROPERTY ACQUISITION
           </div>
           <div style={{ fontWeight: 800, fontSize: 18, color: '#f8fafc', marginBottom: 6 }}>
@@ -1722,8 +1723,8 @@ export default function App() {
               disabled={!isMyTurn || !canBuyout}
               style={{
                 ...overlayBtn(true),
-                background: canBuyout ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' : 'rgba(255,255,255,0.02)',
-                boxShadow: canBuyout ? '0 4px 12px rgba(139, 92, 246, 0.3)' : 'none',
+                background: canBuyout ? 'linear-gradient(135deg, #ec4899 0%, #86198f 100%)' : 'rgba(255,255,255,0.02)',
+                boxShadow: canBuyout ? '0 4px 12px rgba(236, 72, 153, 0.3)' : 'none',
               }}
             >
               Force Buyout ({g(opponentShop.currentPrice * 5)})
@@ -1763,7 +1764,7 @@ export default function App() {
       return (
         <div style={{ ...consoleInnerPanelStyle, maxWidth: 560, border: '1px solid rgba(250, 204, 21, 0.18)' }} className="animate-slide-up">
           <div style={{
-            fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#facc15', marginBottom: 4,
+            fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#facc15', marginBottom: 4,
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {['#fde047', '#f472b6', '#38bdf8'].map((c, i) => (
@@ -1917,7 +1918,7 @@ export default function App() {
     if (atBroker) {
       return (
         <div style={{ ...consoleInnerPanelStyle, maxWidth: 560 }} className="animate-slide-up">
-          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#06b6d4', marginBottom: 4 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#06b6d4', marginBottom: 4 }}>
             🏦 BROKERAGE REGISTRATION DESK
           </div>
           <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 18, marginBottom: 6 }}>
@@ -1945,8 +1946,8 @@ export default function App() {
                 ...overlayBtn(false),
                 padding: '3px 8px',
                 fontSize: 10,
-                background: active ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                border: active ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                background: active ? 'rgba(250, 204, 21, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                border: active ? '1px solid rgba(250, 204, 21, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
               });
               return (
                 <div
@@ -2046,7 +2047,7 @@ export default function App() {
     if (showVentureGrid) {
       return (
         <div style={{ ...consoleInnerPanelStyle, maxWidth: 480 }} className="animate-slide-up">
-          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#facc15', marginBottom: 4 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', fontFamily: "'Unbounded', sans-serif", color: '#facc15', marginBottom: 4 }}>
             🔮 VENTURE MATRIX BOARD
           </div>
           <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 17, marginBottom: 4 }}>
@@ -2195,7 +2196,7 @@ export default function App() {
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: '2px solid #8b5cf6',
+                border: '2px solid #22d3ee',
                 borderTopColor: 'transparent',
                 animation: 'spin 1.2s linear infinite',
               }} />
@@ -2238,8 +2239,8 @@ export default function App() {
             width: 12,
             height: 12,
             borderRadius: '50%',
-            backgroundColor: '#8b5cf6',
-            boxShadow: '0 0 10px #8b5cf6',
+            backgroundColor: '#fde047',
+            boxShadow: '0 0 10px rgba(253, 224, 71, 0.7)',
           }} />
           <span style={{ fontFamily: "'Monoton', cursive", fontSize: '14px', letterSpacing: '2px' }}>
             <span style={{ color: '#fde047', textShadow: '0 0 8px rgba(253, 224, 71, 0.4)' }}>BANKRUPT</span>
@@ -2297,31 +2298,31 @@ export default function App() {
         <button
           onClick={() => setShowStockMatrix(true)}
           style={{
-            background: 'rgba(139, 92, 246, 0.1)',
-            border: '1px solid rgba(139, 92, 246, 0.25)',
+            background: 'rgba(34, 211, 238, 0.08)',
+            border: '1px solid rgba(34, 211, 238, 0.25)',
             padding: '5px 14px',
             borderRadius: 20,
             cursor: 'pointer',
             fontSize: 10.5,
             fontWeight: 800,
-            color: '#c084fc',
+            color: '#22d3ee',
             letterSpacing: '0.8px',
             textTransform: 'uppercase',
-            boxShadow: '0 0 10px rgba(139, 92, 246, 0.15)',
+            boxShadow: '0 0 10px rgba(34, 211, 238, 0.12)',
             transition: 'all 0.2s',
             display: 'flex',
             alignItems: 'center',
             gap: 6
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
-            e.currentTarget.style.border = '1px solid rgba(139, 92, 246, 0.4)';
-            e.currentTarget.style.boxShadow = '0 0 15px rgba(139, 92, 246, 0.35)';
+            e.currentTarget.style.background = 'rgba(34, 211, 238, 0.16)';
+            e.currentTarget.style.border = '1px solid rgba(34, 211, 238, 0.4)';
+            e.currentTarget.style.boxShadow = '0 0 15px rgba(34, 211, 238, 0.3)';
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-            e.currentTarget.style.border = '1px solid rgba(139, 92, 246, 0.25)';
-            e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.15)';
+            e.currentTarget.style.background = 'rgba(34, 211, 238, 0.08)';
+            e.currentTarget.style.border = '1px solid rgba(34, 211, 238, 0.25)';
+            e.currentTarget.style.boxShadow = '0 0 10px rgba(34, 211, 238, 0.12)';
           }}
         >
           📊 Stock Holdings Matrix
@@ -2400,8 +2401,8 @@ export default function App() {
               width: '100%',
               borderRadius: '16px',
               overflow: 'hidden',
-              border: '1px solid rgba(139, 92, 246, 0.15)',
-              boxShadow: 'inset 0 0 20px rgba(139, 92, 246, 0.05), 0 4px 30px rgba(0, 0, 0, 0.7)',
+              border: '1px solid rgba(250, 204, 21, 0.12)',
+              boxShadow: 'inset 0 0 20px rgba(250, 204, 21, 0.04), 0 4px 30px rgba(0, 0, 0, 0.7)',
             }}>
               <Board socket={socket} state={state} hoveredNodeId={hoveredNodeId} />
             </div>
@@ -2756,7 +2757,7 @@ export default function App() {
             width: '100%',
             maxWidth: 680,
             color: '#f8fafc',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.1)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(250, 204, 21, 0.08)',
             fontFamily: "'Outfit', sans-serif"
           }} className="animate-slide-up">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
