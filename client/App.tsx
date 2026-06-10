@@ -235,204 +235,241 @@ export default function App() {
 
   // 1. Render Main Menu if not connected to a room
   if (!roomId || !playerId) {
+    const stakes = [10000, 15000, 20000, 25000];
+    const boards = [
+      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — 8 districts, warp pipes to Charlock' },
+      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis' },
+    ];
+    const tickerItems = [
+      'TANTEGEL ▲ 7G', 'GARINHAM ▲ 9G', 'KOL ▲ 9G', 'DOMDORA ▼ 11G', 'CANTLIN ▲ 12G',
+      'RIMULDAR ▲ 13G', 'CHARLOCK ▲ 21G', 'BRIDGES ▼ 7G', '🎰 THE HOUSE ALWAYS PAYS',
+      'LIANPORT ▲ 6G', 'CANNOCK ▲ 8G', 'HAMLIN ▲ 9G', 'BERAN ▲ 13G', 'MOONBROOKE ▲ 10G',
+      '♠ ♥ ♦ ♣ COLLECT ALL FOUR', 'SALARY DAY AT THE BANK',
+    ];
+    const tickerText = tickerItems.join('   ·   ');
+    const inputStyle: React.CSSProperties = {
+      width: '100%',
+      padding: '12px 16px',
+      borderRadius: 10,
+      background: 'rgba(0, 0, 0, 0.45)',
+      border: '1px solid rgba(253, 224, 71, 0.12)',
+      color: '#f8fafc',
+      fontSize: 14,
+      fontFamily: "'Outfit', sans-serif",
+      outline: 'none',
+    };
+    const labelStyle: React.CSSProperties = {
+      display: 'block',
+      fontSize: 10,
+      fontWeight: 700,
+      color: '#8b8fa3',
+      marginBottom: 8,
+      letterSpacing: '2.5px',
+      textTransform: 'uppercase',
+      fontFamily: "'Unbounded', sans-serif",
+    };
+
     return (
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
         minHeight: '100vh',
-        background: 'radial-gradient(circle at 50% 10%, #0d0d1e 0%, #06060c 100%)',
+        background: `
+          radial-gradient(ellipse 80% 50% at 15% -10%, rgba(134, 25, 143, 0.22) 0%, transparent 60%),
+          radial-gradient(ellipse 70% 45% at 85% 0%, rgba(8, 145, 178, 0.16) 0%, transparent 55%),
+          radial-gradient(ellipse 90% 60% at 50% 110%, rgba(250, 204, 21, 0.07) 0%, transparent 60%),
+          #05050b
+        `,
         fontFamily: "'Outfit', sans-serif",
         color: '#f8fafc',
-        padding: '24px',
         overflowY: 'auto',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{
-            fontSize: 48,
-            fontWeight: 900,
-            letterSpacing: '4px',
-            background: 'linear-gradient(135deg, #ffffff 0%, #a855f7 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            margin: '0 0 8px 0',
-          }}>
-            BANKRUPT STREET
+        <div className="lobby-stars" />
+
+        {/* ── Marquee header ── */}
+        <div className="lobby-rise" style={{ textAlign: 'center', padding: '52px 24px 26px', position: 'relative' }}>
+          <h1 className="marquee-wordmark" style={{ fontSize: 'clamp(40px, 6vw, 72px)', margin: 0 }}>
+            <span style={{ color: '#fde047', textShadow: '0 0 18px rgba(253, 224, 71, 0.55), 0 0 60px rgba(245, 158, 11, 0.25)' }}>BANKRUPT</span>
+            <span style={{ color: '#22d3ee', textShadow: '0 0 18px rgba(34, 211, 238, 0.55), 0 0 60px rgba(8, 145, 178, 0.3)', marginLeft: 22 }}>STREET</span>
           </h1>
-          <p style={{ color: '#64748b', fontSize: 14, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>
-            Itadaki Street Clone • Dragon Quest Edition
+          <p style={{
+            color: '#8b8fa3', fontSize: 11, fontWeight: 400, letterSpacing: '6px', textTransform: 'uppercase',
+            fontFamily: "'Unbounded', sans-serif", margin: '14px 0 0',
+          }}>
+            Roll · Buy · Invest · Bankrupt your friends
           </p>
-          <button
-            onClick={() => setShowRules(true)}
-            style={{
-              marginTop: 12,
-              background: 'rgba(250, 204, 21, 0.08)',
-              border: '1px solid rgba(250, 204, 21, 0.25)',
-              padding: '6px 18px',
-              borderRadius: 20,
-              cursor: 'pointer',
-              fontSize: 11,
-              fontWeight: 800,
-              color: '#facc15',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-            }}
-          >
-            📜 How to Play
-          </button>
         </div>
 
-        {showRules && <Rules onClose={() => setShowRules(false)} />}
+        {/* ── Stock ticker strip ── */}
+        <div className="lobby-rise" style={{
+          animationDelay: '0.12s',
+          overflow: 'hidden',
+          borderTop: '1px solid rgba(253, 224, 71, 0.14)',
+          borderBottom: '1px solid rgba(253, 224, 71, 0.14)',
+          background: 'rgba(0, 0, 0, 0.45)',
+          padding: '7px 0',
+          whiteSpace: 'nowrap',
+          marginBottom: 38,
+        }}>
+          <div style={{ display: 'inline-block', animation: 'ticker-scroll 45s linear infinite' }}>
+            {[0, 1].map(i => (
+              <span key={i} style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '1px',
+                color: '#a5b4cf', paddingRight: 24,
+              }}>
+                {tickerText}   ·   
+              </span>
+            ))}
+          </div>
+        </div>
 
+        {/* ── Main composition ── */}
         <div style={{
           display: 'flex',
-          gap: 32,
+          gap: 26,
           width: '100%',
-          maxWidth: 1040,
+          maxWidth: 1180,
+          margin: '0 auto',
+          padding: '0 24px 60px',
           flexWrap: 'wrap',
-          justifyContent: 'center',
+          alignItems: 'flex-start',
+          position: 'relative',
         }}>
-          <div style={{
-            flex: '1 1 450px',
-            background: 'rgba(8, 8, 16, 0.65)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 24,
-            padding: 32,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          {/* New venture (create) */}
+          <div className="lobby-rise" style={{
+            animationDelay: '0.22s',
+            flex: '1 1 580px',
+            background: 'linear-gradient(160deg, rgba(20, 16, 36, 0.85) 0%, rgba(8, 8, 16, 0.9) 100%)',
+            border: '1px solid rgba(253, 224, 71, 0.14)',
+            borderRadius: 18,
+            padding: '26px 28px',
+            boxShadow: '0 18px 50px rgba(0, 0, 0, 0.55)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 24,
+            gap: 20,
           }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>👤</span> Setup Identity
+            <h2 style={{
+              fontFamily: "'Unbounded', sans-serif", fontSize: 15, fontWeight: 900, color: '#fde047',
+              margin: 0, letterSpacing: '2px', textTransform: 'uppercase',
+            }}>
+              ◇ Open a New Venture
             </h2>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                Your Username
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., Hero, Dragonlord, alice..."
-                value={playerNameInput}
-                onChange={(e) => setPlayerNameInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#f8fafc',
-                  fontSize: 14,
-                  fontFamily: "'Outfit', sans-serif",
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.08)' }} />
-
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🏰</span> Create New Room
-            </h2>
-
-            <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Room Name
-                </label>
+                <label style={labelStyle}>Your Name</label>
                 <input
                   type="text"
-                  placeholder="e.g., Alefgard Castle"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#f8fafc',
-                    fontSize: 14,
-                    fontFamily: "'Outfit', sans-serif",
-                    outline: 'none',
-                  }}
+                  placeholder="Hero, Dragonlord, alice…"
+                  value={playerNameInput}
+                  onChange={(e) => setPlayerNameInput(e.target.value)}
+                  style={inputStyle}
                 />
               </div>
-              <div style={{ width: 160 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Character
-                </label>
-                <select
-                  value={characterChoice}
-                  onChange={(e) => setCharacterChoice(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#f8fafc',
-                    fontSize: 14,
-                    fontFamily: "'Outfit', sans-serif",
-                    outline: 'none',
-                  }}
-                >
-                  {Object.values(CHARACTERS).map(c => (
-                    <option key={c.id} value={c.id}>{c.emoji} {c.name} — {c.title}</option>
-                  ))}
-                </select>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Room Name</label>
+                <input
+                  type="text"
+                  placeholder="Alefgard Castle…"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  style={inputStyle}
+                />
               </div>
-              <div style={{ width: 140 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Board
-                </label>
-                <select
-                  value={boardChoice}
-                  onChange={(e) => setBoardChoice(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#f8fafc',
-                    fontSize: 14,
-                    fontFamily: "'Outfit', sans-serif",
-                    outline: 'none',
-                  }}
-                >
-                  <option value="alefgard">Alefgard</option>
-                  <option value="torland">Torland</option>
-                </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Pick Your Character</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {Object.values(CHARACTERS).map(c => {
+                  const selected = characterChoice === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      className="character-card"
+                      onClick={() => setCharacterChoice(c.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        background: selected ? 'rgba(253, 224, 71, 0.09)' : 'rgba(255, 255, 255, 0.02)',
+                        border: selected ? '1px solid rgba(253, 224, 71, 0.55)' : '1px solid rgba(255, 255, 255, 0.06)',
+                        boxShadow: selected ? '0 0 18px rgba(253, 224, 71, 0.12)' : 'none',
+                      }}
+                    >
+                      <span style={{ fontSize: 22 }}>{c.emoji}</span>
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: selected ? '#fde047' : '#f8fafc' }}>{c.name}</span>
+                        <span style={{ fontSize: 9.5, color: '#8b8fa3', fontWeight: 600 }}>{c.title}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <div style={{ width: 140 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Net Worth Limit
-                </label>
-                <select
-                  value={targetNetWorth}
-                  onChange={(e) => setTargetNetWorth(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#f8fafc',
-                    fontSize: 14,
-                    fontFamily: "'Outfit', sans-serif",
-                    outline: 'none',
-                  }}
-                >
-                  <option value={10000}>10,000G</option>
-                  <option value={15000}>15,000G</option>
-                  <option value={20000}>20,000G</option>
-                  <option value={25000}>25,000G</option>
-                </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 280px' }}>
+                <label style={labelStyle}>Board</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {boards.map(b => {
+                    const selected = boardChoice === b.id;
+                    return (
+                      <button
+                        key={b.id}
+                        className="character-card"
+                        onClick={() => setBoardChoice(b.id)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 12,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          background: selected ? 'rgba(34, 211, 238, 0.07)' : 'rgba(255, 255, 255, 0.02)',
+                          border: selected ? '1px solid rgba(34, 211, 238, 0.5)' : '1px solid rgba(255, 255, 255, 0.06)',
+                          boxShadow: selected ? '0 0 18px rgba(34, 211, 238, 0.1)' : 'none',
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 800, color: selected ? '#22d3ee' : '#f8fafc' }}>
+                          {b.icon} {b.name}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: '#8b8fa3', marginTop: 3, lineHeight: 1.4 }}>{b.blurb}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ flex: '0 1 auto' }}>
+                <label style={labelStyle}>Target Net Worth</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {stakes.map(s => {
+                    const selected = targetNetWorth === s;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => setTargetNetWorth(s)}
+                        style={{
+                          padding: '9px 12px',
+                          borderRadius: 16,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          cursor: 'pointer',
+                          background: selected ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)' : 'rgba(255, 255, 255, 0.03)',
+                          color: selected ? '#0c0a02' : '#fde68a',
+                          border: selected ? 'none' : '1px solid rgba(250, 204, 21, 0.22)',
+                        }}
+                      >
+                        {s / 1000}K
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -444,103 +481,95 @@ export default function App() {
                 createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice, characterChoice);
               }}
               style={{
-                padding: '14px',
+                padding: '15px',
                 borderRadius: 12,
                 border: 'none',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                color: '#ffffff',
-                fontSize: 14,
-                fontWeight: 800,
+                background: 'linear-gradient(135deg, #fde047 0%, #f59e0b 55%, #d97706 100%)',
+                color: '#190f00',
+                fontSize: 13,
+                fontWeight: 900,
+                letterSpacing: '3px',
+                textTransform: 'uppercase',
+                fontFamily: "'Unbounded', sans-serif",
                 cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)',
-                transition: 'all 0.2s',
+                boxShadow: '0 6px 26px rgba(245, 158, 11, 0.35)',
               }}
             >
-              Create & Join Lobby
+              Open the Doors ➜
             </button>
           </div>
 
-          <div style={{
-            flex: '1 1 450px',
-            background: 'rgba(8, 8, 16, 0.65)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 24,
-            padding: 32,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          {/* Open tables (rooms) */}
+          <div className="lobby-rise" style={{
+            animationDelay: '0.32s',
+            flex: '1 1 380px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 20,
+            gap: 14,
           }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🌐</span> Active Lobbies & Rooms
-            </h2>
-
             <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              maxHeight: 320,
+              background: 'linear-gradient(160deg, rgba(10, 18, 28, 0.85) 0%, rgba(8, 8, 16, 0.9) 100%)',
+              border: '1px solid rgba(34, 211, 238, 0.14)',
+              borderRadius: 18,
+              padding: '24px 24px',
+              boxShadow: '0 18px 50px rgba(0, 0, 0, 0.55)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
-              paddingRight: 4,
+              gap: 14,
             }}>
-              {roomsList.length === 0 ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '40px 0',
-                  color: '#64748b',
-                  gap: 8,
-                }}>
-                  <span style={{ fontSize: 24 }}>📭</span>
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>NO ACTIVE LOBBIES FOUND</span>
-                  <span style={{ fontSize: 11, textAlign: 'center' }}>Create a room to start Alefgard's quest!</span>
-                </div>
-              ) : (
-                roomsList.map((r) => (
-                  <div
-                    key={r.roomId}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '16px 20px',
-                      borderRadius: 16,
-                      background: 'rgba(0, 0, 0, 0.25)',
-                      border: '1px solid rgba(255, 255, 255, 0.04)',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: '#f8fafc' }}>{r.roomId}</span>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: 6,
-                          background: r.status === 'LOBBY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-                          color: r.status === 'LOBBY' ? '#10b981' : '#06b6d4',
-                          border: r.status === 'LOBBY' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(6, 182, 212, 0.25)',
-                        }}>
-                          {r.status}
-                        </span>
-                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                          👥 {r.playerCount}/{r.maxPlayers}
-                        </span>
-                        {r.boardName && (
-                          <span style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700 }}>
-                            🗺 {r.boardName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+              <h2 style={{
+                fontFamily: "'Unbounded', sans-serif", fontSize: 15, fontWeight: 900, color: '#22d3ee',
+                margin: 0, letterSpacing: '2px', textTransform: 'uppercase',
+              }}>
+                ◆ Open Tables
+              </h2>
 
-                    {r.status === 'LOBBY' ? (
+              <div style={{
+                overflowY: 'auto',
+                maxHeight: 430,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                paddingRight: 4,
+              }}>
+                {roomsList.length === 0 ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '36px 0',
+                    color: '#5b6478',
+                    gap: 8,
+                  }}>
+                    <span style={{ fontSize: 26 }}>🌙</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '1.5px' }}>THE FLOOR IS QUIET</span>
+                    <span style={{ fontSize: 11 }}>Open a venture to deal the first hand.</span>
+                  </div>
+                ) : (
+                  roomsList.map((r) => (
+                    <div
+                      key={r.roomId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '13px 16px',
+                        borderRadius: 12,
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderLeft: r.status === 'LOBBY' ? '3px solid #10b981' : '3px solid #22d3ee',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: '#f8fafc' }}>{r.roomId}</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 10.5, color: '#8b8fa3', fontWeight: 600 }}>
+                          <span style={{ color: r.status === 'LOBBY' ? '#10b981' : '#22d3ee', fontWeight: 800, letterSpacing: '0.5px' }}>
+                            {r.status === 'LOBBY' ? '● SEATING' : '● IN PLAY'}
+                          </span>
+                          <span>👥 {r.playerCount}/{r.maxPlayers}</span>
+                          {r.boardName && <span style={{ color: '#a78bfa' }}>🗺 {r.boardName}</span>}
+                        </div>
+                      </div>
                       <button
                         onClick={() => {
                           if (!playerNameInput.trim()) { alert('Please enter a username first'); return; }
@@ -550,44 +579,47 @@ export default function App() {
                         style={{
                           padding: '8px 16px',
                           borderRadius: 10,
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: '#ffffff',
-                          fontSize: 12,
+                          border: r.status === 'LOBBY' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                          background: r.status === 'LOBBY'
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                            : 'rgba(255, 255, 255, 0.04)',
+                          color: r.status === 'LOBBY' ? '#ffffff' : '#cbd5e1',
+                          fontSize: 11.5,
                           fontWeight: 800,
                           cursor: 'pointer',
-                          boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
+                          boxShadow: r.status === 'LOBBY' ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none',
                         }}
                       >
-                        Join Game
+                        {r.status === 'LOBBY' ? 'Take a Seat' : 'Rejoin'}
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          if (!playerNameInput.trim()) { alert('Please enter a username first'); return; }
-                          localStorage.setItem('playerName', playerNameInput.trim());
-                          joinRoom(r.roomId, playerNameInput.trim(), characterChoice);
-                        }}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: 10,
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          color: '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Rejoin Game
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+
+            <button
+              onClick={() => setShowRules(true)}
+              style={{
+                padding: '13px',
+                borderRadius: 14,
+                background: 'rgba(250, 204, 21, 0.05)',
+                border: '1px dashed rgba(250, 204, 21, 0.3)',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 800,
+                color: '#fde68a',
+                letterSpacing: '2.5px',
+                textTransform: 'uppercase',
+                fontFamily: "'Unbounded', sans-serif",
+              }}
+            >
+              📜 House Rules
+            </button>
           </div>
         </div>
+
+        {showRules && <Rules onClose={() => setShowRules(false)} />}
       </div>
     );
   }
@@ -2209,15 +2241,9 @@ export default function App() {
             backgroundColor: '#8b5cf6',
             boxShadow: '0 0 10px #8b5cf6',
           }} />
-          <span style={{
-            fontSize: '15px',
-            fontWeight: 900,
-            letterSpacing: '2.5px',
-            background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            BANKRUPT STREET
+          <span style={{ fontFamily: "'Monoton', cursive", fontSize: '14px', letterSpacing: '2px' }}>
+            <span style={{ color: '#fde047', textShadow: '0 0 8px rgba(253, 224, 71, 0.4)' }}>BANKRUPT</span>
+            <span style={{ color: '#22d3ee', textShadow: '0 0 8px rgba(34, 211, 238, 0.4)', marginLeft: 6 }}>STREET</span>
           </span>
         </div>
 

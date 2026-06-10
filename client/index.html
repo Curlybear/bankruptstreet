@@ -6,7 +6,7 @@
     <title>Bankrupt Street</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Monoton&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
       :root {
         --bg-space: #06060c;
@@ -168,6 +168,64 @@
       }
       .casino-card-flip.flipped {
         transform: rotateY(180deg);
+      }
+
+      /* ── Midnight Exchange (lobby marquee) ── */
+      @keyframes neon-flicker {
+        0%, 100% { opacity: 1; }
+        92% { opacity: 1; }
+        93% { opacity: 0.6; }
+        94% { opacity: 1; }
+        96% { opacity: 0.8; }
+        97% { opacity: 1; }
+      }
+
+      @keyframes star-drift {
+        from { background-position: 0 0; }
+        to { background-position: -1000px 360px; }
+      }
+
+      @keyframes ticker-scroll {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+
+      @keyframes rise-in {
+        from { transform: translateY(26px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .lobby-rise {
+        opacity: 0;
+        animation: rise-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      .lobby-stars {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(1px 1px at 25px 35px, rgba(255,255,255,0.55) 50%, transparent 50%),
+          radial-gradient(1px 1px at 110px 90px, rgba(125,211,252,0.45) 50%, transparent 50%),
+          radial-gradient(1.5px 1.5px at 200px 50px, rgba(253,224,71,0.4) 50%, transparent 50%),
+          radial-gradient(1px 1px at 70px 160px, rgba(244,114,182,0.35) 50%, transparent 50%);
+        background-size: 260px 220px;
+        animation: star-drift 180s linear infinite;
+      }
+
+      .marquee-wordmark {
+        font-family: 'Monoton', cursive;
+        font-weight: 400;
+        letter-spacing: 6px;
+        line-height: 1.05;
+        animation: neon-flicker 7s linear infinite;
+      }
+
+      .character-card {
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+      .character-card:hover {
+        transform: translateY(-3px);
       }
     </style>
   </head>
