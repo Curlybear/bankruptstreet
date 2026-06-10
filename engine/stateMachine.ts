@@ -21,11 +21,14 @@ function propertyAtNode(state: GameState, nodeId: string) {
 
 function advanceTurn(state: GameState): GameState {
   // A player may not end their turn in debt: they must choose assets to sell
-  // (DEBT_SETTLEMENT) until cash >= 0. Truly hopeless debt never reaches here
-  // — checkBankruptcy already liquidates and ends the game.
+  // (DEBT_SETTLEMENT) until cash >= 0. Asset prices can move between the
+  // charge and this moment (other players' trades), so re-check solvency on
+  // entry — hopeless debt is bankrupted here, not trapped in the phase.
   const outgoing = state.players[state.currentPlayerId];
   if (outgoing && !outgoing.isBankrupt && outgoing.cash < 0) {
-    return { ...state, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'ADVANCE_TURN' };
+    const checked = checkBankruptcy(state, state.currentPlayerId);
+    if (checked.players[state.currentPlayerId].isBankrupt) return checked;  // game over
+    return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'ADVANCE_TURN' };
   }
 
   const idx = state.turnOrder.indexOf(state.currentPlayerId);
@@ -45,11 +48,11 @@ function advanceTurn(state: GameState): GameState {
   // The incoming player may owe money from charges made on other players'
   // turns (venture cards). They settle before they can roll.
   const incomingInDebt = !!updatedPlayer && !updatedPlayer.isBankrupt && updatedPlayer.cash < 0;
-  return {
+  const advanced: GameState = {
     ...state,
     currentPlayerId: nextPlayerId,
-    currentPhase: incomingInDebt ? 'DEBT_SETTLEMENT' : 'PRE_ROLL',
-    debtResume: incomingInDebt ? 'PRE_ROLL' : undefined,
+    currentPhase: 'PRE_ROLL',
+    debtResume: undefined,
     round: nextRound,
     pendingDestinations: undefined,
     passedBankThisTurn: false,
@@ -62,6 +65,13 @@ function advanceTurn(state: GameState): GameState {
       [nextPlayerId]: updatedPlayer,
     } : state.players,
   };
+
+  if (incomingInDebt) {
+    const checked = checkBankruptcy(advanced, nextPlayerId);
+    if (checked.players[nextPlayerId].isBankrupt) return checked;  // game over
+    return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'PRE_ROLL' };
+  }
+  return advanced;
 }
 
 // Local getPath function removed; now imported from `./navigation.js`
@@ -142,7 +152,9 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
           },
           properties: {
             ...s.properties,
-            [prop.id]: { ...prop, checkpointToll: toll + 10, currentRent: toll + 10 },
+            // Tolls inflate +10G per pass but cap at 250G — toll growth was
+            // the #1 cause of bankruptcies in balance sims.
+            [prop.id]: { ...prop, checkpointToll: Math.min(toll + 10, 250), currentRent: Math.min(toll + 10, 250) },
           },
         };
 

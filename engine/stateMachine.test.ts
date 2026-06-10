@@ -902,3 +902,39 @@ test('CASINO_BET: validation — off-node, wager bounds, unaffordable', () => {
   });
   assert.throws(() => applyAction(broke, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' }), /afford/);
 });
+
+test('hopeless debt at turn end bankrupts instead of trapping in DEBT_SETTLEMENT', () => {
+  // p1 ends their turn 200G in debt with NO assets — must go bankrupt
+  // (game over), never enter an unwinnable settlement phase.
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    players: {
+      p1: makePlayer('p1', { cash: -200, netWorth: -200 }),
+      p2: makePlayer('p2'),
+    },
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+
+  assert.equal(next.players.p1.isBankrupt, true);
+  assert.equal(next.bankruptCount, 1);
+  assert.equal(next.winnerId, 'p2');                    // bankruptcy ends the game
+  assert.notEqual(next.currentPhase, 'DEBT_SETTLEMENT');
+});
+
+test('hopeless debt on an incoming player bankrupts at turn handoff', () => {
+  // p2 was charged during p1's turn and has nothing to sell.
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    players: {
+      p1: makePlayer('p1'),
+      p2: makePlayer('p2', { cash: -75, netWorth: -75 }),
+    },
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+
+  assert.equal(next.players.p2.isBankrupt, true);
+  assert.equal(next.winnerId, 'p1');
+  assert.notEqual(next.currentPhase, 'DEBT_SETTLEMENT');
+});

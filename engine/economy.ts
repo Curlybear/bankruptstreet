@@ -50,7 +50,9 @@ export function recalcDistrictMultipliers(
 
   function multiplierFor(count: number): number {
     if (count > 0 && count >= totalShops) return 5;
-    return Math.max(1, count);
+    // Partial ownership caps at x4 so big districts (6-7 shops) can't exceed
+    // the full-domination peak before even completing the set.
+    return Math.max(1, Math.min(4, count));
   }
 
   const updated = { ...properties };
@@ -66,7 +68,7 @@ export function recalcDistrictMultipliers(
         const lvl = prop.circusLevel ?? 0;
         const circusPrices = [100, 500, 1000, 2000];
         price = circusPrices[lvl];
-        rent = circusPrices[lvl];
+        rent = Math.floor(circusPrices[lvl] / 4);  // tier rents 25/125/250/500
       } else if (prop.buildingType === 'checkpoint') {
         price = 200;
         rent = prop.checkpointToll ?? 200;
@@ -306,7 +308,7 @@ export function invest(
       ...prop,
       circusLevel: newLevel,
       currentPrice: newPrice,
-      currentRent: newPrice,
+      currentRent: Math.floor(newPrice / 4),  // tier rents 25/125/250/500
     };
     const updatedProps = { ...state.properties, [propertyId]: updatedProp };
 
@@ -771,7 +773,10 @@ export function checkBankruptcy(state: GameState, playerId: string): GameState {
     s = distressSellProperty(s, playerId, pid);
   }
 
-  // Mark bankrupt if net worth still negative after full liquidation
+  // Mark bankrupt on the recalculated state — callers may pass stale
+  // netWorth values (e.g. a toll deducted cash without a recalc), and with
+  // zero assets the liquidation loops above never refresh anything.
+  s = recalcAllNetWorths(s);
   const finalPlayer = s.players[playerId];
   if (finalPlayer.netWorth < 0) {
     s = {
