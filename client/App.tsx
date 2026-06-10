@@ -7,10 +7,68 @@ import { ShopManagement } from './modals/ShopManagement';
 import { CHARACTERS } from '../shared/characters';
 import { Rules } from './modals/Rules';
 import { districtColorHex } from './districtColors';
+import { sfx, isMuted, setMuted } from './sfx';
 import type { CasinoResult } from '../shared/types';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
+
+// ─── Dice overlay ─────────────────────────────────────────────────────────────
+
+// Pip positions on a 3x3 grid for each die face.
+const PIP_MAP: Record<number, number[]> = {
+  1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+};
+
+function DiceOverlay({ roll }: { roll: number }) {
+  const [face, setFace] = useState(1 + Math.floor(Math.random() * 6));
+  const [phase, setPhase] = useState<'rolling' | 'settled' | 'gone'>('rolling');
+
+  useEffect(() => {
+    const iv = setInterval(() => setFace(1 + Math.floor(Math.random() * 6)), 75);
+    const t1 = setTimeout(() => { clearInterval(iv); setFace(roll); setPhase('settled'); }, 700);
+    const t2 = setTimeout(() => setPhase('gone'), 2100);
+    return () => { clearInterval(iv); clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (phase === 'gone') return null;
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 86,
+      left: 'calc(50% - 160px)',
+      transform: 'translateX(-50%)',
+      zIndex: 90,
+      pointerEvents: 'none',
+      animation: phase === 'settled' ? 'dice-fade 0.4s ease-in 1s forwards' : undefined,
+    }}>
+      <div style={{
+        width: 62,
+        height: 62,
+        borderRadius: 14,
+        background: 'linear-gradient(160deg, #ffffff 0%, #dbe3ee 100%)',
+        boxShadow: phase === 'settled'
+          ? '0 0 0 3px rgba(253, 224, 71, 0.85), 0 0 28px rgba(253, 224, 71, 0.5), 0 10px 24px rgba(0,0,0,0.55)'
+          : '0 10px 24px rgba(0,0,0,0.55)',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(3, 1fr)',
+        padding: 9,
+        gap: 2,
+        animation: phase === 'rolling' ? 'dice-shake 0.22s linear infinite' : 'dice-settle 0.35s ease-out',
+      }}>
+        {Array.from({ length: 9 }).map((_, i) => (
+          <span key={i} style={{
+            borderRadius: '50%',
+            background: PIP_MAP[face]?.includes(i) ? '#101426' : 'transparent',
+            margin: 1,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Casino ───────────────────────────────────────────────────────────────────
 
@@ -195,6 +253,10 @@ export default function App() {
   const [stockQty, setStockQty] = useState<Record<string, number>>({});
   const [debtSellQty, setDebtSellQty] = useState<Record<string, number>>({});
   const [casinoWager, setCasinoWager] = useState(100);
+  const [diceAnim, setDiceAnim] = useState<{ roll: number; key: number } | null>(null);
+  const [sfxOn, setSfxOn] = useState(!isMuted());
+  const prevRollSigRef = useRef('');
+  const lastLogLineRef = useRef<string | null>(null);
   const [showRules, setShowRules] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -209,6 +271,54 @@ export default function App() {
     pendingActionRef.current = false;
     setPendingAction(false);
   }, [state]);
+
+  // Dice overlay: animate whenever the active player's roll changes.
+  useEffect(() => {
+    if (!state?.lastRoll) return;
+    const pid = state.currentPlayerId;
+    const roll = state.lastRoll[pid];
+    if (roll === undefined) return;
+    const sig = `${pid}:${roll}:${state.round}`;
+    const first = prevRollSigRef.current === '';
+    if (prevRollSigRef.current === sig) return;
+    prevRollSigRef.current = sig;
+    if (first) return;  // don't animate a stale roll on reconnect
+    setDiceAnim({ roll, key: Date.now() });
+    sfx.dice();
+  }, [state?.lastRoll, state?.currentPlayerId, state?.round]);
+
+  // Sound effects: play one cue per state update based on fresh log entries.
+  useEffect(() => {
+    const log = state?.log;
+    if (!log || log.length === 0) return;
+    const last = log[log.length - 1];
+    if (lastLogLineRef.current === null) { lastLogLineRef.current = last; return; }
+    if (lastLogLineRef.current === last) return;
+    // Entries appended since the previously seen tail (log is trim-capped, so
+    // search from the end; fall back to just the newest entry).
+    let from = log.lastIndexOf(lastLogLineRef.current);
+    if (from === -1) from = log.length - 2;
+    const fresh = log.slice(from + 1);
+    lastLogLineRef.current = last;
+
+    const pick = (tests: Array<[(l: string) => boolean, () => void]>): (() => void) | null => {
+      for (const [match, play] of tests) {
+        if (fresh.some(match)) return play;
+      }
+      return null;
+    };
+    const cue = pick([
+      [l => l.startsWith('[WIN]'), sfx.jackpot],
+      [l => l.startsWith('[BANKRUPT]') || l.startsWith('[DEBT]') || l.startsWith('[DISTRESS]'), sfx.alert],
+      [l => l.startsWith('[CASINO]') && l.includes('Paid'), sfx.jackpot],
+      [l => l.startsWith('[CASINO]'), sfx.lose],
+      [l => l.startsWith('[SALARY]'), sfx.salary],
+      [l => l.includes('collected') && l.includes('suit'), sfx.salary],
+      [l => l.startsWith('[RENT]') || l.startsWith('[TAX]') || l.startsWith('[CHECKPOINT]'), sfx.pay],
+      [l => l.startsWith('[BUY') || l.startsWith('[STOCK]') || l.startsWith('[INVEST]') || l.startsWith('[DIVIDEND]') || l.startsWith('[BREAK]'), sfx.coin],
+    ]);
+    cue?.();
+  }, [state?.log]);
 
   const emitAction = (action: Action) => {
     if (pendingActionRef.current) return;
@@ -2353,6 +2463,28 @@ export default function App() {
           📜 Rules
         </button>
 
+        {/* Sound toggle */}
+        <button
+          onClick={() => {
+            const next = !sfxOn;
+            setMuted(!next);
+            setSfxOn(next);
+            if (next) sfx.coin();
+          }}
+          title={sfxOn ? 'Mute sounds' : 'Unmute sounds'}
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '5px 10px',
+            borderRadius: 20,
+            cursor: 'pointer',
+            fontSize: 12,
+            opacity: sfxOn ? 1 : 0.55,
+          }}
+        >
+          {sfxOn ? '🔊' : '🔇'}
+        </button>
+
         {/* User Identity tag */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10.5, fontWeight: 600, color: '#64748b' }}>PILOT CARD:</span>
@@ -2622,9 +2754,11 @@ export default function App() {
       )}
 
       {/* 4. Game Over Overlay Screen */}
+      {diceAnim && <DiceOverlay key={diceAnim.key} roll={diceAnim.roll} />}
+
       {state.winnerId && (
         <div style={{
-          position: 'fixed', 
+          position: 'fixed',
           inset: 0,
           background: 'rgba(3, 3, 8, 0.9)',
           backdropFilter: 'blur(30px)',
@@ -2633,7 +2767,25 @@ export default function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}>
+          {/* Confetti rain */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            {Array.from({ length: 56 }).map((_, i) => (
+              <span key={i} style={{
+                position: 'absolute',
+                top: '-4vh',
+                left: `${(i * 37 + 11) % 100}%`,
+                width: i % 3 === 0 ? 6 : 8,
+                height: i % 3 === 0 ? 12 : 9,
+                background: ['#fde047', '#22d3ee', '#ec4899', '#10b981', '#a855f7'][i % 5],
+                borderRadius: 2,
+                opacity: 0,
+                animation: `confetti-fall ${2.8 + (i % 5) * 0.55}s linear ${(i % 9) * 0.45}s infinite`,
+              }} />
+            ))}
+          </div>
+
           <div style={{
             background: 'rgba(12, 12, 26, 0.85)',
             border: '2px dashed #facc15',
@@ -2647,18 +2799,16 @@ export default function App() {
             boxShadow: '0 0 50px rgba(250, 204, 21, 0.25)',
             maxHeight: '90vh',
             overflowY: 'auto',
+            position: 'relative',
           }} className="animate-slide-up">
-            <div style={{ fontSize: 32, marginBottom: 8 }}>👑</div>
-            <div style={{
-              fontSize: 24,
-              fontWeight: 900,
-              background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: 8,
-              letterSpacing: '1px',
+            <div style={{ fontSize: 32, marginBottom: 6 }}>👑</div>
+            <div className="marquee-wordmark" style={{
+              fontSize: 34,
+              marginBottom: 10,
+              color: '#fde047',
+              textShadow: '0 0 16px rgba(253, 224, 71, 0.55), 0 0 50px rgba(245, 158, 11, 0.3)',
             }}>
-              Victory Achieved
+              CHAMPION
             </div>
 
             <div style={{

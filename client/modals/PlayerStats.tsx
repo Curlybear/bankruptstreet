@@ -45,9 +45,25 @@ const LOG_TAG_STYLE: Record<string, { color: string; icon: string }> = {
   WIN: { color: '#facc15', icon: '🏆' },
 };
 
+// Feed filter categories: tag prefix → bucket.
+type FeedFilter = 'all' | 'money' | 'market' | 'moves';
+const MONEY_TAGS = ['BUY', 'BUYOUT', 'INVEST', 'RENT', 'DIVIDEND', 'COMMISSION', 'SALARY', 'TAX', 'TAX BONUS', 'DISTRESS', 'DEBT', 'BANKRUPT'];
+const MARKET_TAGS = ['STOCK', 'VENTURE', 'VENTURE CARD', 'VENTURE EFFECT', 'VENTURE LINE', 'CASINO', 'BREAK', 'WIN'];
+
+function feedCategory(msg: string): Exclude<FeedFilter, 'all'> {
+  const tag = msg.match(/^\[([^\]]+)\]/)?.[1];
+  if (tag) {
+    if (MONEY_TAGS.includes(tag)) return 'money';
+    if (MARKET_TAGS.includes(tag)) return 'market';
+    return 'moves';   // TURN, LAND, CHECKPOINT, TELEPORT, HOME CONGREGATE…
+  }
+  return 'moves';     // untagged: rolls, suit pickups, lobby notes
+}
+
 export function PlayerStats({ state, playerId }: Props) {
   const logEndRef = useRef<HTMLDivElement>(null);
   const [feedOpen, setFeedOpen] = useState(true);
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
 
   // Auto-scroll logs to bottom on new updates
   useEffect(() => {
@@ -532,6 +548,31 @@ export function PlayerStats({ state, playerId }: Props) {
           </span>
         </div>
 
+        {/* Filter chips */}
+        {feedOpen && (
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {([['all', 'All'], ['money', '💰 Money'], ['market', '📈 Market'], ['moves', '🎲 Moves']] as const).map(([f, label]) => (
+              <button
+                key={f}
+                onClick={() => setFeedFilter(f)}
+                style={{
+                  padding: '2px 9px',
+                  borderRadius: 10,
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  background: feedFilter === f ? 'rgba(34, 211, 238, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  color: feedFilter === f ? '#22d3ee' : '#64748b',
+                  border: feedFilter === f ? '1px solid rgba(34, 211, 238, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Scrolling logs container */}
         {feedOpen && (
           <div style={{
@@ -542,7 +583,10 @@ export function PlayerStats({ state, playerId }: Props) {
             gap: '6px',
             paddingRight: '2px',
           }}>
-            {state.log.map((line, i) => renderLogMessage(line, i))}
+            {state.log
+              .map((line, i) => [line, i] as const)
+              .filter(([line]) => feedFilter === 'all' || feedCategory(line) === feedFilter)
+              .map(([line, i]) => renderLogMessage(line, i))}
             <div ref={logEndRef} />
           </div>
         )}
