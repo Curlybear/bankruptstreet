@@ -7,9 +7,173 @@ import { ShopManagement } from './modals/ShopManagement';
 import { CHARACTERS } from '../shared/characters';
 import { Rules } from './modals/Rules';
 import { districtColorHex } from './districtColors';
+import type { CasinoResult } from '../shared/types';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
+
+// ─── Casino ───────────────────────────────────────────────────────────────────
+
+const SLIMES = [
+  { emoji: '💧', name: 'Azure Streak', color: '#38bdf8' },
+  { emoji: '🔥', name: 'Ember Dash', color: '#fb923c' },
+  { emoji: '🌸', name: 'Rose Bounce', color: '#f472b6' },
+  { emoji: '🤖', name: 'Metal Bullet', color: '#94a3b8' },
+];
+
+const CARD_LABELS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const cardLabel = (n?: number) => (n ? CARD_LABELS[n - 1] ?? String(n) : '?');
+
+// Deterministic lane finish times: the winner crosses first, the rest straggle.
+function derbyLaneDuration(lane: number, winner: number): number {
+  if (lane === winner) return 2.0;
+  return 2.45 + ((lane * 7 + winner * 3) % 4) * 0.22;
+}
+
+function CasinoResultView({ result, canAct, onEndTurn }: {
+  result: CasinoResult;
+  canAct: boolean;
+  onEndTurn: () => void;
+}) {
+  const [go, setGo] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setGo(true), 200);
+    const t2 = setTimeout(() => setRevealed(true), result.game === 'derby' ? 2700 : 1600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // Run once per result (parent keys this component by the result signature)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const banner = revealed && (
+    <div style={{
+      marginTop: 12,
+      padding: '10px 24px',
+      borderRadius: 12,
+      textAlign: 'center',
+      fontWeight: 900,
+      fontSize: 16,
+      letterSpacing: '1px',
+      color: result.won ? '#0c0a02' : '#fecaca',
+      background: result.won
+        ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)'
+        : 'rgba(127, 29, 29, 0.55)',
+      border: result.won ? 'none' : '1px solid rgba(248, 113, 113, 0.4)',
+      animation: result.won ? 'casino-win-flash 0.7s ease-out forwards' : 'casino-lose-thud 0.5s ease-out forwards',
+    }}>
+      {result.won ? `🏆 JACKPOT! +${g(result.payout - result.wager)}` : `💸 House wins — ${g(result.wager)} gone`}
+    </div>
+  );
+
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {result.game === 'derby' ? (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {SLIMES.map((s, i) => {
+            const picked = Number(result.choice) === i;
+            const isWinner = result.winnerSlime === i;
+            return (
+              <div key={i} style={{
+                position: 'relative',
+                height: 30,
+                borderRadius: 8,
+                background: picked ? 'rgba(250, 204, 21, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                border: `1px solid ${picked ? 'rgba(250, 204, 21, 0.35)' : 'rgba(255, 255, 255, 0.05)'}`,
+                overflow: 'hidden',
+              }}>
+                {/* Finish line */}
+                <div style={{
+                  position: 'absolute', right: 34, top: 0, bottom: 0, width: 3,
+                  background: 'repeating-linear-gradient(0deg, #f8fafc 0 4px, #0f172a 4px 8px)',
+                  opacity: 0.5,
+                }} />
+                <span style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: go ? 'calc(100% - 30px)' : '4px',
+                  transition: `left ${derbyLaneDuration(i, result.winnerSlime ?? 0)}s cubic-bezier(0.3, 0.6, 0.6, 1)`,
+                  fontSize: 17,
+                  display: 'inline-block',
+                  animation: !revealed ? 'slime-hop 0.4s ease-in-out infinite' : undefined,
+                }}>
+                  {s.emoji}{revealed && isWinner ? '👑' : ''}
+                </span>
+                <span style={{
+                  position: 'absolute', left: 8, top: 8, fontSize: 9, fontWeight: 800,
+                  letterSpacing: '0.5px', color: s.color, opacity: 0.85,
+                }}>
+                  {s.name.toUpperCase()}{picked ? ' ★' : ''}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '6px 0' }}>
+          {/* Dealt card */}
+          <div style={{
+            width: 64, height: 88, borderRadius: 10, background: '#f8fafc',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 30, fontWeight: 900, color: '#0f172a',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+          }}>
+            {cardLabel(result.card1)}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>
+            {result.choice === 'high' ? '⬆ HIGHER' : '⬇ LOWER'}
+          </div>
+          {/* Flipping card */}
+          <div style={{ width: 64, height: 88, perspective: 400 }}>
+            <div className={`casino-card-flip${go ? ' flipped' : ''}`} style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: 10, backfaceVisibility: 'hidden',
+                background: 'linear-gradient(135deg, #581c87 0%, #86198f 100%)',
+                border: '2px solid rgba(250, 204, 21, 0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+              }}>
+                🎰
+              </div>
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: 10, backfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)', background: '#f8fafc',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 30, fontWeight: 900, color: result.won ? '#15803d' : '#b91c1c',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+              }}>
+                {cardLabel(result.card2)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {banner}
+
+      <button
+        onClick={onEndTurn}
+        disabled={!canAct}
+        style={{
+          marginTop: 12,
+          padding: '8px 28px',
+          borderRadius: 10,
+          fontFamily: "'Outfit', sans-serif",
+          fontWeight: 700,
+          fontSize: 12.5,
+          cursor: canAct ? 'pointer' : 'default',
+          opacity: canAct ? 1 : 0.5,
+          background: revealed && result.won
+            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+            : 'rgba(255, 255, 255, 0.06)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+        }}
+      >
+        {revealed ? (result.won ? 'Collect & Continue' : 'Shuffle Out') : 'Skip — End Turn'}
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const {
@@ -30,6 +194,7 @@ export default function App() {
   const [showStockMatrix, setShowStockMatrix] = useState(false);
   const [stockQty, setStockQty] = useState<Record<string, number>>({});
   const [debtSellQty, setDebtSellQty] = useState<Record<string, number>>({});
+  const [casinoWager, setCasinoWager] = useState(100);
   const [showRules, setShowRules] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -717,6 +882,7 @@ export default function App() {
     ? propAtNode
     : null;
   const atBroker      = phase === 'SPACE_ACTION' && (node?.type === 'bank' || node?.type === 'stockbroker' || inStockWindow);
+  const atCasino      = phase === 'SPACE_ACTION' && !inStockWindow && node?.type === 'casino';
 
   // Unified overlay button style helper
   function overlayBtn(primary: boolean, danger = false): React.CSSProperties {
@@ -1536,6 +1702,179 @@ export default function App() {
             <div style={{ color: '#10b981', fontSize: 11, fontWeight: 700, marginTop: 10, textAlign: 'center' }}>
               ✨ Force buyout available! Cleanly buyout this shop for 5x base price.
             </div>
+          )}
+        </div>
+      );
+    }
+
+    // 5b. SPACE_ACTION: casino floor — wager on a minigame or walk away
+    if (atCasino) {
+      const result = state.casinoResult;
+      const wager = Math.max(10, Math.min(casinoWager, 500, currentPlayer.cash));
+      const canBet = isMyTurn && !result && currentPlayer.cash >= 10;
+      const resultSig = result
+        ? `${result.playerId}-${result.game}-${result.wager}-${result.winnerSlime ?? ''}-${result.card1 ?? ''}-${result.card2 ?? ''}`
+        : '';
+      const chipStyle = (amount: number): React.CSSProperties => ({
+        padding: '5px 13px',
+        borderRadius: 16,
+        fontSize: 11,
+        fontWeight: 800,
+        fontFamily: "'JetBrains Mono', monospace",
+        cursor: canBet && amount <= currentPlayer.cash ? 'pointer' : 'default',
+        opacity: amount <= currentPlayer.cash ? 1 : 0.35,
+        background: wager === amount ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)' : 'rgba(255, 255, 255, 0.04)',
+        color: wager === amount ? '#0c0a02' : '#fde68a',
+        border: wager === amount ? 'none' : '1px solid rgba(250, 204, 21, 0.25)',
+      });
+
+      return (
+        <div style={{ ...consoleInnerPanelStyle, maxWidth: 560, border: '1px solid rgba(250, 204, 21, 0.18)' }} className="animate-slide-up">
+          <div style={{
+            fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#facc15', marginBottom: 4,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            {['#fde047', '#f472b6', '#38bdf8'].map((c, i) => (
+              <span key={i} style={{
+                width: 5, height: 5, borderRadius: '50%', background: c,
+                animation: `marquee-blink 1s ease-in-out ${i * 0.33}s infinite`,
+              }} />
+            ))}
+            🎰 GOLDEN SLIME CASINO
+            {['#38bdf8', '#f472b6', '#fde047'].map((c, i) => (
+              <span key={i} style={{
+                width: 5, height: 5, borderRadius: '50%', background: c,
+                animation: `marquee-blink 1s ease-in-out ${i * 0.33}s infinite`,
+              }} />
+            ))}
+          </div>
+
+          {result ? (
+            <>
+              <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 17, marginBottom: 10 }}>
+                {result.game === 'derby' ? '🏁 Slime Derby' : '🃏 High-Low'}
+                <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 12, marginLeft: 8 }}>
+                  {state.players[result.playerId]?.name} wagered {g(result.wager)}
+                </span>
+              </div>
+              <CasinoResultView
+                key={resultSig}
+                result={result}
+                canAct={isMyTurn}
+                onEndTurn={() => emitAction({ type: 'END_TURN' })}
+              />
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 18, marginBottom: 4 }}>
+                Place Your Bet
+              </div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+                {!isMyTurn
+                  ? `Waiting for ${currentPlayer.name} at the tables…`
+                  : 'One bet per visit. The house honors all payouts — in gold, on the spot.'}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '1px', color: '#64748b' }}>WAGER</span>
+                {[50, 100, 200, 500].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setCasinoWager(amount)}
+                    disabled={!canBet || amount > currentPlayer.cash}
+                    style={chipStyle(amount)}
+                  >
+                    {amount}G
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%', marginBottom: 14 }}>
+                {/* Slime Derby */}
+                <div style={{
+                  borderRadius: 12,
+                  padding: '12px',
+                  background: 'rgba(0, 0, 0, 0.25)',
+                  border: '1px solid rgba(56, 189, 248, 0.15)',
+                }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#f8fafc', marginBottom: 2 }}>🏁 Slime Derby</div>
+                  <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 10 }}>
+                    Back a racer · win pays <strong style={{ color: '#fde68a' }}>4×</strong> ({g(wager * 4)})
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {SLIMES.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => emitAction({ type: 'CASINO_BET', game: 'derby', wager, choice: String(i) })}
+                        disabled={!canBet}
+                        style={{
+                          padding: '7px 4px',
+                          borderRadius: 8,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          cursor: canBet ? 'pointer' : 'default',
+                          opacity: canBet ? 1 : 0.5,
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          color: s.color,
+                          border: `1px solid ${s.color}44`,
+                        }}
+                      >
+                        {s.emoji} {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* High-Low */}
+                <div style={{
+                  borderRadius: 12,
+                  padding: '12px',
+                  background: 'rgba(0, 0, 0, 0.25)',
+                  border: '1px solid rgba(244, 114, 182, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#f8fafc', marginBottom: 2 }}>🃏 High-Low</div>
+                  <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 10 }}>
+                    Call the next card · win pays <strong style={{ color: '#fde68a' }}>2×</strong> ({g(wager * 2)}) · tie loses
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'center' }}>
+                    <button
+                      onClick={() => emitAction({ type: 'CASINO_BET', game: 'highlow', wager, choice: 'high' })}
+                      disabled={!canBet}
+                      style={{
+                        flex: 1, padding: '12px 4px', borderRadius: 8, fontSize: 12, fontWeight: 800,
+                        cursor: canBet ? 'pointer' : 'default', opacity: canBet ? 1 : 0.5,
+                        background: 'rgba(16, 185, 129, 0.08)', color: '#34d399',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                      }}
+                    >
+                      ⬆ HIGHER
+                    </button>
+                    <button
+                      onClick={() => emitAction({ type: 'CASINO_BET', game: 'highlow', wager, choice: 'low' })}
+                      disabled={!canBet}
+                      style={{
+                        flex: 1, padding: '12px 4px', borderRadius: 8, fontSize: 12, fontWeight: 800,
+                        cursor: canBet ? 'pointer' : 'default', opacity: canBet ? 1 : 0.5,
+                        background: 'rgba(244, 63, 94, 0.08)', color: '#fb7185',
+                        border: '1px solid rgba(244, 63, 94, 0.3)',
+                      }}
+                    >
+                      ⬇ LOWER
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => emitAction({ type: 'END_TURN' })}
+                disabled={!isMyTurn}
+                style={{ ...overlayBtn(false), padding: '8px 28px' }}
+              >
+                Walk Away
+              </button>
+            </>
           )}
         </div>
       );

@@ -13,6 +13,7 @@ const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
   'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
+  'CASINO_BET',
 ]);
 
 const KNOWN_BUILDING_TYPES = new Set([
@@ -91,6 +92,12 @@ function validateAction(p: unknown): string | null {
     if (!Number.isInteger(act.amount) || (act.amount as number) <= 0) {
       return 'amount must be a positive integer';
     }
+  }
+
+  if (act.type === 'CASINO_BET') {
+    if (act.game !== 'derby' && act.game !== 'highlow') return `unknown casino game: ${String(act.game)}`;
+    if (!Number.isInteger(act.wager) || (act.wager as number) <= 0) return 'wager must be a positive integer';
+    if (typeof act.choice !== 'string' || !act.choice.trim()) return 'choice must be a non-empty string';
   }
 
   if (act.type === 'CHOOSE_VENTURE_CARD') {

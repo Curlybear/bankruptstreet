@@ -36,7 +36,7 @@ export interface VentureCard {
 
 export interface Node {
   id: string;
-  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break';
+  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break' | 'casino';
   neighbors: string[];
   coordinates: { x: number; y: number };
   pairedNodeId?: string;
@@ -121,6 +121,7 @@ export type TurnPhase =
 export type Action =
   | { type: 'SELL_STOCK'; districtId: string; shares: number }
   | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
+  | { type: 'CASINO_BET'; game: CasinoGame; wager: number; choice: string }  // casino node, one bet per visit
   | { type: 'ROLL_DICE' }
   | { type: 'CHOOSE_PATH'; nodeId: string }
   | { type: 'BUY_PROPERTY'; propertyId: string }
@@ -160,6 +161,26 @@ export interface GameState {
   passedBankThisTurn?: boolean;
   passedBankWindowUsed?: boolean;  // bonus SPACE_ACTION (stock window) already granted this turn
   debtResume?: 'ADVANCE_TURN' | 'PRE_ROLL';  // where to go when DEBT_SETTLEMENT clears
+  casinoResult?: CasinoResult | null;  // set after CASINO_BET, cleared on turn advance
   stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
 }
 
+
+export type CasinoGame = 'derby' | 'highlow';
+
+// Outcome of a casino bet — kept on GameState until the turn advances so the
+// client can animate the result (race / card flip) before the player ends
+// their visit.
+export interface CasinoResult {
+  playerId: string;
+  game: CasinoGame;
+  wager: number;
+  choice: string;       // derby: slime index '0'-'3' · highlow: 'high' | 'low'
+  won: boolean;
+  payout: number;       // total gold returned (0 on a loss)
+  // derby
+  winnerSlime?: number;
+  // highlow
+  card1?: number;       // 1-13
+  card2?: number;
+}

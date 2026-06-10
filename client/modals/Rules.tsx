@@ -72,6 +72,7 @@ export function Rules({ onClose }: Props) {
           <tr><td style={tdKey}>❓ Venture</td><td style={td}>Draw a venture card from the 8×8 grid</td></tr>
           <tr><td style={tdKey}>🏛️ Tax office</td><td style={td}>Pay 5% of your net worth to the bank</td></tr>
           <tr><td style={tdKey}>☕ Take-a-break</td><td style={td}>Roll a die, pocket roll × 20G</td></tr>
+          <tr><td style={tdKey}>🎰 Casino</td><td style={td}>Wager 10–500G: Slime Derby (pick 1 of 4, pays 4×) or High-Low (call the next card, pays 2×, tie loses). One bet per visit</td></tr>
           <tr><td style={tdKey}>🌀 Warp</td><td style={td}>Teleport to the paired square, keep moving</td></tr>
           <tr><td style={tdKey}>🏗️ Vacant plot</td><td style={td}>Build: three-star shop (1000G), checkpoint, circus, balloonport, tax office, home, or estate agency (200G each)</td></tr>
         </tbody></table>

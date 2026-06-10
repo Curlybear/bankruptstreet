@@ -42,6 +42,7 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 | ❓ **Venture** | Draw a venture card from the 8×8 grid |
 | 🏛️ **Tax office** | Pay 5% of your net worth to the bank |
 | ☕ **Take-a-break** | Roll a die, pocket roll × 20G |
+| 🎰 **Casino** | Wager 10–500G on a minigame (one bet per visit), or walk away |
 | 🌀 **Warp** | Teleport to the paired square and keep moving |
 | 🏗️ **Vacant plot** | Unowned: build on it. See Buildings |
 
@@ -90,6 +91,15 @@ Land on an unowned vacant plot to build:
 | 🏢 Estate agency | 200G | Land on it to buy any unowned shop on the board, remotely |
 
 You may **renovate** a plot you own into a different building at the start of your turn (building cost + 150G).
+
+## The Casino
+
+Land on a 🎰 **Casino** square to play one of two games, once per visit:
+
+- **🏁 Slime Derby** — back one of four racing slimes. Your pick wins the race 1 time in 4; victory pays **4× your wager**.
+- **🃏 High-Low** — a card is dealt; call whether the next is **higher** or **lower**. Right pays **2× your wager**. A tie goes to the house.
+
+Wagers run 10–500G and you can always walk away without betting.
 
 ## Debt & Bankruptcy
 

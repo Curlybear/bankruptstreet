@@ -809,3 +809,96 @@ test('incoming player in debt starts their turn in DEBT_SETTLEMENT, resumes to P
   assert.equal(settled.currentPlayerId, 'p2');          // still p2's turn
   assert.equal(settled.currentPhase, 'PRE_ROLL');       // now free to roll
 });
+
+// ─── Casino ───────────────────────────────────────────────────────────────────
+
+const casinoBoard: Record<string, Node> = {
+  bank:   { id: 'bank', type: 'bank', neighbors: ['casino1'], coordinates: { x: 0, y: 0 } },
+  casino1: { id: 'casino1', type: 'casino', neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
+};
+
+function makeCasinoState(): GameState {
+  return makeState({
+    currentPhase: 'SPACE_ACTION',
+    board: casinoBoard,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'casino1' }),
+      p2: makePlayer('p2'),
+    },
+  });
+}
+
+test('CASINO_BET: derby win pays 4x, one bet per visit, END_TURN leaves the table', () => {
+  const state = makeCasinoState();
+  const origRandom = Math.random;
+  Math.random = () => 0.6; // floor(0.6 * 4) = slime 2
+  try {
+    const next = applyAction(state, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '2' });
+    assert.equal(next.players.p1.cash, 1300);          // 1000 - 100 + 400
+    assert.equal(next.casinoResult?.won, true);
+    assert.equal(next.casinoResult?.winnerSlime, 2);
+    assert.equal(next.currentPhase, 'SPACE_ACTION');   // stays for the result animation
+
+    assert.throws(
+      () => applyAction(next, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' }),
+      /one bet per casino stop/,
+    );
+
+    const done = applyAction(next, { type: 'END_TURN' });
+    assert.equal(done.currentPlayerId, 'p2');
+    assert.equal(done.casinoResult, null);             // cleared on turn advance
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('CASINO_BET: derby loss forfeits the wager', () => {
+  const state = makeCasinoState();
+  const origRandom = Math.random;
+  Math.random = () => 0.6; // winner slime 2
+  try {
+    const next = applyAction(state, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' });
+    assert.equal(next.players.p1.cash, 900);
+    assert.equal(next.casinoResult?.won, false);
+    assert.equal(next.casinoResult?.payout, 0);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('CASINO_BET: highlow tie loses (house edge), win pays 2x', () => {
+  const origRandom = Math.random;
+  try {
+    Math.random = () => 0.5; // both cards = 1 + floor(0.5 * 13) = 7 → tie
+    const tied = applyAction(makeCasinoState(), { type: 'CASINO_BET', game: 'highlow', wager: 50, choice: 'high' });
+    assert.equal(tied.players.p1.cash, 950);
+    assert.equal(tied.casinoResult?.won, false);
+
+    let calls = 0;
+    Math.random = () => (calls++ === 0 ? 0.0 : 0.9); // card1 = A(1), card2 = K(12+1)
+    const won = applyAction(makeCasinoState(), { type: 'CASINO_BET', game: 'highlow', wager: 50, choice: 'high' });
+    assert.equal(won.players.p1.cash, 1050);           // 1000 - 50 + 100
+    assert.equal(won.casinoResult?.won, true);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('CASINO_BET: validation — off-node, wager bounds, unaffordable', () => {
+  const offNode = makeState({ currentPhase: 'SPACE_ACTION' }); // player at bank
+  assert.throws(
+    () => applyAction(offNode, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' }),
+    /casino node/,
+  );
+
+  const state = makeCasinoState();
+  assert.throws(() => applyAction(state, { type: 'CASINO_BET', game: 'derby', wager: 5, choice: '0' }), /between/);
+  assert.throws(() => applyAction(state, { type: 'CASINO_BET', game: 'derby', wager: 9999, choice: '0' }), /between/);
+
+  const broke = makeState({
+    currentPhase: 'SPACE_ACTION',
+    board: casinoBoard,
+    players: { p1: makePlayer('p1', { currentNodeId: 'casino1', cash: 20 }), p2: makePlayer('p2') },
+  });
+  assert.throws(() => applyAction(broke, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' }), /afford/);
+});

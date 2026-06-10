@@ -38,6 +38,7 @@ const LOG_TAG_STYLE: Record<string, { color: string; icon: string }> = {
   'VENTURE CARD': { color: '#facc15', icon: '🔮' },
   'VENTURE EFFECT': { color: '#facc15', icon: '🔮' },
   'VENTURE LINE': { color: '#facc15', icon: '🎰' },
+  CASINO: { color: '#facc15', icon: '🎰' },
   DEBT: { color: '#f43f5e', icon: '⚠️' },
   DISTRESS: { color: '#f43f5e', icon: '🚨' },
   BANKRUPT: { color: '#f43f5e', icon: '💀' },

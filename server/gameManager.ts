@@ -253,6 +253,17 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'CASINO_BET': {
+      deltas.push({
+        type: 'CASINO_RESOLVED',
+        payload: {
+          playerId: pid,
+          result: after.casinoResult ?? null,
+        }
+      });
+      break;
+    }
+
     case 'END_TURN': {
       deltas.push({
         type: 'TURN_ENDED',

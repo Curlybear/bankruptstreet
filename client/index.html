@@ -138,6 +138,37 @@
       .animate-fade-in {
         animation: fade-in 0.25s ease-out forwards;
       }
+
+      /* Casino */
+      @keyframes slime-hop {
+        0%, 100% { transform: translateY(0) scaleY(1); }
+        50% { transform: translateY(-5px) scaleY(0.92); }
+      }
+
+      @keyframes marquee-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.25; }
+      }
+
+      @keyframes casino-win-flash {
+        0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.6); transform: scale(0.9); opacity: 0; }
+        40% { transform: scale(1.06); opacity: 1; }
+        100% { box-shadow: 0 0 24px 6px rgba(250, 204, 21, 0.25); transform: scale(1); opacity: 1; }
+      }
+
+      @keyframes casino-lose-thud {
+        0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
+        60% { transform: translateY(2px) scale(1.01); opacity: 1; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+      }
+
+      .casino-card-flip {
+        transform-style: preserve-3d;
+        transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+      }
+      .casino-card-flip.flipped {
+        transform: rotateY(180deg);
+      }
     </style>
   </head>
   <body>

@@ -311,6 +311,7 @@ Legal action map (node type matters within SPACE_ACTION):
 | `SPACE_ACTION` | bank or stockbroker | `BUY_STOCK`, `COLLECT_SALARY` (if all suits held + bank), `END_TURN` |
 | `SPACE_ACTION` | suit node | auto-collect suit → immediately transition to TURN_END (no player input) |
 | `SPACE_ACTION` | venture/vacant | draw card / resolve effect → TURN_END |
+| `SPACE_ACTION` | casino | `CASINO_BET` (once: derby pays 4×, highlow pays 2×, wager 10–500G), `END_TURN` |
 | `DEBT_SETTLEMENT` | any | `SELL_STOCK`, `SELL_PROPERTY` (distress, 75%), then `END_TURN` once cash ≥ 0 |
 
 **Rules:**

@@ -297,6 +297,16 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
       }
     }
 
+    // Casino: one modest flutter when cash is comfortable, then walk away.
+    if (node.type === 'casino') {
+      if (!state.casinoResult && player.cash > personality.cashReserve + 200) {
+        return Math.random() < 0.5
+          ? { type: 'CASINO_BET', game: 'derby', wager: 100, choice: String(Math.floor(Math.random() * 4)) }
+          : { type: 'CASINO_BET', game: 'highlow', wager: 100, choice: Math.random() < 0.5 ? 'high' : 'low' };
+      }
+      return { type: 'END_TURN' };
+    }
+
     if (node.type === 'bank' || node.type === 'stockbroker' || state.passedBankThisTurn) {
       // Salary is auto-collected by resolveSpace on bank landing — no explicit action needed here.
 

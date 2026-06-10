@@ -65,7 +65,7 @@ const ALEFGARD_BOARD: Record<string, Node> = {
 
   // --- South Bridge ---
   bridge_south_2: { id: 'bridge_south_2', type: 'property', neighbors: ['venture_south'], coordinates: { x: 6, y: 4 } },
-  venture_south: { id: 'venture_south', type: 'venture', neighbors: ['bridge_south_1'], coordinates: { x: 5, y: 4 } },
+  venture_south: { id: 'venture_south', type: 'casino', neighbors: ['bridge_south_1'], coordinates: { x: 5, y: 4 } },
   bridge_south_1: { id: 'bridge_south_1', type: 'property', neighbors: ['domdora_1'], coordinates: { x: 4, y: 4 } },
 
   // --- Domdora Area (Southwest) ---
@@ -186,7 +186,7 @@ const TORLAND_BOARD: Record<string, Node> = {
   // --- Zahan (south-east) ---
   zahan_1: { id: 'zahan_1', type: 'property', neighbors: ['zahan_2'], coordinates: { x: 8, y: 5 } },
   zahan_2: { id: 'zahan_2', type: 'property', neighbors: ['venture_south'], coordinates: { x: 7, y: 5 } },
-  venture_south: { id: 'venture_south', type: 'venture', neighbors: ['zahan_3'], coordinates: { x: 6, y: 5 } },
+  venture_south: { id: 'venture_south', type: 'casino', neighbors: ['zahan_3'], coordinates: { x: 6, y: 5 } },
   zahan_3: { id: 'zahan_3', type: 'vacant', neighbors: ['moonbrooke_1'], coordinates: { x: 5, y: 5 } },
 
   // --- Moonbrooke (south-west) ---

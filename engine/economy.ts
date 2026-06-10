@@ -1,4 +1,4 @@
-import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats } from '../shared/types.js';
+import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats, CasinoGame } from '../shared/types.js';
 
 
 export const BASE_SALARY = 250;
@@ -6,6 +6,8 @@ export const PROMO_BONUS_PER_LEVEL = 150;
 export const MAX_INVEST_PER_TURN = 999;
 export const STOCK_PRICE_CHANGE_THRESHOLD = 10;
 export const DISTRESS_SALE_RATE = 0.75;
+export const CASINO_MIN_WAGER = 10;
+export const CASINO_MAX_WAGER = 500;
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -603,6 +605,70 @@ export function collectSalary(state: GameState, playerId: string, requireBankNod
   };
 
   return recalcAllNetWorths(bumpStats(s1, playerId, { salariesCollected: 1 }));
+}
+
+// ─── Casino minigames ─────────────────────────────────────────────────────────
+
+const CARD_LABELS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+export function cardLabel(n: number): string {
+  return CARD_LABELS[n - 1] ?? String(n);
+}
+
+export const DERBY_SLIME_NAMES = ['Azure Streak', 'Ember Dash', 'Rose Bounce', 'Metal Bullet'];
+
+// One bet per casino visit. Derby: pick 1 of 4 slimes, win pays 4x the wager.
+// High-Low: see a card, call the next one higher or lower (tie loses), pays 2x.
+export function playCasino(
+  state: GameState,
+  playerId: string,
+  game: CasinoGame,
+  wager: number,
+  choice: string,
+): GameState {
+  const player = state.players[playerId];
+  if (!player) throw new Error(`Player ${playerId} not found`);
+  if (!Number.isInteger(wager)) throw new Error(`Wager must be an integer`);
+  if (wager < CASINO_MIN_WAGER || wager > CASINO_MAX_WAGER) {
+    throw new Error(`Wager must be between ${CASINO_MIN_WAGER} and ${CASINO_MAX_WAGER}`);
+  }
+  if (player.cash < wager) throw new Error(`Cannot afford a ${wager}G wager`);
+
+  let won: boolean;
+  let payout: number;
+  let winnerSlime: number | undefined;
+  let card1: number | undefined;
+  let card2: number | undefined;
+  let logLine: string;
+
+  if (game === 'derby') {
+    const pick = Number(choice);
+    if (!Number.isInteger(pick) || pick < 0 || pick > 3) throw new Error(`Derby choice must be '0'-'3'`);
+    winnerSlime = Math.floor(Math.random() * 4);
+    won = winnerSlime === pick;
+    payout = won ? wager * 4 : 0;
+    logLine = `[CASINO] ${player.name} wagered ${wager}G on ${DERBY_SLIME_NAMES[pick]} — ${DERBY_SLIME_NAMES[winnerSlime]} wins the derby! ${won ? `Paid ${payout}G.` : 'Wager lost.'}`;
+  } else if (game === 'highlow') {
+    if (choice !== 'high' && choice !== 'low') throw new Error(`High-Low choice must be 'high' or 'low'`);
+    card1 = 1 + Math.floor(Math.random() * 13);
+    card2 = 1 + Math.floor(Math.random() * 13);
+    won = choice === 'high' ? card2 > card1 : card2 < card1;
+    payout = won ? wager * 2 : 0;
+    logLine = `[CASINO] ${player.name} wagered ${wager}G on ${choice} after ${cardLabel(card1)} — drew ${cardLabel(card2)}. ${won ? `Paid ${payout}G.` : 'Wager lost.'}`;
+  } else {
+    throw new Error(`Unknown casino game: ${String(game)}`);
+  }
+
+  const s1: GameState = {
+    ...state,
+    players: {
+      ...state.players,
+      [playerId]: { ...player, cash: player.cash - wager + payout },
+    },
+    casinoResult: { playerId, game, wager, choice, won, payout, winnerSlime, card1, card2 },
+    log: [...state.log, logLine],
+  };
+
+  return recalcAllNetWorths(s1);
 }
 
 // requireBankNode=false is used for pass-through wins: walking past the bank

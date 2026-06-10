@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
-  distressSellProperty, recalcAllNetWorths, bumpStats,
+  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -54,6 +54,7 @@ function advanceTurn(state: GameState): GameState {
     pendingDestinations: undefined,
     passedBankThisTurn: false,
     passedBankWindowUsed: false,
+    casinoResult: null,
     // Cap the log so persisted state stays bounded (it grows every action).
     log: [...state.log, `[TURN] Round ${nextRound} — ${incomingPlayer?.name ?? nextPlayerId}'s turn.`].slice(-300),
     players: updatedPlayer ? {
@@ -196,6 +197,11 @@ function resolveSpace(state: GameState): GameState {
     return { ...state, currentPhase: 'SPACE_ACTION' };
   }
 
+  if (node.type === 'casino') {
+    // Player decides at the table: place a bet or walk away.
+    return { ...state, currentPhase: 'SPACE_ACTION' };
+  }
+
   if (node.type === 'break') {
     // Take-a-break square: roll a die, pocket roll × 20G from the bank, rest up.
     const roll = Math.floor(Math.random() * 6) + 1;
@@ -325,6 +331,21 @@ export function applyAction(state: GameState, action: Action): GameState {
       }
       const sold = distressSellProperty(state, currentPlayerId, action.propertyId);
       return checkBankruptcy(sold, currentPlayerId);
+    }
+
+    case 'CASINO_BET': {
+      if (currentPhase !== 'SPACE_ACTION') {
+        throw new Error(`Illegal action CASINO_BET in phase ${currentPhase}`);
+      }
+      const node = currentNode(state);
+      if (node.type !== 'casino') {
+        throw new Error(`CASINO_BET requires a casino node, got ${node.type}`);
+      }
+      if (state.casinoResult) {
+        throw new Error(`Already placed a bet this visit — one bet per casino stop`);
+      }
+      // Stay in SPACE_ACTION: the client animates the result, then END_TURN.
+      return playCasino(state, currentPlayerId, action.game, action.wager, action.choice);
     }
 
     case 'ROLL_DICE': {

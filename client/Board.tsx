@@ -312,6 +312,34 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       label.anchor.set(0.5, 0.5);
       label.position.set(px, py);
       camera.addChild(label);
+    } else if (node.type === 'casino') {
+      // Neon casino — magenta diamond with gold trim and marquee dots
+      const r = 27;
+      g.poly([px, py - r, px + r, py, px, py + r, px - r, py]);
+      g.fill({ color: 0x86198f }); // Deep magenta felt
+      g.poly([px, py - r, px + r, py, px, py + r, px - r, py]);
+      g.stroke({ color: 0xfacc15, width: 2.5, alpha: 0.95 }); // Gold trim
+      // Marquee light dots on the four diamond points
+      for (const [dx, dy] of [[0, -r], [r, 0], [0, r], [-r, 0]] as const) {
+        g.circle(px + dx, py + dy, 2.5).fill({ color: 0xfde68a });
+      }
+      camera.addChild(g);
+
+      const slotIcon = new Text({
+        text: '🎰',
+        style: new TextStyle({ fontSize: 16 }),
+      });
+      slotIcon.anchor.set(0.5, 0.5);
+      slotIcon.position.set(px, py - 4);
+      camera.addChild(slotIcon);
+
+      const casinoLabel = new Text({
+        text: 'CASINO',
+        style: new TextStyle({ fontSize: 7.5, fill: 0xfde68a, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 1 }),
+      });
+      casinoLabel.anchor.set(0.5, 0.5);
+      casinoLabel.position.set(px, py + 12);
+      camera.addChild(casinoLabel);
     } else if (node.type === 'break') {
       g.circle(px, py, 24).fill({ color: 0x0f3d3e }); // Calm teal — rest stop
       g.circle(px, py, 24).stroke({ color: 0x2dd4bf, width: 2, alpha: 0.8 });
