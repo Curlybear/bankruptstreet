@@ -79,22 +79,29 @@ test('investAmount: dragonlord invests 300, erdrick 100', () => {
   }
 });
 
-test('stockBatch: gwaelin buys 20 shares at the bank, slime buys 5', () => {
+test('stock buying: one aggregated buy down to the reserve; stockBatch is the minimum position', () => {
   const shop: Property = { ...ownShop, nodeId: 'shop1' };
   const base = makeState({
     properties: { shop1: shop },
     districts: { d1: district },
   });
+  const at = (charId: string, cash: number): GameState => ({
+    ...base,
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash, currentNodeId: 'bank', propertyIds: ['shop1'], characterId: charId }) },
+  });
 
-  for (const [charId, expected] of [['gwaelin', 20], ['slime', 5]] as const) {
-    const s: GameState = {
-      ...base,
-      players: { ...base.players, p1: makeTestPlayer('p1', { cash: 2000, currentNodeId: 'bank', propertyIds: ['shop1'], characterId: charId }) },
-    };
-    const action = greedyBotAction(s, 'p1');
-    assert.equal(action.type, 'BUY_STOCK', `${charId} should buy stock`);
-    assert.equal((action as { shares: number }).shares, expected, `${charId} batch size`);
-  }
+  // gwaelin (reserve 300): 2000 cash at 10G/sh → 170 affordable, one buy capped at 99
+  const big = greedyBotAction(at('gwaelin', 2000), 'p1');
+  assert.equal(big.type, 'BUY_STOCK');
+  assert.equal((big as { shares: number }).shares, 99);
+
+  // gwaelin (batch 20): only 19 affordable above the reserve → not worth opening
+  assert.equal(greedyBotAction(at('gwaelin', 490), 'p1').type, 'END_TURN');
+
+  // slime (reserve 500, batch 5): 6 affordable → buys all 6 in one transaction
+  const small = greedyBotAction(at('slime', 560), 'p1');
+  assert.equal(small.type, 'BUY_STOCK');
+  assert.equal((small as { shares: number }).shares, 6);
 });
 
 test('buyoutCashMultiplier: dragonlord (1.5x) buys out where slime (4x) pays rent', () => {

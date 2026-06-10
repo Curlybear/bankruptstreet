@@ -76,13 +76,17 @@ function pickStockBuy(state: GameState, botPlayerId: string, personality: BotPer
   if (!bestDistrictId) return null;
 
   const district = state.districts[bestDistrictId];
-  const shares = personality.stockBatch;
-  const cost = shares * district.stockPrice;
-  if (district.stockPrice > 0 && player.cash >= cost) {
-    purchasePrices.set(`${botPlayerId}:${bestDistrictId}`, district.stockPrice);
-    return { type: 'BUY_STOCK', districtId: bestDistrictId, shares };
-  }
-  return null;
+  if (district.stockPrice <= 0) return null;
+
+  // One aggregated transaction: spend down to the cash reserve in a single
+  // buy (engine caps 99/transaction). stockBatch is the minimum position
+  // worth opening — drip-buying batch by batch spammed the feed and dodged
+  // the 10+ share price-impact rule.
+  const shares = Math.min(99, Math.floor((player.cash - personality.cashReserve) / district.stockPrice));
+  if (shares < personality.stockBatch) return null;
+
+  purchasePrices.set(`${botPlayerId}:${bestDistrictId}`, district.stockPrice);
+  return { type: 'BUY_STOCK', districtId: bestDistrictId, shares };
 }
 
 export function greedyBotAction(state: GameState, botPlayerId: string): Action {
