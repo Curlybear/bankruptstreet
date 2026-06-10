@@ -8,6 +8,7 @@ import {
 } from 'pixi.js';
 import type { Socket } from 'socket.io-client';
 import type { GameState } from '../shared/types';
+import { districtColor } from './districtColors';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -19,17 +20,6 @@ const TOKEN_R  = 9;
 
 const SUIT_ICON: Record<string, string> = {
   heart: '♥', diamond: '♦', spade: '♠', club: '♣',
-};
-
-const DISTRICT_COLOR: Record<string, number> = {
-  tantegel: 0x3b82f6, // Neon royal blue
-  garinham: 0x10b981, // Premium forest green
-  kol:      0x06b6d4, // Bright cyan/teal
-  domdora:  0xf59e0b, // Warm amber orange
-  cantlin:  0xef4444, // Vibrant crimson red
-  rimuldar: 0x8b5cf6, // Intense violet purple
-  charlock: 0xec4899, // Cyberpunk magenta / Indigo purple
-  bridges:  0x64748b, // Cool steel gray
 };
 
 const PLAYER_COLOR = [0xff4e50, 0x00f2fe, 0xa855f7, 0xfacc15]; // Premium neon colors
@@ -167,7 +157,7 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       });
 
       // District header banner at the top (15px tall)
-      const distColor = prop ? (DISTRICT_COLOR[prop.districtId] ?? 0xa855f7) : 0x2c2c4d;
+      const distColor = prop ? districtColor(prop.districtId, state.districts) : 0x2c2c4d;
       g.roundRect(tx + 1, ty + 1, TILE_W - 2, 14, 8);
       g.fill({ color: distColor });
       // Overlay rect to flatten bottom rounded corners of top banner

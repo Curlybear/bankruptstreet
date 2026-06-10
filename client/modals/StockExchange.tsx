@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { GameState, Action, Property, BuildingType } from '../../shared/types';
+import { districtColorHex } from '../districtColors';
 
 interface Props {
   state: GameState;
@@ -168,7 +169,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    backgroundColor: d.id === 'd1' ? '#05f5ce' : '#a855f7',
+                    backgroundColor: districtColorHex(d.id, state.districts),
                   }} />
                   <strong style={{ fontSize: '12px', color: '#f8fafc' }}>{d.name}</strong>
                 </div>
@@ -281,7 +282,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
               key={d.id}
               style={{
                 fontSize: '10px',
-                color: '#94a3b8',
+                color: districtColorHex(d.id, state.districts),
                 background: 'rgba(255, 255, 255, 0.02)',
                 border: '1px solid rgba(255, 255, 255, 0.04)',
                 borderRadius: '10px',
@@ -289,7 +290,7 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
-              {d.name} <strong style={{ color: '#06b6d4' }}>{g(d.stockPrice)}</strong>
+              {d.name} <strong style={{ color: '#cbd5e1' }}>{g(d.stockPrice)}</strong>
             </span>
           ))}
         </div>

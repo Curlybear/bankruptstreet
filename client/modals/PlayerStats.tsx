@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../shared/types';
+import { districtColorHex } from '../districtColors';
 
 interface Props {
   state: GameState | null;
@@ -451,7 +452,16 @@ export function PlayerStats({ state, playerId }: Props) {
                             borderRadius: '4px',
                           }}
                         >
-                          <span style={{ fontWeight: 600 }}>{d.name}</span>
+                          <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: districtColorHex(d.id, state.districts),
+                              flexShrink: 0,
+                            }} />
+                            {d.name}
+                          </span>
                           <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                             <strong style={{ color: '#cbd5e1' }}>{d.playerHoldings[pid]}sh</strong> · {g(d.stockPrice)}
                           </span>

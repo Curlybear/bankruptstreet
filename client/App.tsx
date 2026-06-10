@@ -6,6 +6,7 @@ import { StockExchange } from './modals/StockExchange';
 import { ShopManagement } from './modals/ShopManagement';
 import { CHARACTERS } from '../shared/characters';
 import { Rules } from './modals/Rules';
+import { districtColorHex } from './districtColors';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
@@ -833,7 +834,7 @@ export default function App() {
                           width: 6,
                           height: 6,
                           borderRadius: '50%',
-                          backgroundColor: d.id === 'd1' ? '#05f5ce' : '#a855f7',
+                          backgroundColor: districtColorHex(d.id, state.districts),
                         }} />
                         <span style={{ fontWeight: 700, fontSize: 12.5, color: '#f8fafc' }}>{d.name}</span>
                       </div>
@@ -1595,7 +1596,7 @@ export default function App() {
                         width: 6,
                         height: 6,
                         borderRadius: '50%',
-                        backgroundColor: d.id === 'd1' ? '#05f5ce' : '#a855f7',
+                        backgroundColor: districtColorHex(d.id, state.districts),
                       }} />
                       <span style={{ fontWeight: 700, fontSize: 12.5, color: '#f8fafc' }}>{d.name}</span>
                     </div>
@@ -1804,7 +1805,7 @@ export default function App() {
                     minWidth: '90px',
                   }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: d.id === 'd1' ? '#05f5ce' : '#a855f7' }}>{d.name}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: districtColorHex(d.id, state.districts) }}>{d.name}</span>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 700, color: '#f8fafc', marginTop: 2 }}>
                     {g(d.stockPrice)}
                   </span>
@@ -2439,26 +2440,13 @@ export default function App() {
                 </thead>
                 <tbody>
                   {Object.values(state.districts).map((dist, rIdx) => {
-                    const getThemeColor = (dId: string) => {
-                      const colors: Record<string, string> = {
-                        tantegel: '#3b82f6',
-                        garinham: '#10b981',
-                        kol:      '#06b6d4',
-                        domdora:  '#f59e0b',
-                        cantlin:  '#ef4444',
-                        rimuldar: '#8b5cf6',
-                        charlock: '#ec4899',
-                        bridges:  '#64748b',
-                      };
-                      return colors[dId] ?? '#a855f7';
-                    };
                     return (
-                      <tr key={dist.id} style={{ 
+                      <tr key={dist.id} style={{
                         borderBottom: rIdx === Object.values(state.districts).length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.03)',
                         background: rIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent'
                       }}>
                         <td style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: getThemeColor(dist.id) }} />
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: districtColorHex(dist.id, state.districts) }} />
                           <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{dist.name}</span>
                           <span style={{ color: '#10b981', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: 4, marginLeft: 4 }}>
                             {dist.stockPrice}G
