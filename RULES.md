@@ -120,5 +120,6 @@ Humans play however they like — the character is your avatar. AI players genui
 
 ## Boards
 
-- 🗺 **Alefgard** — the classic: twin warp pipes into the lucrative Charlock island at the center.
+- 🗺 **Alefgard** — the classic: twin warp pipes into the lucrative Charlock island at the center, now with a taxed land exit through the **Charlock Gate** and an inn on the Kol road.
 - 🗺 **Torland** — outer ring with an inner pass, a one-way **River Rapids** shortcut (cheap shops, brutal rent, no way back), and a royal tax office on the north road.
+- 🗺 **Aliahan** — twin loops crossing at the bank (every lap passes the Dharma Shrine, the bank, and the Edinbear tax house). The Isis desert wind blows the northern caravan one-way east; premium **Jipang** island is warp-in from the Roma Road, warp-out to Aliahan.

@@ -39,7 +39,8 @@ const ALEFGARD_BOARD: Record<string, Node> = {
 
   // --- Kol Area (Northeast) ---
   kol_1: { id: 'kol_1', type: 'property', neighbors: ['kol_2'], coordinates: { x: 7, y: 0 } },
-  kol_2: { id: 'kol_2', type: 'property', neighbors: ['diamond_suit'], coordinates: { x: 8, y: 0 } },
+  kol_2: { id: 'kol_2', type: 'property', neighbors: ['break_inn'], coordinates: { x: 8, y: 0 } },
+  break_inn: { id: 'break_inn', type: 'break', neighbors: ['diamond_suit'], coordinates: { x: 9, y: 0 } },
   diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['kol_3'], coordinates: { x: 10, y: 0 } },
   kol_3: { id: 'kol_3', type: 'vacant', neighbors: ['kol_4'], coordinates: { x: 10, y: 1 } },
   kol_4: { id: 'kol_4', type: 'property', neighbors: ['kol_5'], coordinates: { x: 9, y: 1 } },
@@ -79,8 +80,11 @@ const ALEFGARD_BOARD: Record<string, Node> = {
   domdora_7: { id: 'domdora_7', type: 'property', neighbors: ['bank'], coordinates: { x: 3, y: 3 } },
 
   // --- Charlock Castle Area (Central Island) ---
-  charlock_warp_in_1: { id: 'charlock_warp_in_1', type: 'property', neighbors: ['charlock_2'], coordinates: { x: 4, y: 2 } },
-  charlock_2: { id: 'charlock_2', type: 'property', neighbors: ['charlock_1'], coordinates: { x: 5, y: 1 } },
+  // The island loops internally (no dead-end entrance) and has a taxed land
+  // exit east through the Charlock Gate to the stockbroker.
+  charlock_warp_in_1: { id: 'charlock_warp_in_1', type: 'property', neighbors: ['charlock_2', 'charlock_1'], coordinates: { x: 4, y: 2 } },
+  charlock_2: { id: 'charlock_2', type: 'property', neighbors: ['charlock_1', 'charlock_gate'], coordinates: { x: 5, y: 1 } },
+  charlock_gate: { id: 'charlock_gate', type: 'tax_office', neighbors: ['stockbroker_east'], coordinates: { x: 6, y: 1 } },
   charlock_1: { id: 'charlock_1', type: 'property', neighbors: ['charlock_3'], coordinates: { x: 5, y: 2 } },
   charlock_3: { id: 'charlock_3', type: 'property', neighbors: ['charlock_warp_in_2'], coordinates: { x: 5, y: 3 } },
   charlock_warp_in_2: { id: 'charlock_warp_in_2', type: 'property', neighbors: ['charlock_warp_out_1'], coordinates: { x: 6, y: 2 } },
@@ -261,6 +265,114 @@ const TORLAND_DISTRICTS: Record<string, District> = {
   rapids:     { id: 'rapids',     name: 'Rapids',     stockPrice: 7,  propertyIds: ['rapids_1', 'rapids_2'], playerHoldings: {} },
 };
 
+// ─── Aliahan (Dragon Quest III) — twin loops crossing at the bank ──────────────
+//
+// A figure-eight: the west and east loops share the central spine
+// (Dharma Shrine ☕ → Bank → Edinbear Tax 🏛), so every lap crosses the bank.
+// The Roma Road chord cuts across the west loop through the western broker.
+// Desert wind blows the eastern caravan one-way west→east along the top.
+// Jipang is a premium island inside the east loop: warp in from the Roma
+// Road, walk its shops, warp out to Aliahan.
+
+const ALIAHAN_BOARD: Record<string, Node> = {
+  // --- Central spine ---
+  dharma_break: { id: 'dharma_break', type: 'break', neighbors: ['bank', 'romaly_1', 'isis_1'], coordinates: { x: 6, y: 1 } },
+  bank: { id: 'bank', type: 'bank', neighbors: ['edinbear_tax'], coordinates: { x: 6, y: 2 } },
+  edinbear_tax: { id: 'edinbear_tax', type: 'tax_office', neighbors: [], coordinates: { x: 6, y: 3 } },
+
+  // --- West loop (Romaly north, Aliahan south) ---
+  romaly_1: { id: 'romaly_1', type: 'property', neighbors: ['romaly_casino'], coordinates: { x: 5, y: 0 } },
+  romaly_casino: { id: 'romaly_casino', type: 'casino', neighbors: ['romaly_2'], coordinates: { x: 4, y: 0 } },
+  romaly_2: { id: 'romaly_2', type: 'property', neighbors: ['heart_suit'], coordinates: { x: 3, y: 0 } },
+  heart_suit: { id: 'heart_suit', type: 'suit', suit: 'heart', neighbors: ['noaniels_1'], coordinates: { x: 2, y: 0 } },
+  noaniels_1: { id: 'noaniels_1', type: 'property', neighbors: ['noaniels_2'], coordinates: { x: 1, y: 0 } },
+  noaniels_2: { id: 'noaniels_2', type: 'property', neighbors: ['kazave_vac'], coordinates: { x: 0, y: 1 } },
+  kazave_vac: { id: 'kazave_vac', type: 'vacant', neighbors: ['kazave_1', 'stockbroker_west'], coordinates: { x: 0, y: 2 } },
+  kazave_1: { id: 'kazave_1', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 0, y: 3 } },
+  spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['aliahan_1'], coordinates: { x: 1, y: 4 } },
+  aliahan_1: { id: 'aliahan_1', type: 'property', neighbors: ['aliahan_2'], coordinates: { x: 2, y: 4 } },
+  aliahan_2: { id: 'aliahan_2', type: 'property', neighbors: ['aliahan_3'], coordinates: { x: 3, y: 4 } },
+  aliahan_3: { id: 'aliahan_3', type: 'property', neighbors: ['venture_west'], coordinates: { x: 4, y: 4 } },
+  venture_west: { id: 'venture_west', type: 'venture', neighbors: ['edinbear_tax'], coordinates: { x: 5, y: 4 } },
+
+  // --- Roma Road (west chord through the broker) ---
+  stockbroker_west: { id: 'stockbroker_west', type: 'stockbroker', neighbors: ['roma_road_1'], coordinates: { x: 1, y: 2 } },
+  roma_road_1: { id: 'roma_road_1', type: 'property', neighbors: ['roma_road_2'], coordinates: { x: 2, y: 2 } },
+  roma_road_2: { id: 'roma_road_2', type: 'property', neighbors: ['bank', 'warp_to_jipang'], coordinates: { x: 4, y: 2 } },
+  warp_to_jipang: { id: 'warp_to_jipang', type: 'warp', pairedNodeId: 'jipang_in', neighbors: [], coordinates: { x: 5, y: 1 } },
+
+  // --- East loop (Isis desert north, Baharata south) ---
+  isis_1: { id: 'isis_1', type: 'property', neighbors: ['isis_2'], coordinates: { x: 7, y: 0 } },
+  isis_2: { id: 'isis_2', type: 'property', neighbors: ['diamond_suit'], coordinates: { x: 8, y: 0 } },
+  diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['isis_3'], coordinates: { x: 9, y: 0 } },
+  isis_3: { id: 'isis_3', type: 'property', neighbors: ['portoga_1'], coordinates: { x: 10, y: 0 } },
+  portoga_1: { id: 'portoga_1', type: 'property', neighbors: ['portoga_2'], coordinates: { x: 11, y: 0 } },
+  portoga_2: { id: 'portoga_2', type: 'property', neighbors: ['stockbroker_east'], coordinates: { x: 12, y: 1 } },
+  stockbroker_east: { id: 'stockbroker_east', type: 'stockbroker', neighbors: ['baharata_1'], coordinates: { x: 12, y: 2 } },
+  baharata_1: { id: 'baharata_1', type: 'property', neighbors: ['baharata_2'], coordinates: { x: 12, y: 3 } },
+  baharata_2: { id: 'baharata_2', type: 'property', neighbors: ['club_suit'], coordinates: { x: 11, y: 4 } },
+  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['baharata_3'], coordinates: { x: 10, y: 4 } },
+  baharata_3: { id: 'baharata_3', type: 'property', neighbors: ['venture_east'], coordinates: { x: 9, y: 4 } },
+  venture_east: { id: 'venture_east', type: 'venture', neighbors: ['samanao_vac'], coordinates: { x: 8, y: 4 } },
+  samanao_vac: { id: 'samanao_vac', type: 'vacant', neighbors: ['edinbear_tax'], coordinates: { x: 7, y: 4 } },
+
+  // --- Jipang island (inside the east loop; warp in, warp out) ---
+  jipang_in: { id: 'jipang_in', type: 'property', neighbors: ['jipang_1'], coordinates: { x: 8, y: 2 } },
+  jipang_1: { id: 'jipang_1', type: 'property', neighbors: ['jipang_2'], coordinates: { x: 9, y: 2 } },
+  jipang_2: { id: 'jipang_2', type: 'property', neighbors: ['jipang_warp_out'], coordinates: { x: 10, y: 2 } },
+  jipang_warp_out: { id: 'jipang_warp_out', type: 'warp', pairedNodeId: 'aliahan_1', neighbors: [], coordinates: { x: 11, y: 2 } },
+};
+
+// Desert wind: the Isis caravan only travels west→east along the top row.
+const ALIAHAN_ONE_WAY: ReadonlyArray<readonly [string, string]> = [
+  ['isis_1', 'isis_2'],
+  ['isis_2', 'diamond_suit'],
+];
+
+const ALIAHAN_PROPERTIES: Record<string, Property> = {
+  aliahan_1: { id: 'aliahan_1', nodeId: 'aliahan_1', districtId: 'aliahan', ownerId: null, basePrice: 140, currentPrice: 140, baseRent: 12, currentRent: 12, capitalInvested: 0, maxCapital: 280, shopMultiplier: 1 },
+  aliahan_2: { id: 'aliahan_2', nodeId: 'aliahan_2', districtId: 'aliahan', ownerId: null, basePrice: 160, currentPrice: 160, baseRent: 14, currentRent: 14, capitalInvested: 0, maxCapital: 320, shopMultiplier: 1 },
+  aliahan_3: { id: 'aliahan_3', nodeId: 'aliahan_3', districtId: 'aliahan', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 15, currentRent: 15, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
+
+  noaniels_1: { id: 'noaniels_1', nodeId: 'noaniels_1', districtId: 'noaniels', ownerId: null, basePrice: 190, currentPrice: 190, baseRent: 16, currentRent: 16, capitalInvested: 0, maxCapital: 380, shopMultiplier: 1 },
+  noaniels_2: { id: 'noaniels_2', nodeId: 'noaniels_2', districtId: 'noaniels', ownerId: null, basePrice: 210, currentPrice: 210, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 420, shopMultiplier: 1 },
+
+  kazave_vac: { id: 'kazave_vac', nodeId: 'kazave_vac', districtId: 'kazave', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  kazave_1: { id: 'kazave_1', nodeId: 'kazave_1', districtId: 'kazave', ownerId: null, basePrice: 220, currentPrice: 220, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 440, shopMultiplier: 1 },
+
+  romaly_1: { id: 'romaly_1', nodeId: 'romaly_1', districtId: 'romaly', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
+  romaly_2: { id: 'romaly_2', nodeId: 'romaly_2', districtId: 'romaly', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
+  roma_road_1: { id: 'roma_road_1', nodeId: 'roma_road_1', districtId: 'romaly', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
+  roma_road_2: { id: 'roma_road_2', nodeId: 'roma_road_2', districtId: 'romaly', ownerId: null, basePrice: 300, currentPrice: 300, baseRent: 26, currentRent: 26, capitalInvested: 0, maxCapital: 600, shopMultiplier: 1 },
+
+  isis_1: { id: 'isis_1', nodeId: 'isis_1', districtId: 'isis', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
+  isis_2: { id: 'isis_2', nodeId: 'isis_2', districtId: 'isis', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
+  isis_3: { id: 'isis_3', nodeId: 'isis_3', districtId: 'isis', ownerId: null, basePrice: 300, currentPrice: 300, baseRent: 26, currentRent: 26, capitalInvested: 0, maxCapital: 600, shopMultiplier: 1 },
+
+  portoga_1: { id: 'portoga_1', nodeId: 'portoga_1', districtId: 'portoga', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 29, currentRent: 29, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
+  portoga_2: { id: 'portoga_2', nodeId: 'portoga_2', districtId: 'portoga', ownerId: null, basePrice: 360, currentPrice: 360, baseRent: 31, currentRent: 31, capitalInvested: 0, maxCapital: 720, shopMultiplier: 1 },
+
+  baharata_1: { id: 'baharata_1', nodeId: 'baharata_1', districtId: 'baharata', ownerId: null, basePrice: 380, currentPrice: 380, baseRent: 32, currentRent: 32, capitalInvested: 0, maxCapital: 760, shopMultiplier: 1 },
+  baharata_2: { id: 'baharata_2', nodeId: 'baharata_2', districtId: 'baharata', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
+  baharata_3: { id: 'baharata_3', nodeId: 'baharata_3', districtId: 'baharata', ownerId: null, basePrice: 420, currentPrice: 420, baseRent: 36, currentRent: 36, capitalInvested: 0, maxCapital: 840, shopMultiplier: 1 },
+  samanao_vac: { id: 'samanao_vac', nodeId: 'samanao_vac', districtId: 'baharata', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+
+  jipang_in: { id: 'jipang_in', nodeId: 'jipang_in', districtId: 'jipang', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 45, currentRent: 45, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
+  jipang_1: { id: 'jipang_1', nodeId: 'jipang_1', districtId: 'jipang', ownerId: null, basePrice: 550, currentPrice: 550, baseRent: 55, currentRent: 55, capitalInvested: 0, maxCapital: 1100, shopMultiplier: 1 },
+  jipang_2: { id: 'jipang_2', nodeId: 'jipang_2', districtId: 'jipang', ownerId: null, basePrice: 650, currentPrice: 650, baseRent: 65, currentRent: 65, capitalInvested: 0, maxCapital: 1300, shopMultiplier: 1 },
+};
+
+const ALIAHAN_DISTRICTS: Record<string, District> = {
+  aliahan:  { id: 'aliahan',  name: 'Aliahan',  stockPrice: 6,  propertyIds: ['aliahan_1', 'aliahan_2', 'aliahan_3'], playerHoldings: {} },
+  noaniels: { id: 'noaniels', name: 'Noaniels', stockPrice: 8,  propertyIds: ['noaniels_1', 'noaniels_2'], playerHoldings: {} },
+  kazave:   { id: 'kazave',   name: 'Kazave',   stockPrice: 8,  propertyIds: ['kazave_vac', 'kazave_1'], playerHoldings: {} },
+  romaly:   { id: 'romaly',   name: 'Romaly',   stockPrice: 10, propertyIds: ['romaly_1', 'romaly_2', 'roma_road_1', 'roma_road_2'], playerHoldings: {} },
+  isis:     { id: 'isis',     name: 'Isis',     stockPrice: 11, propertyIds: ['isis_1', 'isis_2', 'isis_3'], playerHoldings: {} },
+  portoga:  { id: 'portoga',  name: 'Portoga',  stockPrice: 14, propertyIds: ['portoga_1', 'portoga_2'], playerHoldings: {} },
+  baharata: { id: 'baharata', name: 'Baharata', stockPrice: 14, propertyIds: ['baharata_1', 'baharata_2', 'baharata_3', 'samanao_vac'], playerHoldings: {} },
+  jipang:   { id: 'jipang',   name: 'Jipang',   stockPrice: 22, propertyIds: ['jipang_in', 'jipang_1', 'jipang_2'], playerHoldings: {} },
+};
+
 // ─── Registry ──────────────────────────────────────────────────────────────────
 
 export const BOARDS: Record<string, BoardDef> = {
@@ -279,6 +391,14 @@ export const BOARDS: Record<string, BoardDef> = {
     properties: TORLAND_PROPERTIES,
     districts: TORLAND_DISTRICTS,
     oneWayEdges: TORLAND_ONE_WAY,
+  },
+  aliahan: {
+    id: 'aliahan',
+    name: 'Aliahan',
+    board: ALIAHAN_BOARD,
+    properties: ALIAHAN_PROPERTIES,
+    districts: ALIAHAN_DISTRICTS,
+    oneWayEdges: ALIAHAN_ONE_WAY,
   },
 };
 

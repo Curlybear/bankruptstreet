@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { io as ioclient, type Socket } from 'socket.io-client';
 import { GameManager, computeDeltas, symmetrizeBoard } from './gameManager.js';
 import { findPaths } from '../engine/navigation.js';
+import { BOARDS } from './boards.js';
 import type { Node } from '../shared/types.js';
 import { attachHandlers } from './index.js';
 
@@ -283,21 +284,24 @@ test('GameManager creates rooms on the requested board', () => {
   assert.ok(fallback.board.tantegel_1);
 });
 
-test('Torland: every node is reachable from the bank', () => {
+test('every board: every node is reachable from the bank', () => {
   const manager = new GameManager();
-  const { board } = manager.createRoom('t3', ['alice'], 15000, 'torland');
+  for (const boardId of Object.keys(BOARDS)) {
+    const { board } = manager.createRoom(`reach-${boardId}`, ['alice'], 15000, boardId);
 
-  const visited = new Set<string>(['bank']);
-  const queue = ['bank'];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    for (const n of board[id].neighbors) {
-      if (!visited.has(n)) { visited.add(n); queue.push(n); }
+    const visited = new Set<string>(['bank']);
+    const queue = ['bank'];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      const node = board[id];
+      const out = node.type === 'warp' && node.pairedNodeId ? [node.pairedNodeId] : node.neighbors;
+      for (const n of out) {
+        if (!visited.has(n)) { visited.add(n); queue.push(n); }
+      }
     }
+    const unreachable = Object.keys(board).filter(id => !visited.has(id));
+    assert.deepEqual(unreachable, [], `${boardId}: unreachable nodes: ${unreachable.join(', ')}`);
   }
-  const all = Object.keys(board);
-  const unreachable = all.filter(id => !visited.has(id));
-  assert.deepEqual(unreachable, [], `unreachable nodes: ${unreachable.join(', ')}`);
 });
 
 test('Torland: rapids edges are one-way (no backward traversal)', () => {
@@ -314,39 +318,76 @@ test('Torland: rapids edges are one-way (no backward traversal)', () => {
   assert.ok(destinations.includes('stockbroker_east'), `expected broker exit, got: ${destinations.join(', ')}`);
 });
 
-test('Torland: no movement traps — every node yields destinations for every roll', () => {
+test('every board: no movement traps — every node yields destinations for every roll', () => {
   const manager = new GameManager();
-  const { board } = manager.createRoom('t5', ['alice'], 15000, 'torland');
+  for (const boardId of Object.keys(BOARDS)) {
+    const { board } = manager.createRoom(`trap-${boardId}`, ['alice'], 15000, boardId);
 
-  for (const nodeId of Object.keys(board)) {
-    if (board[nodeId].type === 'warp') continue;  // players never rest on warp nodes
-    for (let roll = 1; roll <= 6; roll++) {
-      const { destinations } = findPaths(board, nodeId, roll);
-      assert.ok(
-        destinations.length > 0,
-        `node ${nodeId} with roll ${roll} has no destinations — movement trap`,
-      );
+    for (const nodeId of Object.keys(board)) {
+      if (board[nodeId].type === 'warp') continue;  // players never rest on warp nodes
+      for (let roll = 1; roll <= 6; roll++) {
+        const { destinations } = findPaths(board, nodeId, roll);
+        assert.ok(
+          destinations.length > 0,
+          `${boardId}: node ${nodeId} with roll ${roll} has no destinations — movement trap`,
+        );
+      }
     }
   }
 });
 
-test('Torland: districts and properties are consistent', () => {
+test('every board: districts and properties are consistent', () => {
   const manager = new GameManager();
-  const { board, properties, districts } = manager.createRoom('t6', ['alice'], 15000, 'torland');
+  for (const boardId of Object.keys(BOARDS)) {
+    const { board, properties, districts } = manager.createRoom(`cons-${boardId}`, ['alice'], 15000, boardId);
 
-  for (const district of Object.values(districts)) {
-    for (const pid of district.propertyIds) {
-      assert.ok(properties[pid], `district ${district.id} references missing property ${pid}`);
-      assert.equal(properties[pid].districtId, district.id);
+    for (const district of Object.values(districts)) {
+      for (const pid of district.propertyIds) {
+        assert.ok(properties[pid], `${boardId}: district ${district.id} references missing property ${pid}`);
+        assert.equal(properties[pid].districtId, district.id);
+      }
+    }
+    for (const prop of Object.values(properties)) {
+      assert.ok(board[prop.nodeId], `${boardId}: property ${prop.id} sits on missing node ${prop.nodeId}`);
+      assert.ok(districts[prop.districtId], `${boardId}: property ${prop.id} references missing district`);
+      const nodeType = board[prop.nodeId].type;
+      assert.ok(nodeType === 'property' || nodeType === 'vacant',
+        `${boardId}: property ${prop.id} on non-shop node type ${nodeType}`);
+    }
+    // every property node has a property and vice versa
+    for (const node of Object.values(board)) {
+      if (node.type === 'property' || node.type === 'vacant') {
+        assert.ok(Object.values(properties).some(pr => pr.nodeId === node.id),
+          `${boardId}: shop node ${node.id} has no property`);
+      }
     }
   }
-  for (const prop of Object.values(properties)) {
-    assert.ok(board[prop.nodeId], `property ${prop.id} sits on missing node ${prop.nodeId}`);
-    assert.ok(districts[prop.districtId], `property ${prop.id} references missing district`);
-    const nodeType = board[prop.nodeId].type;
-    assert.ok(nodeType === 'property' || nodeType === 'vacant',
-      `property ${prop.id} on non-shop node type ${nodeType}`);
-  }
+});
+
+test('Aliahan: desert wind is one-way; Jipang island warps in and out', () => {
+  const manager = new GameManager();
+  const { board } = manager.createRoom('a1', ['alice'], 15000, 'aliahan');
+
+  assert.ok(!board.isis_2.neighbors.includes('isis_1'), 'isis_2 must not flow back west');
+  assert.ok(!board.diamond_suit.neighbors.includes('isis_2'), 'diamond_suit must not flow back west');
+
+  // Roma Road branch reaches the Jipang island via the warp
+  const { destinations } = findPaths(board, 'roma_road_2', 2);
+  assert.ok(destinations.includes('jipang_1'), `expected jipang_1 via warp, got: ${destinations.join(', ')}`);
+
+  // Island exit warps out to Aliahan
+  assert.equal(board.jipang_warp_out.pairedNodeId, 'aliahan_1');
+});
+
+test('Alefgard: Charlock island has a taxed land exit and no dead-end entrance', () => {
+  const manager = new GameManager();
+  const { board } = manager.createRoom('a2', ['alice'], 15000, 'alefgard');
+
+  assert.ok(board.charlock_warp_in_1.neighbors.length >= 2, 'island entrance must not be a dead end');
+  assert.equal(board.charlock_gate.type, 'tax_office');
+  // Walking out of the island east through the gate reaches the broker
+  const { destinations } = findPaths(board, 'charlock_2', 2);
+  assert.ok(destinations.includes('stockbroker_east'), `expected broker via gate, got: ${destinations.join(', ')}`);
 });
 
 test('join_room rejects unknown boardId', async () => {

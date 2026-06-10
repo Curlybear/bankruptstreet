@@ -239,12 +239,14 @@ export default function App() {
     const boards = [
       { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — 8 districts, warp pipes to Charlock' },
       { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis' },
+      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island' },
     ];
     const tickerItems = [
       'TANTEGEL ▲ 7G', 'GARINHAM ▲ 9G', 'KOL ▲ 9G', 'DOMDORA ▼ 11G', 'CANTLIN ▲ 12G',
       'RIMULDAR ▲ 13G', 'CHARLOCK ▲ 21G', 'BRIDGES ▼ 7G', '🎰 THE HOUSE ALWAYS PAYS',
       'LIANPORT ▲ 6G', 'CANNOCK ▲ 8G', 'HAMLIN ▲ 9G', 'BERAN ▲ 13G', 'MOONBROOKE ▲ 10G',
       '♠ ♥ ♦ ♣ COLLECT ALL FOUR', 'SALARY DAY AT THE BANK',
+      'JIPANG ▲ 22G', 'ROMALY ▲ 10G', 'BAHARATA ▲ 14G', 'DESERT WIND BLOWS EAST',
     ];
     const tickerText = tickerItems.join('   ·   ');
     const inputStyle: React.CSSProperties = {
