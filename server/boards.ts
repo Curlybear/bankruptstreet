@@ -133,11 +133,11 @@ const ALEFGARD_PROPERTIES: Record<string, Property> = {
   domdora_6: { id: 'domdora_6', nodeId: 'domdora_6', districtId: 'domdora', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 30, currentRent: 30, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
   domdora_7: { id: 'domdora_7', nodeId: 'domdora_7', districtId: 'domdora', ownerId: null, basePrice: 360, currentPrice: 360, baseRent: 32, currentRent: 32, capitalInvested: 0, maxCapital: 720, shopMultiplier: 1 },
 
-  charlock_warp_in_1: { id: 'charlock_warp_in_1', nodeId: 'charlock_warp_in_1', districtId: 'charlock', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 40, currentRent: 40, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
-  charlock_2: { id: 'charlock_2', nodeId: 'charlock_2', districtId: 'charlock', ownerId: null, basePrice: 600, currentPrice: 600, baseRent: 60, currentRent: 60, capitalInvested: 0, maxCapital: 1200, shopMultiplier: 1 },
-  charlock_1: { id: 'charlock_1', nodeId: 'charlock_1', districtId: 'charlock', ownerId: null, basePrice: 500, currentPrice: 500, baseRent: 50, currentRent: 50, capitalInvested: 0, maxCapital: 1000, shopMultiplier: 1 },
-  charlock_3: { id: 'charlock_3', nodeId: 'charlock_3', districtId: 'charlock', ownerId: null, basePrice: 700, currentPrice: 700, baseRent: 70, currentRent: 70, capitalInvested: 0, maxCapital: 1400, shopMultiplier: 1 },
-  charlock_warp_in_2: { id: 'charlock_warp_in_2', nodeId: 'charlock_warp_in_2', districtId: 'charlock', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 45, currentRent: 45, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
+  charlock_warp_in_1: { id: 'charlock_warp_in_1', nodeId: 'charlock_warp_in_1', districtId: 'charlock', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
+  charlock_2: { id: 'charlock_2', nodeId: 'charlock_2', districtId: 'charlock', ownerId: null, basePrice: 600, currentPrice: 600, baseRent: 51, currentRent: 51, capitalInvested: 0, maxCapital: 1200, shopMultiplier: 1 },
+  charlock_1: { id: 'charlock_1', nodeId: 'charlock_1', districtId: 'charlock', ownerId: null, basePrice: 500, currentPrice: 500, baseRent: 43, currentRent: 43, capitalInvested: 0, maxCapital: 1000, shopMultiplier: 1 },
+  charlock_3: { id: 'charlock_3', nodeId: 'charlock_3', districtId: 'charlock', ownerId: null, basePrice: 700, currentPrice: 700, baseRent: 60, currentRent: 60, capitalInvested: 0, maxCapital: 1400, shopMultiplier: 1 },
+  charlock_warp_in_2: { id: 'charlock_warp_in_2', nodeId: 'charlock_warp_in_2', districtId: 'charlock', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 38, currentRent: 38, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
 };
 
 const ALEFGARD_DISTRICTS: Record<string, District> = {
@@ -357,9 +357,9 @@ const ALIAHAN_PROPERTIES: Record<string, Property> = {
   baharata_3: { id: 'baharata_3', nodeId: 'baharata_3', districtId: 'baharata', ownerId: null, basePrice: 420, currentPrice: 420, baseRent: 36, currentRent: 36, capitalInvested: 0, maxCapital: 840, shopMultiplier: 1 },
   samanao_vac: { id: 'samanao_vac', nodeId: 'samanao_vac', districtId: 'baharata', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
 
-  jipang_in: { id: 'jipang_in', nodeId: 'jipang_in', districtId: 'jipang', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 45, currentRent: 45, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
-  jipang_1: { id: 'jipang_1', nodeId: 'jipang_1', districtId: 'jipang', ownerId: null, basePrice: 550, currentPrice: 550, baseRent: 55, currentRent: 55, capitalInvested: 0, maxCapital: 1100, shopMultiplier: 1 },
-  jipang_2: { id: 'jipang_2', nodeId: 'jipang_2', districtId: 'jipang', ownerId: null, basePrice: 650, currentPrice: 650, baseRent: 65, currentRent: 65, capitalInvested: 0, maxCapital: 1300, shopMultiplier: 1 },
+  jipang_in: { id: 'jipang_in', nodeId: 'jipang_in', districtId: 'jipang', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 38, currentRent: 38, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
+  jipang_1: { id: 'jipang_1', nodeId: 'jipang_1', districtId: 'jipang', ownerId: null, basePrice: 550, currentPrice: 550, baseRent: 47, currentRent: 47, capitalInvested: 0, maxCapital: 1100, shopMultiplier: 1 },
+  jipang_2: { id: 'jipang_2', nodeId: 'jipang_2', districtId: 'jipang', ownerId: null, basePrice: 650, currentPrice: 650, baseRent: 55, currentRent: 55, capitalInvested: 0, maxCapital: 1300, shopMultiplier: 1 },
 };
 
 const ALIAHAN_DISTRICTS: Record<string, District> = {

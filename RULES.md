@@ -15,7 +15,7 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 ## Setup
 
 - 2–4 players; empty seats are filled with AI characters when the game starts.
-- Everyone starts with **1,500G** at the bank.
+- Everyone starts with **2,000G** at the bank.
 - Each player picks a **character** — cosmetic for humans, but it defines an AI player's personality (see Characters below).
 
 ## Your Turn
@@ -50,7 +50,7 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 
 - A shop's value: `basePrice × multiplier + capital invested`.
 - Rent: `(baseRent + capital/10) × multiplier`.
-- **District multiplier**: owning more shops in one district multiplies all of yours — 1 shop ×1, 2 shops ×2, 3 shops ×3 … full district domination jumps to **×5**.
+- **District multiplier**: owning more shops in one district multiplies all of yours — 1 shop ×1, 2 shops ×2, up to **×4** … full district domination jumps to **×5**.
 - **Investing**: when you land on your own shop you may invest up to **999G per turn**, capped by the shop's max capital (2× its base value × multiplier). Investment raises rent and the district's stock price.
 - **Buyouts**: landing on an opponent's shop, you may buy it out for **5× its value**. The owner receives 3× (the bank keeps the difference). The AI does this when it completes their district, breaks your monopoly, or they're simply rich.
 
@@ -83,8 +83,8 @@ Land on an unowned vacant plot to build:
 | Building | Cost | Effect |
 |---|---|---|
 | ⭐ Three-star shop | 1,000G | A high-end shop (80G base rent, 2,000G max capital) |
-| 🚧 Checkpoint | 200G | Players passing through pay a toll (200G, +10G each time) |
-| 🎪 Circus | 200G | Upgradeable in tiers (400/500/1,000G) up to 2,000G value & rent |
+| 🚧 Checkpoint | 200G | Players passing through pay a toll (200G, +10G each time, capped at 250G) |
+| 🎪 Circus | 200G | Upgradeable in tiers (400/500/1,000G) up to 2,000G value (rent is ¼ of value) |
 | 🎈 Balloonport | 200G | Land on it to teleport anywhere on the board |
 | 🏛️ Tax office | 200G | Visitors pay you 10% of their net worth; you collect a 5% bonus when landing on it |
 | 🏠 Home | 200G | Visitors pay 30G × your level; landing on it summons all players to you |

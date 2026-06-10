@@ -133,7 +133,7 @@ test('RENOVATE_PLOT renovates owned plot with surcharge', () => {
 
   assert.equal(next.properties.plot1.buildingType, 'circus');
   assert.equal(next.properties.plot1.circusLevel, 0);
-  assert.equal(next.properties.plot1.currentRent, 100); // Circus base rent is 100G
+  assert.equal(next.properties.plot1.currentRent, 25); // Circus rent = value/4 (tier 0: 100G value)
   assert.equal(next.properties.plot1.currentPrice, 100); // Circus tier 0 base price is 100G
 
   // Cash deducted: 2000 - 350 = 1650G
@@ -195,7 +195,7 @@ test('Owned Circus expands level-by-level via INVEST', () => {
   const next = applyAction(state, { type: 'INVEST', propertyId: 'plot1', amount: 400 });
 
   assert.equal(next.properties.plot1.circusLevel, 1);
-  assert.equal(next.properties.plot1.currentRent, 500); // Tier 1 rent is 500G
+  assert.equal(next.properties.plot1.currentRent, 125); // Circus rent = value/4 (tier 1: 500G value)
   assert.equal(next.properties.plot1.currentPrice, 500);
   assert.equal(next.players.p1.cash, 1600); // 2000 - 400
 });

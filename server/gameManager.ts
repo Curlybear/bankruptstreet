@@ -18,7 +18,7 @@ export function makePlayer(id: string, characterId?: string): Player {
   return {
     id, name,
     characterId: character?.id,
-    cash: 1500, netWorth: 1500,
+    cash: 2000, netWorth: 2000,
     currentNodeId: 'bank',
     level: 1,
     suits: { heart: false, diamond: false, club: false, spade: false },

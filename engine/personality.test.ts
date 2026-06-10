@@ -62,13 +62,13 @@ test('cashReserve: slime (500) skips investing at 400 cash; erdrick (200) invest
   assert.equal(action.type, 'INVEST');
 });
 
-test('investAmount: dragonlord invests 300, erdrick 100', () => {
+test('investAmount: dragonlord invests 300, erdrick 175', () => {
   const base = makeState({
     properties: { shop1: ownShop },
     districts: { d1: district },
   });
 
-  for (const [charId, expected] of [['dragonlord', 300], ['erdrick', 100]] as const) {
+  for (const [charId, expected] of [['dragonlord', 300], ['erdrick', 175]] as const) {
     const s: GameState = {
       ...base,
       players: { ...base.players, p1: makeTestPlayer('p1', { cash: 2000, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: charId }) },
@@ -140,7 +140,7 @@ test('unknown/missing characterId falls back to default personality', () => {
   });
   const action = greedyBotAction(base, 'p1');
   assert.equal(action.type, 'INVEST');
-  assert.equal((action as { amount: number }).amount, 100);  // DEFAULT_PERSONALITY
+  assert.equal((action as { amount: number }).amount, 175);  // DEFAULT_PERSONALITY
 });
 
 test('makePlayer assigns character names; pickUnusedCharacter avoids collisions', () => {

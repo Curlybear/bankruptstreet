@@ -20,8 +20,8 @@ export interface Character {
 }
 
 export const DEFAULT_PERSONALITY: BotPersonality = {
-  cashReserve: 200,
-  investAmount: 100,
+  cashReserve: 175,
+  investAmount: 175,
   stockBatch: 10,
   buyoutCashMultiplier: 2.5,
   preferThreeStar: true,

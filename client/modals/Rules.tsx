@@ -111,8 +111,8 @@ export function Rules({ onClose }: Props) {
         <div style={h2}>Buildings</div>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}><tbody>
           <tr><td style={tdKey}>⭐ Three-star</td><td style={td}>1000G — high-end shop, 2000G max capital</td></tr>
-          <tr><td style={tdKey}>🚧 Checkpoint</td><td style={td}>Toll on pass-through: 200G, +10G every time</td></tr>
-          <tr><td style={tdKey}>🎪 Circus</td><td style={td}>Upgrade in tiers (400/500/1000G) to 2000G value</td></tr>
+          <tr><td style={tdKey}>🚧 Checkpoint</td><td style={td}>Toll on pass-through: 200G, +10G every time (max 250G)</td></tr>
+          <tr><td style={tdKey}>🎪 Circus</td><td style={td}>Upgrade in tiers (400/500/1000G) to 2000G value; rent is ¼ of value</td></tr>
           <tr><td style={tdKey}>🎈 Balloonport</td><td style={td}>Land on it: teleport anywhere</td></tr>
           <tr><td style={tdKey}>🏛️ Tax office</td><td style={td}>Visitors pay 10% of their net worth; landing yourself pays you a 5% bonus</td></tr>
           <tr><td style={tdKey}>🏠 Home</td><td style={td}>Visitors pay 30G × your level; landing summons everyone to you</td></tr>
