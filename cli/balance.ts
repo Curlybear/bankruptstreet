@@ -1,7 +1,7 @@
 // Balance harness: batch headless bot games across all boards and report
 // win rates per personality and seat, game length, and end conditions.
 //
-//   node --import tsx/esm cli/balance.ts [gamesPerBoard] [targetNetWorth]
+//   node --import tsx/esm cli/balance.ts [gamesPerBoard] [targetNetWorth] [bankruptcyLimit]
 
 import { GameManager, makePlayer } from '../server/gameManager.js';
 import { applyAction } from '../engine/stateMachine.js';
@@ -12,6 +12,7 @@ import type { GameState } from '../shared/types.js';
 
 const GAMES_PER_BOARD = Number(process.argv[2] ?? 200);
 const TARGET = Number(process.argv[3] ?? 15000);
+const BANKRUPTCY_LIMIT = Number(process.argv[4] ?? 1);
 const ROUND_CAP = 100;
 const ACTION_CAP = 30000;
 
@@ -48,7 +49,7 @@ for (const boardId of Object.keys(BOARDS)) {
     const ids = chars.map((_, i) => `g${gameSeq}s${i}`);
 
     const m = new GameManager();
-    let state: GameState = m.createRoom(`bal${gameSeq}`, [ids[0]], TARGET, boardId);
+    let state: GameState = m.createRoom(`bal${gameSeq}`, [ids[0]], TARGET, boardId, BANKRUPTCY_LIMIT);
     state.players[ids[0]] = makePlayer(ids[0], chars[0]);
     for (let i = 1; i < 4; i++) {
       state.players[ids[i]] = makePlayer(ids[i], chars[i]);
@@ -94,7 +95,7 @@ for (const boardId of Object.keys(BOARDS)) {
 function pct(t: Tally) { return ((t.wins / t.games) * 100).toFixed(1).padStart(5); }
 function avg(a: number[]) { return a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : 'n/a'; }
 
-console.log(`\n=== ${GAMES_PER_BOARD} games/board · target ${TARGET}G · round cap ${ROUND_CAP} ===\n`);
+console.log(`\n=== ${GAMES_PER_BOARD} games/board · target ${TARGET}G · bankruptcy limit ${BANKRUPTCY_LIMIT} · round cap ${ROUND_CAP} ===\n`);
 
 console.log('Personality win rates (expected 25.0%) and bankruptcy rates:');
 for (const [c, t] of [...charWins.entries()].sort((a, b) => b[1].wins / b[1].games - a[1].wins / a[1].games)) {

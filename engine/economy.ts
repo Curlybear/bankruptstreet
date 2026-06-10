@@ -783,29 +783,48 @@ export function checkBankruptcy(state: GameState, playerId: string): GameState {
       ...s,
       players: { ...s.players, [playerId]: { ...finalPlayer, isBankrupt: true } },
       bankruptCount: s.bankruptCount + 1,
-      log: [...s.log, `[BANKRUPT] ${finalPlayer.name} is bankrupt! The game is over.`],
+      log: [...s.log],
     };
-    // Bankruptcy ends the match immediately. Find non-bankrupt player with highest net worth.
-    let bestPlayerId: string | null = null;
-    let bestNetWorth = -Infinity;
-    for (const [pId, p] of Object.entries(s.players)) {
-      if (p.isBankrupt) continue;
-      if (p.netWorth > bestNetWorth) {
-        bestNetWorth = p.netWorth;
-        bestPlayerId = pId;
-      } else if (p.netWorth === bestNetWorth && bestPlayerId !== null) {
-        // Tiebreaker: player who is later in the turnOrder list wins
-        const idxCurrent = s.turnOrder.indexOf(pId);
-        const idxBest = s.turnOrder.indexOf(bestPlayerId);
-        if (idxCurrent > idxBest) {
-          bestPlayerId = pId;
-        }
-      }
+
+    const alive = s.turnOrder.filter(pid => !s.players[pid].isBankrupt);
+    const aliveHumans = alive.filter(pid => !s.players[pid].isBot);
+    const limit = s.bankruptcyLimit ?? 1;
+
+    if (s.bankruptCount >= limit || alive.length <= 1 || aliveHumans.length === 0) {
+      // Bankruptcy limit met (or no human left to play on): game over,
+      // richest survivor wins.
+      s.log.push(`[BANKRUPT] ${finalPlayer.name} is bankrupt! The game is over.`);
+      s.winnerId = richestAlive(s);
+    } else {
+      // Eliminated, but the table plays on — open a unanimous end-game
+      // vote among the surviving humans.
+      s.log.push(`[ELIMINATED] ${finalPlayer.name} is bankrupt and out of the game! (${s.bankruptCount}/${limit === 99 ? 'last standing' : limit})`);
+      s.log.push(`[VOTE] End the game now? All remaining players must agree.`);
+      s.endVote = { reason: `${finalPlayer.name} went bankrupt`, votes: {} };
     }
-    s.winnerId = bestPlayerId;
   }
 
   return s;
+}
+
+// Highest net worth among non-bankrupt players; later turnOrder seat wins ties.
+export function richestAlive(state: GameState): string | null {
+  let bestPlayerId: string | null = null;
+  let bestNetWorth = -Infinity;
+  for (const [pId, p] of Object.entries(state.players)) {
+    if (p.isBankrupt) continue;
+    if (p.netWorth > bestNetWorth) {
+      bestNetWorth = p.netWorth;
+      bestPlayerId = pId;
+    } else if (p.netWorth === bestNetWorth && bestPlayerId !== null) {
+      const idxCurrent = state.turnOrder.indexOf(pId);
+      const idxBest = state.turnOrder.indexOf(bestPlayerId);
+      if (idxCurrent > idxBest) {
+        bestPlayerId = pId;
+      }
+    }
+  }
+  return bestPlayerId;
 }
 
 // ─── Venture Cards & Grid System ──────────────────────────────────────────────

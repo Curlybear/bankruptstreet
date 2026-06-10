@@ -938,3 +938,120 @@ test('hopeless debt on an incoming player bankrupts at turn handoff', () => {
   assert.equal(next.winnerId, 'p1');
   assert.notEqual(next.currentPhase, 'DEBT_SETTLEMENT');
 });
+
+// ─── Bankruptcy limit & end-game vote ─────────────────────────────────────────
+
+function makeLimitState(limit: number, players: Record<string, Player>, order: string[]): GameState {
+  return makeState({
+    currentPhase: 'SPACE_ACTION',
+    bankruptcyLimit: limit,
+    players,
+    turnOrder: order,
+  });
+}
+
+test('bankruptcy below the limit eliminates the player and opens an end-game vote', () => {
+  const state = makeLimitState(2, {
+    p1: makePlayer('p1', { cash: -200, netWorth: -200 }),   // hopeless
+    p2: makePlayer('p2', { netWorth: 900 }),
+    p3: makePlayer('p3', { netWorth: 1500 }),
+  }, ['p1', 'p2', 'p3']);
+
+  const next = applyAction(state, { type: 'END_TURN' });
+
+  assert.equal(next.players.p1.isBankrupt, true);
+  assert.equal(next.winnerId, null);                       // game continues
+  assert.ok(next.endVote, 'an end-game vote must open');
+  assert.ok(next.log.some(l => l.startsWith('[ELIMINATED]')));
+});
+
+test('any vote to continue cancels the vote; play resumes skipping the eliminated seat', () => {
+  const base = makeLimitState(2, {
+    p1: makePlayer('p1', { cash: -200, netWorth: -200 }),
+    p2: makePlayer('p2', { netWorth: 900 }),
+    p3: makePlayer('p3', { netWorth: 1500 }),
+  }, ['p1', 'p2', 'p3']);
+  const voting = applyAction(base, { type: 'END_TURN' });
+
+  // Non-vote actions are blocked while the vote is pending
+  assert.throws(() => applyAction(voting, { type: 'ROLL_DICE' }), /vote is in progress/);
+
+  const resumed = applyAction(voting, { type: 'VOTE_END', playerId: 'p3', vote: false });
+  assert.equal(resumed.endVote, null);
+  assert.equal(resumed.winnerId, null);
+  // p1 is eliminated: the turn that ended belonged to p1, so play passed on
+  assert.notEqual(resumed.currentPlayerId, 'p1');
+
+  // Eliminated seats stay skipped on future turn advances
+  const afterTurn = applyAction({ ...resumed, currentPhase: 'SPACE_ACTION', players: { ...resumed.players, [resumed.currentPlayerId]: { ...resumed.players[resumed.currentPlayerId], currentNodeId: 'bank' } } }, { type: 'END_TURN' });
+  assert.notEqual(afterTurn.currentPlayerId, 'p1');
+});
+
+test('a unanimous vote ends the game with the richest survivor as winner', () => {
+  const base = makeLimitState(3, {
+    p1: makePlayer('p1', { cash: -100, netWorth: -100 }),
+    p2: makePlayer('p2', { netWorth: 900 }),
+    p3: makePlayer('p3', { netWorth: 1500 }),
+  }, ['p1', 'p2', 'p3']);
+  const voting = applyAction(base, { type: 'END_TURN' });
+
+  const oneVote = applyAction(voting, { type: 'VOTE_END', playerId: 'p2', vote: true });
+  assert.ok(oneVote.endVote, 'still waiting for p3');
+  assert.equal(oneVote.winnerId, null);
+
+  const done = applyAction(oneVote, { type: 'VOTE_END', playerId: 'p3', vote: true });
+  assert.equal(done.endVote, null);
+  assert.equal(done.winnerId, 'p3');                       // richest alive
+});
+
+test('bots are ineligible: their absence does not block unanimity and their vote is rejected', () => {
+  const base = makeLimitState(2, {
+    p1: makePlayer('p1', { cash: -100, netWorth: -100 }),
+    p2: makePlayer('p2', { netWorth: 900 }),
+    bot1: { ...makePlayer('bot1', { netWorth: 2000 }), isBot: true },
+  }, ['p1', 'p2', 'bot1']);
+  const voting = applyAction(base, { type: 'END_TURN' });
+
+  assert.throws(() => applyAction(voting, { type: 'VOTE_END', playerId: 'bot1', vote: true }), /Bots don't vote/);
+
+  // p2 is the only eligible voter — their single yes is unanimous
+  const done = applyAction(voting, { type: 'VOTE_END', playerId: 'p2', vote: true });
+  assert.equal(done.winnerId, 'bot1');                     // richest alive still wins
+});
+
+test('the bankruptcy limit ends the game when reached', () => {
+  // limit 2, second bankruptcy → game over, no vote
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    bankruptcyLimit: 2,
+    bankruptCount: 1,
+    players: {
+      p1: makePlayer('p1', { cash: -50, netWorth: -50 }),
+      p2: makePlayer('p2', { netWorth: 700 }),
+      p3: makePlayer('p3', { isBankrupt: true, cash: 0, netWorth: 0 }),
+    },
+    turnOrder: ['p1', 'p2', 'p3'],
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+  assert.equal(next.players.p1.isBankrupt, true);
+  assert.equal(next.winnerId, 'p2');
+  assert.equal(next.endVote ?? null, null);
+});
+
+test('last-standing limit (99) ends only when one player remains', () => {
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    bankruptcyLimit: 99,
+    bankruptCount: 1,
+    players: {
+      p1: makePlayer('p1', { cash: -50, netWorth: -50 }),
+      p2: makePlayer('p2', { netWorth: 700 }),
+      p3: makePlayer('p3', { isBankrupt: true, cash: 0, netWorth: 0 }),
+    },
+    turnOrder: ['p1', 'p2', 'p3'],
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+  assert.equal(next.winnerId, 'p2');                       // only one left standing
+});

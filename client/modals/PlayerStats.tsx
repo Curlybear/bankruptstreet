@@ -206,6 +206,7 @@ export function PlayerStats({ state, playerId }: Props) {
                   position: 'relative',
                   borderRadius: '12px',
                   padding: '12px',
+                  opacity: player.isBankrupt ? 0.45 : 1,
                   background: isActive 
                     ? 'linear-gradient(135deg, rgba(26, 21, 44, 0.75) 0%, rgba(10, 10, 22, 0.9) 100%)' 
                     : 'rgba(255, 255, 255, 0.02)',
@@ -259,7 +260,22 @@ export function PlayerStats({ state, playerId }: Props) {
                       fontSize: '13px',
                       color: isActive ? '#ffffff' : '#cbd5e1',
                     }}>
-                      {player.name}
+                      {player.isBankrupt ? '💀 ' : ''}{player.name}
+                      {player.isBankrupt && (
+                        <span style={{
+                          fontSize: '8px',
+                          fontWeight: 800,
+                          color: '#fb7185',
+                          marginLeft: '5px',
+                          verticalAlign: 'middle',
+                          border: '1px solid rgba(244, 63, 94, 0.4)',
+                          padding: '1px 4px',
+                          borderRadius: '3px',
+                          letterSpacing: '0.5px',
+                        }}>
+                          ELIMINATED
+                        </span>
+                      )}
                       {isSelf && (
                         <span style={{ 
                           fontSize: '8px', 

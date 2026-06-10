@@ -125,8 +125,15 @@ export function Rules({ onClose }: Props) {
           Cash below zero? You enter <span style={hl}>debt settlement</span>: choose any mix of
           your stocks (at market price) and shops (distress sale at{' '}
           <span style={hl}>75% value</span>) to sell until the debt is covered — nothing is sold
-          for you. If even selling everything couldn't cover it, you're bankrupt — the game ends,
-          richest player standing wins.
+          for you. If even selling everything couldn't cover it, you're{' '}
+          <span style={hl}>bankrupt and eliminated</span>.
+        </div>
+        <div style={p}>
+          The room's <span style={hl}>Ends After</span> setting decides when bankruptcies end the
+          game: after 1 (classic), 2, or last player standing — richest survivor wins. If a
+          bankruptcy doesn't end the game, survivors vote whether to stop anyway:{' '}
+          <span style={hl}>unanimous to end</span>, one "keep playing" continues (AI players don't
+          vote).
         </div>
 
         <div style={h2}>Characters</div>

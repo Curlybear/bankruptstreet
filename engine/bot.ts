@@ -94,6 +94,13 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
   const phase = state.currentPhase;
   const personality = personalityOf(state, botPlayerId);
 
+  // Pending end-game vote (only reachable for sim-driven players — server
+  // bots are isBot and ineligible): always vote to keep playing, which
+  // resolves the vote immediately.
+  if (state.endVote && !player.isBankrupt && !player.isBot) {
+    return { type: 'VOTE_END', playerId: botPlayerId, vote: false };
+  }
+
   // 1 & 2 — PRE_ROLL
   if (phase === 'PRE_ROLL') {
     if (personality.sellOnDip) {

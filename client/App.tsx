@@ -266,6 +266,7 @@ export default function App() {
   const [targetNetWorth, setTargetNetWorth] = useState(15000);
   const [boardChoice, setBoardChoice] = useState('alefgard');
   const [characterChoice, setCharacterChoice] = useState('erdrick');
+  const [bankruptcyChoice, setBankruptcyChoice] = useState(1);
 
   useEffect(() => {
     pendingActionRef.current = false;
@@ -582,6 +583,32 @@ export default function App() {
                     );
                   })}
                 </div>
+                <label style={{ ...labelStyle, marginTop: 12 }}>Ends After</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {([[1, '1 💀'], [2, '2 💀'], [99, 'Last standing']] as const).map(([n, label]) => {
+                    const selected = bankruptcyChoice === n;
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => setBankruptcyChoice(n)}
+                        title={n === 99 ? 'Play until one player remains' : `Game ends after ${n} bankruptc${n === 1 ? 'y' : 'ies'}`}
+                        style={{
+                          padding: '9px 12px',
+                          borderRadius: 16,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          cursor: 'pointer',
+                          background: selected ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                          color: selected ? '#fb7185' : '#8b8fa3',
+                          border: selected ? '1px solid rgba(244, 63, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -590,7 +617,7 @@ export default function App() {
                 if (!playerNameInput.trim()) { alert('Please enter a username'); return; }
                 if (!newRoomName.trim()) { alert('Please enter a room name'); return; }
                 localStorage.setItem('playerName', playerNameInput.trim());
-                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice, characterChoice);
+                createRoom(newRoomName.trim(), playerNameInput.trim(), targetNetWorth, boardChoice, characterChoice, bankruptcyChoice);
               }}
               style={{
                 padding: '15px',
@@ -2755,6 +2782,122 @@ export default function App() {
 
       {/* 4. Game Over Overlay Screen */}
       {diceAnim && <DiceOverlay key={diceAnim.key} roll={diceAnim.roll} />}
+
+      {/* End-game vote: a bankruptcy didn't end the game — unanimous call to stop */}
+      {state.endVote && !state.winnerId && (() => {
+        const eligible = state.turnOrder.filter(pid => !state.players[pid].isBankrupt && !state.players[pid].isBot);
+        const me = state.players[PLAYER_ID];
+        const canVote = me && !me.isBankrupt && !me.isBot && !state.endVote!.votes[PLAYER_ID];
+        const standings = [...state.turnOrder]
+          .map(pid => state.players[pid])
+          .sort((a, b) => Number(a.isBankrupt) - Number(b.isBankrupt) || b.netWorth - a.netWorth);
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 3, 8, 0.88)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            zIndex: 150,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{
+              background: 'rgba(12, 12, 26, 0.9)',
+              border: '1px solid rgba(244, 63, 94, 0.35)',
+              borderRadius: 20,
+              padding: '28px 32px',
+              maxWidth: 520,
+              width: '100%',
+              textAlign: 'center',
+              fontFamily: "'Outfit', sans-serif",
+              color: '#f1f5f9',
+              boxShadow: '0 0 50px rgba(244, 63, 94, 0.15)',
+            }} className="animate-slide-up">
+              <div style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '2.5px', color: '#fb7185',
+                textTransform: 'uppercase', fontFamily: "'Unbounded', sans-serif", marginBottom: 8,
+              }}>
+                💀 {state.endVote.reason}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>End the game now?</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+                All remaining players must agree. One vote to continue keeps the game alive.
+              </div>
+
+              <div style={{ textAlign: 'left', marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 6 }}>
+                  Standings if you stop
+                </div>
+                {standings.map((p, rank) => (
+                  <div key={p.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '7px 12px',
+                    borderRadius: 10,
+                    marginBottom: 5,
+                    opacity: p.isBankrupt ? 0.45 : 1,
+                    background: rank === 0 && !p.isBankrupt ? 'rgba(250, 204, 21, 0.07)' : 'rgba(255, 255, 255, 0.02)',
+                    border: `1px solid ${rank === 0 && !p.isBankrupt ? 'rgba(250, 204, 21, 0.3)' : 'rgba(255, 255, 255, 0.05)'}`,
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>
+                      {p.isBankrupt ? '💀' : ['🥇', '🥈', '🥉', '4.'][rank] ?? `${rank + 1}.`} {p.name}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: p.isBankrupt ? '#64748b' : '#10b981' }}>
+                        {g(p.netWorth)}
+                      </span>
+                      {!p.isBankrupt && !p.isBot && (
+                        <span style={{ fontSize: 10, color: state.endVote!.votes[p.id] ? '#fb7185' : '#64748b', fontWeight: 800 }}>
+                          {state.endVote!.votes[p.id] ? 'END ✓' : 'waiting…'}
+                        </span>
+                      )}
+                      {p.isBot && !p.isBankrupt && (
+                        <span style={{ fontSize: 10, color: '#475569', fontWeight: 700 }}>bot</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {canVote ? (
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => emitAction({ type: 'VOTE_END', playerId: PLAYER_ID, vote: true })}
+                    style={{
+                      padding: '11px 26px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)',
+                      color: '#ffffff', fontSize: 13, fontWeight: 800,
+                      boxShadow: '0 4px 14px rgba(244, 63, 94, 0.3)',
+                    }}
+                  >
+                    🏁 End the Game
+                  </button>
+                  <button
+                    onClick={() => emitAction({ type: 'VOTE_END', playerId: PLAYER_ID, vote: false })}
+                    style={{
+                      padding: '11px 26px', borderRadius: 12, cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none', color: '#ffffff', fontSize: 13, fontWeight: 800,
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    }}
+                  >
+                    ▶ Keep Playing
+                  </button>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                  {me && state.endVote.votes[PLAYER_ID]
+                    ? `Vote cast — waiting for the others (${Object.keys(state.endVote.votes).length}/${eligible.length})…`
+                    : 'Waiting for the survivors to decide…'}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {state.winnerId && (
         <div style={{

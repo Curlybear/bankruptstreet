@@ -13,7 +13,7 @@ const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
   'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
-  'CASINO_BET',
+  'CASINO_BET', 'VOTE_END',
 ]);
 
 const KNOWN_BUILDING_TYPES = new Set([
@@ -50,6 +50,12 @@ function validateJoin(p: unknown): string | null {
   if (boardId !== undefined) {
     if (typeof boardId !== 'string' || !(boardId in BOARDS)) {
       return `unknown boardId: ${String(boardId)}`;
+    }
+  }
+  const { bankruptcyLimit } = p as Record<string, unknown>;
+  if (bankruptcyLimit !== undefined) {
+    if (!Number.isInteger(bankruptcyLimit) || (bankruptcyLimit as number) < 1 || (bankruptcyLimit as number) > 99) {
+      return 'bankruptcyLimit must be an integer between 1 and 99';
     }
   }
   const { characterId } = p as Record<string, unknown>;
@@ -94,6 +100,11 @@ function validateAction(p: unknown): string | null {
     }
   }
 
+  if (act.type === 'VOTE_END') {
+    if (typeof act.playerId !== 'string' || !act.playerId.trim()) return 'playerId must be a non-empty string';
+    if (typeof act.vote !== 'boolean') return 'vote must be a boolean';
+  }
+
   if (act.type === 'CASINO_BET') {
     if (act.game !== 'derby' && act.game !== 'highlow') return `unknown casino game: ${String(act.game)}`;
     if (!Number.isInteger(act.wager) || (act.wager as number) <= 0) return 'wager must be a positive integer';
@@ -135,8 +146,9 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     const currentPlayerId = state.currentPlayerId;
     const isBot = currentPlayerId.startsWith('bot');
     const hasWinner = state.winnerId !== null;
+    const votePending = !!state.endVote;  // humans resolve the vote; bots wait
 
-    if (!isBot || hasWinner) {
+    if (!isBot || hasWinner || votePending) {
       activeBotLoops.delete(roomId);
       return;
     }
@@ -209,16 +221,16 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       const validErr = validateJoin(payload);
       if (validErr) { socket.emit('error', { code: 'BAD_REQUEST', message: validErr }); return; }
 
-      const { roomId, playerId, targetNetWorth, boardId, characterId } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string; characterId?: string };
+      const { roomId, playerId, targetNetWorth, boardId, characterId, bankruptcyLimit } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string; characterId?: string; bankruptcyLimit?: number };
       let state = manager.getRoom(roomId);
 
       if (!state) {
         if (roomId === 'smoke') {
-          state = manager.createRoom(roomId, [playerId, 'player2'], targetNetWorth ?? 15000, boardId);
+          state = manager.createRoom(roomId, [playerId, 'player2'], targetNetWorth ?? 15000, boardId, bankruptcyLimit);
           state.status = 'ACTIVE'; // Auto-start smoke room for retrocompatibility tests
           state.log.push(`[SMOKE] Auto-started smoke test room with alice and player2.`);
         } else {
-          state = manager.createRoom(roomId, [playerId], targetNetWorth ?? 15000, boardId);
+          state = manager.createRoom(roomId, [playerId], targetNetWorth ?? 15000, boardId, bankruptcyLimit);
           state.status = 'LOBBY';
           if (characterId) state.players[playerId] = makePlayer(playerId, characterId);
           log(roomId, `lobby created by ${playerId} on board ${state.boardId} with target net worth ${state.targetNetWorth}`);
@@ -383,8 +395,13 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           socket.emit('error', { code: 'ROOM_NOT_FOUND', message: `Room ${roomId} not found` });
           return;
         }
-        if (playerId !== state.currentPlayerId) {
+        const isVote = action.type === 'VOTE_END';
+        if (!isVote && playerId !== state.currentPlayerId) {
           socket.emit('error', { code: 'NOT_YOUR_TURN', message: `It is ${state.currentPlayerId}'s turn` });
+          return;
+        }
+        if (isVote && action.playerId !== playerId) {
+          socket.emit('error', { code: 'UNAUTHORIZED', message: 'You can only cast your own vote' });
           return;
         }
 

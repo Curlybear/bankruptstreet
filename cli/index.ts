@@ -115,6 +115,7 @@ function actionLabel(action: ReturnType<typeof greedyBotAction>): string {
     case 'TELEPORT':      return `TELEPORT to ${action.nodeId}`;
     case 'SELL_PROPERTY': return `SELL_PROPERTY ${action.propertyId} (distress)`;
     case 'CASINO_BET':    return `CASINO_BET ${action.wager}g on ${action.game} (${action.choice})`;
+    case 'VOTE_END':      return `VOTE_END ${action.vote ? 'end game' : 'keep playing'} (${action.playerId})`;
     case 'END_TURN':      return 'END_TURN';
   }
 }

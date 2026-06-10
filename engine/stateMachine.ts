@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
-  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats,
+  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -27,12 +27,23 @@ function advanceTurn(state: GameState): GameState {
   const outgoing = state.players[state.currentPlayerId];
   if (outgoing && !outgoing.isBankrupt && outgoing.cash < 0) {
     const checked = checkBankruptcy(state, state.currentPlayerId);
-    if (checked.players[state.currentPlayerId].isBankrupt) return checked;  // game over
-    return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'ADVANCE_TURN' };
+    if (checked.winnerId) return checked;                       // game over
+    if (!checked.players[state.currentPlayerId].isBankrupt) {
+      return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'ADVANCE_TURN' };
+    }
+    state = checked;  // eliminated but the game continues — advance past them
   }
 
   const idx = state.turnOrder.indexOf(state.currentPlayerId);
-  const nextIdx = (idx + 1) % state.turnOrder.length;
+  // Skip eliminated players. The game ends before everyone is bankrupt, but
+  // guard the scan anyway.
+  let nextIdx = idx;
+  let wrapped = false;
+  for (let step = 0; step < state.turnOrder.length; step++) {
+    nextIdx = (nextIdx + 1) % state.turnOrder.length;
+    if (nextIdx <= idx) wrapped = true;
+    if (!state.players[state.turnOrder[nextIdx]]?.isBankrupt) break;
+  }
   const nextPlayerId = state.turnOrder[nextIdx];
 
   const incomingPlayer = state.players[nextPlayerId];
@@ -44,7 +55,7 @@ function advanceTurn(state: GameState): GameState {
     commissionUntilNextTurn: 0,
   } : undefined;
 
-  const nextRound = nextIdx === 0 ? state.round + 1 : state.round;
+  const nextRound = wrapped ? state.round + 1 : state.round;
   // The incoming player may owe money from charges made on other players'
   // turns (venture cards). They settle before they can roll.
   const incomingInDebt = !!updatedPlayer && !updatedPlayer.isBankrupt && updatedPlayer.cash < 0;
@@ -68,8 +79,11 @@ function advanceTurn(state: GameState): GameState {
 
   if (incomingInDebt) {
     const checked = checkBankruptcy(advanced, nextPlayerId);
-    if (checked.players[nextPlayerId].isBankrupt) return checked;  // game over
-    return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'PRE_ROLL' };
+    if (checked.winnerId) return checked;                       // game over
+    if (!checked.players[nextPlayerId].isBankrupt) {
+      return { ...checked, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'PRE_ROLL' };
+    }
+    return advanceTurn(checked);  // eliminated — pass to the next alive seat
   }
   return advanced;
 }
@@ -198,6 +212,7 @@ function advanceSpaceResolution(state: GameState): GameState {
 // Auto-resolves suit/venture/vacant/bank-salary; puts bank/broker/property into SPACE_ACTION.
 function resolveSpace(state: GameState): GameState {
   const player = currentPlayer(state);
+  if (player.isBankrupt) return advanceTurn(state);  // eliminated mid-move (tolls)
   const node = state.board[player.currentNodeId];
 
   if (node.type === 'suit') {
@@ -318,6 +333,11 @@ export function applyAction(state: GameState, action: Action): GameState {
   const { currentPhase, currentPlayerId } = state;
   const player = currentPlayer(state);
 
+  // A pending end-game vote pauses everything until it resolves.
+  if (state.endVote && action.type !== 'VOTE_END') {
+    throw new Error(`An end-game vote is in progress — only VOTE_END is legal`);
+  }
+
   // Post-bank stock window: the landed space was already resolved; only a
   // stock purchase or ending the turn are legal (prevents double rent/invest).
   if (currentPhase === 'SPACE_ACTION' && state.passedBankWindowUsed
@@ -326,6 +346,43 @@ export function applyAction(state: GameState, action: Action): GameState {
   }
 
   switch (action.type) {
+    case 'VOTE_END': {
+      if (!state.endVote) throw new Error(`No end-game vote in progress`);
+      const voter = state.players[action.playerId];
+      if (!voter) throw new Error(`Player ${action.playerId} not found`);
+      if (voter.isBankrupt) throw new Error(`Eliminated players don't vote`);
+      if (voter.isBot) throw new Error(`Bots don't vote`);
+
+      if (!action.vote) {
+        // Any "continue" kills the vote instantly — unanimity is impossible.
+        return {
+          ...state,
+          endVote: null,
+          log: [...state.log, `[VOTE] ${voter.name} voted to keep playing — the game goes on!`],
+        };
+      }
+
+      const votes = { ...state.endVote.votes, [action.playerId]: true };
+      const eligible = state.turnOrder.filter(
+        pid => !state.players[pid].isBankrupt && !state.players[pid].isBot,
+      );
+      const everyoneAgreed = eligible.every(pid => votes[pid]);
+
+      if (everyoneAgreed) {
+        return {
+          ...state,
+          endVote: null,
+          winnerId: richestAlive(state),
+          log: [...state.log, `[VOTE] ${voter.name} voted to end the game.`, `[VOTE] Unanimous — the game ends by agreement!`],
+        };
+      }
+      return {
+        ...state,
+        endVote: { ...state.endVote, votes },
+        log: [...state.log, `[VOTE] ${voter.name} voted to end the game. (${Object.keys(votes).length}/${eligible.length})`],
+      };
+    }
+
     case 'SELL_STOCK': {
       if (currentPhase !== 'PRE_ROLL' && currentPhase !== 'DEBT_SETTLEMENT') {
         throw new Error(`Illegal action SELL_STOCK in phase ${currentPhase}`);

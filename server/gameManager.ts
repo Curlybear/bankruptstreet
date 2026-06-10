@@ -18,6 +18,7 @@ export function makePlayer(id: string, characterId?: string): Player {
   return {
     id, name,
     characterId: character?.id,
+    isBot,
     cash: 2000, netWorth: 2000,
     currentNodeId: 'bank',
     level: 1,
@@ -55,7 +56,7 @@ export function symmetrizeBoard(
   return board;
 }
 
-function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 15000, boardId = DEFAULT_BOARD_ID): GameState {
+function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 15000, boardId = DEFAULT_BOARD_ID, bankruptcyLimit = 1): GameState {
   const players: Record<string, Player> = {};
   for (const id of playerIds) {
     players[id] = makePlayer(id);
@@ -83,6 +84,7 @@ function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 
     districts,
     round: 1,
     targetNetWorth,
+    bankruptcyLimit,
     winnerId: null,
     bankruptCount: 0,
     log: [],
@@ -264,6 +266,18 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'VOTE_END': {
+      deltas.push({
+        type: 'END_VOTE_UPDATED',
+        payload: {
+          playerId: action.playerId,
+          vote: action.vote,
+          resolved: !after.endVote,
+        }
+      });
+      break;
+    }
+
     case 'END_TURN': {
       deltas.push({
         type: 'TURN_ENDED',
@@ -366,8 +380,8 @@ export class GameManager {
     return this.rooms;
   }
 
-  createRoom(roomId: string, players: string[], targetNetWorth?: number, boardId?: string): GameState {
-    const state = makeDefaultState(roomId, players, targetNetWorth, boardId);
+  createRoom(roomId: string, players: string[], targetNetWorth?: number, boardId?: string, bankruptcyLimit?: number): GameState {
+    const state = makeDefaultState(roomId, players, targetNetWorth, boardId, bankruptcyLimit);
     this.rooms.set(roomId, state);
     this.scheduleSave();
     return state;

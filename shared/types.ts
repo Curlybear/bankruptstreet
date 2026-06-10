@@ -89,6 +89,7 @@ export interface Player {
   propertyIds: string[];
   isBankrupt: boolean;
   characterId?: string;  // roster character (drives bot personality; cosmetic for humans)
+  isBot?: boolean;       // server-driven AI seat (bots don't vote in end-game votes)
   arrivedFromNodeId?: string;  // node walked from on arrival — next roll can't start back that way
   shopsClosedUntilNextTurn?: boolean;
   shopPricesHalvedUntilNextTurn?: boolean;
@@ -122,6 +123,7 @@ export type Action =
   | { type: 'SELL_STOCK'; districtId: string; shares: number }
   | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'CASINO_BET'; game: CasinoGame; wager: number; choice: string }  // casino node, one bet per visit
+  | { type: 'VOTE_END'; playerId: string; vote: boolean }  // end-game vote (any alive human, any time during a vote)
   | { type: 'ROLL_DICE' }
   | { type: 'CHOOSE_PATH'; nodeId: string }
   | { type: 'BUY_PROPERTY'; propertyId: string }
@@ -162,6 +164,8 @@ export interface GameState {
   passedBankWindowUsed?: boolean;  // bonus SPACE_ACTION (stock window) already granted this turn
   debtResume?: 'ADVANCE_TURN' | 'PRE_ROLL';  // where to go when DEBT_SETTLEMENT clears
   casinoResult?: CasinoResult | null;  // set after CASINO_BET, cleared on turn advance
+  bankruptcyLimit?: number;  // bankruptcies that end the game (default 1; 99 = last player standing)
+  endVote?: EndVote | null;  // pending unanimous vote to end the game early
   stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
 }
 
@@ -183,4 +187,11 @@ export interface CasinoResult {
   // highlow
   card1?: number;       // 1-13
   card2?: number;
+}
+
+// Opened when a bankruptcy doesn't end the game: every surviving human must
+// agree to stop early; any "continue" vote cancels it instantly.
+export interface EndVote {
+  reason: string;                    // e.g. "Slime went bankrupt (1/2)"
+  votes: Record<string, boolean>;    // playerId -> wants to end
 }
