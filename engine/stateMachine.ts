@@ -33,14 +33,17 @@ function advanceTurn(state: GameState): GameState {
     commissionUntilNextTurn: 0,
   } : undefined;
 
+  const nextRound = nextIdx === 0 ? state.round + 1 : state.round;
   return {
     ...state,
     currentPlayerId: nextPlayerId,
     currentPhase: 'PRE_ROLL',
-    round: nextIdx === 0 ? state.round + 1 : state.round,
+    round: nextRound,
     pendingDestinations: undefined,
     passedBankThisTurn: false,
     passedBankWindowUsed: false,
+    // Cap the log so persisted state stays bounded (it grows every action).
+    log: [...state.log, `[TURN] Round ${nextRound} — ${incomingPlayer?.name ?? nextPlayerId}'s turn.`].slice(-300),
     players: updatedPlayer ? {
       ...state.players,
       [nextPlayerId]: updatedPlayer,
@@ -139,6 +142,9 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
       }
     }
   }
+
+  const landedNode = s.board[s.players[playerId].currentNodeId];
+  s = { ...s, log: [...s.log, `[LAND] ${s.players[playerId].name} landed on ${landedNode.id} (${landedNode.type}).`] };
 
   // 4. Passing the bank counts as returning to it — win check (after tolls,
   // so net worth is final for this move).

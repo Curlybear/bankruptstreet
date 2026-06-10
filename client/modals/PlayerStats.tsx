@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../shared/types';
 
 interface Props {
@@ -15,22 +15,54 @@ const PLAYER_CSS_COLORS = ['#ff4e50', '#00f2fe', '#a855f7', '#facc15'];
 
 function g(n: number) { return `${n}G`; }
 
+// Per-tag styling for engine log entries (entries are prefixed `[TAG] ...`)
+const LOG_TAG_STYLE: Record<string, { color: string; icon: string }> = {
+  TURN: { color: '#64748b', icon: '⏱' },
+  LAND: { color: '#64748b', icon: '📍' },
+  BUY: { color: '#06b6d4', icon: '🏪' },
+  BUYOUT: { color: '#8b5cf6', icon: '💥' },
+  INVEST: { color: '#06b6d4', icon: '🏗' },
+  RENT: { color: '#f43f5e', icon: '💸' },
+  DIVIDEND: { color: '#10b981', icon: '💰' },
+  COMMISSION: { color: '#10b981', icon: '💰' },
+  STOCK: { color: '#a855f7', icon: '📈' },
+  SALARY: { color: '#10b981', icon: '✨' },
+  TAX: { color: '#f43f5e', icon: '🏛' },
+  'TAX BONUS': { color: '#10b981', icon: '🏛' },
+  BREAK: { color: '#14b8a6', icon: '☕' },
+  CHECKPOINT: { color: '#f59e0b', icon: '🛃' },
+  TELEPORT: { color: '#facc15', icon: '🎈' },
+  'HOME CONGREGATE': { color: '#facc15', icon: '🏠' },
+  VENTURE: { color: '#facc15', icon: '🔮' },
+  'VENTURE CARD': { color: '#facc15', icon: '🔮' },
+  'VENTURE EFFECT': { color: '#facc15', icon: '🔮' },
+  'VENTURE LINE': { color: '#facc15', icon: '🎰' },
+  DISTRESS: { color: '#f43f5e', icon: '🚨' },
+  BANKRUPT: { color: '#f43f5e', icon: '💀' },
+  WIN: { color: '#facc15', icon: '🏆' },
+};
+
 export function PlayerStats({ state, playerId }: Props) {
   const logEndRef = useRef<HTMLDivElement>(null);
+  const [feedOpen, setFeedOpen] = useState(true);
 
   // Auto-scroll logs to bottom on new updates
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [state?.log]);
+    if (feedOpen) logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [state?.log, feedOpen]);
 
   if (!state) return null;
 
   // Helper to colorize log lines based on action types
-  const renderLogMessage = (msg: string) => {
+  const renderLogMessage = (msg: string, key: number) => {
     let color = '#94a3b8'; // default cool slate grey
     let icon = '✦';
 
-    if (msg.includes('rolled')) {
+    const tagMatch = msg.match(/^\[([^\]]+)\]/);
+    const tagStyle = tagMatch ? LOG_TAG_STYLE[tagMatch[1]] : undefined;
+    if (tagStyle) {
+      ({ color, icon } = tagStyle);
+    } else if (msg.includes('rolled')) {
       color = '#e2e8f0';
       icon = '🎲';
     } else if (msg.includes('bought') || msg.includes('invested')) {
@@ -48,9 +80,9 @@ export function PlayerStats({ state, playerId }: Props) {
     }
 
     return (
-      <div 
-        key={msg} 
-        style={{ 
+      <div
+        key={key}
+        style={{
           fontSize: '11px', 
           lineHeight: '1.4', 
           color, 
@@ -432,9 +464,9 @@ export function PlayerStats({ state, playerId }: Props) {
         </div>
       </div>
 
-      {/* 2. Fixed Bottom Activity logs Feed (250px tall) */}
+      {/* 2. Fixed Bottom Activity logs Feed (collapsible) */}
       <div style={{
-        flex: '0 0 240px',
+        flex: feedOpen ? '0 0 240px' : '0 0 auto',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         background: 'rgba(5, 5, 10, 0.4)',
         padding: '12px',
@@ -443,13 +475,18 @@ export function PlayerStats({ state, playerId }: Props) {
         gap: '8px',
         overflow: 'hidden',
       }}>
-        {/* Logs title header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2px',
-        }}>
+        {/* Logs title header (click to collapse/expand) */}
+        <div
+          onClick={() => setFeedOpen(o => !o)}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '2px',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
           <div style={{
             fontSize: '9.5px',
             fontWeight: 800,
@@ -469,28 +506,31 @@ export function PlayerStats({ state, playerId }: Props) {
               animation: 'spin 4s linear infinite',
             }} />
             TACTICAL ANALYSIS FEED
+            <span style={{ color: '#64748b', fontSize: '9px' }}>{feedOpen ? '▾' : '▸'}</span>
           </div>
-          <span style={{ 
-            fontFamily: "'JetBrains Mono', monospace", 
-            fontSize: '8.5px', 
-            color: '#475569' 
+          <span style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '8.5px',
+            color: '#475569'
           }}>
-            SYSTEM_OK
+            {state.log.length} EVENTS
           </span>
         </div>
 
         {/* Scrolling logs container */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          paddingRight: '2px',
-        }}>
-          {state.log.map((line) => renderLogMessage(line))}
-          <div ref={logEndRef} />
-        </div>
+        {feedOpen && (
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            paddingRight: '2px',
+          }}>
+            {state.log.map((line, i) => renderLogMessage(line, i))}
+            <div ref={logEndRef} />
+          </div>
+        )}
       </div>
     </div>
   );

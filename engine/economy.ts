@@ -169,7 +169,7 @@ export function buyProperty(state: GameState, playerId: string, propertyId: stri
       },
     },
     properties: { ...state.properties, [propertyId]: { ...prop, ownerId: playerId } },
-    log: [...state.log],
+    log: [...state.log, `[BUY] ${player.name} bought the shop at ${prop.nodeId} for ${prop.currentPrice}G.`],
   };
 
   // Pay commissions on property purchase
@@ -243,7 +243,7 @@ export function buyoutProperty(state: GameState, buyerId: string, propertyId: st
       },
     },
     properties: updatedProps,
-    log: [...state.log],
+    log: [...state.log, `[BUYOUT] ${buyer.name} bought out ${seller.name}'s shop at ${prop.nodeId} for ${buyoutCost}G (${seller.name} received ${sellerPayout}G).`],
   };
 
   // Pay commissions on property buyout
@@ -355,6 +355,7 @@ export function invest(
       ...state.districts,
       [prop.districtId]: { ...district, stockPrice: newStockPrice },
     },
+    log: [...state.log, `[INVEST] ${player.name} invested ${amount}G in ${prop.nodeId} (capital ${newCapital}G, rent now ${newRent}G).`],
   };
 
   return recalcAllNetWorths(s1);
@@ -399,6 +400,7 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
 
   const totalShares = Object.values(district.playerHoldings).reduce((s, n) => s + n, 0);
   const updatedPlayers = { ...state.players };
+  const dividendLogs: string[] = [];
 
   if (rent > 0) {
     // Payer pays rent; owner receives rent
@@ -413,6 +415,7 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
         if (commission > 0) {
           const p = updatedPlayers[pid];
           updatedPlayers[pid] = { ...p, cash: p.cash + commission };
+          dividendLogs.push(`[DIVIDEND] ${p.name} earned a ${commission}G shareholder dividend (${shares}sh in ${district.name}).`);
         }
       }
     }
@@ -426,7 +429,10 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
     s1.log.push(`[RENT] ${payer.name} paid halved rent of ${rent}g (originally ${prop.currentRent}g) to ${owner.name}.`);
   } else if (isDoubled) {
     s1.log.push(`[RENT] ${payer.name} paid doubled rent of ${rent}g (originally ${prop.currentRent}g) to ${owner.name}.`);
+  } else if (rent > 0) {
+    s1.log.push(`[RENT] ${payer.name} paid ${rent}G rent to ${owner.name} at ${prop.nodeId}.`);
   }
+  s1.log.push(...dividendLogs);
 
   // Boon/Boom Player commissions on rent
   if (rent > 0) {
@@ -492,7 +498,8 @@ export function buyStock(
         },
       },
     },
-    log: [...state.log],
+    log: [...state.log, `[STOCK] ${player.name} bought ${shares} shares of ${district.name} for ${cost}G.`
+      + (newStockPrice !== district.stockPrice ? ` Price ${district.stockPrice}G → ${newStockPrice}G.` : '')],
   };
 
   // Pay commissions on stock purchase
@@ -552,6 +559,8 @@ export function sellStock(
         playerHoldings: { ...district.playerHoldings, [playerId]: held - shares },
       },
     },
+    log: [...state.log, `[STOCK] ${player.name} sold ${shares} shares of ${district.name} for ${proceeds}G.`
+      + (newStockPrice !== district.stockPrice ? ` Price ${district.stockPrice}G → ${newStockPrice}G.` : '')],
   };
 
   return recalcAllNetWorths(bumpStats(s1, playerId, { sharesSold: shares }));
@@ -607,7 +616,11 @@ export function checkWinCondition(state: GameState, playerId: string, requireBan
     const node = state.board[player.currentNodeId];
     if (!node || node.type !== 'bank') return state;
   }
-  return { ...state, winnerId: playerId };
+  return {
+    ...state,
+    winnerId: playerId,
+    log: [...state.log, `[WIN] ${player.name} reached ${player.netWorth}G net worth and returned to the bank — victory!`],
+  };
 }
 
 export function checkBankruptcy(state: GameState, playerId: string): GameState {
@@ -645,6 +658,7 @@ export function checkBankruptcy(state: GameState, playerId: string): GameState {
         },
       },
       properties: { ...s.properties, [pid]: { ...prop, ownerId: null } },
+      log: [...s.log, `[DISTRESS] ${currPlayer.name} sold the shop at ${prop.nodeId} to the bank for ${proceeds}G (75% of value).`],
     };
 
     const updatedProps = recalcDistrictMultipliers(district, s1.properties, s1.players);
@@ -666,6 +680,7 @@ export function checkBankruptcy(state: GameState, playerId: string): GameState {
       ...s,
       players: { ...s.players, [playerId]: { ...finalPlayer, isBankrupt: true } },
       bankruptCount: s.bankruptCount + 1,
+      log: [...s.log, `[BANKRUPT] ${finalPlayer.name} is bankrupt! The game is over.`],
     };
     // Bankruptcy ends the match immediately. Find non-bankrupt player with highest net worth.
     let bestPlayerId: string | null = null;
