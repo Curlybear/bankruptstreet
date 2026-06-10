@@ -664,3 +664,141 @@ test('teleport clears arrival memory (free direction choice after warping)', () 
   assert.equal(next.players.p1.currentNodeId, 'bank');
   assert.equal(next.players.p1.arrivedFromNodeId, undefined);
 });
+
+// ─── Debt settlement phase ────────────────────────────────────────────────────
+
+test('END_TURN with negative cash enters DEBT_SETTLEMENT instead of advancing', () => {
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 50, propertyIds: [], playerHoldings: { p1: 5 },
+  };
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    players: {
+      p1: makePlayer('p1', { cash: -100, netWorth: 150 }),
+      p2: makePlayer('p2'),
+    },
+    districts: { d1: district },
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+
+  assert.equal(next.currentPhase, 'DEBT_SETTLEMENT');
+  assert.equal(next.currentPlayerId, 'p1');             // turn NOT advanced
+  assert.equal(next.debtResume, 'ADVANCE_TURN');
+  assert.equal(next.districts.d1.playerHoldings.p1, 5); // nothing auto-sold
+});
+
+test('DEBT_SETTLEMENT: SELL_STOCK covers debt, END_TURN then advances turn', () => {
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 50, propertyIds: [], playerHoldings: { p1: 5 },
+  };
+  const state = makeState({
+    currentPhase: 'DEBT_SETTLEMENT',
+    debtResume: 'ADVANCE_TURN',
+    players: {
+      p1: makePlayer('p1', { cash: -100, netWorth: 150 }),
+      p2: makePlayer('p2'),
+    },
+    districts: { d1: district },
+  });
+
+  const sold = applyAction(state, { type: 'SELL_STOCK', districtId: 'd1', shares: 3 });
+  assert.equal(sold.players.p1.cash, 50);               // -100 + 3×50
+  assert.equal(sold.currentPhase, 'DEBT_SETTLEMENT');   // still settling until END_TURN
+
+  const next = applyAction(sold, { type: 'END_TURN' });
+  assert.equal(next.currentPlayerId, 'p2');
+  assert.equal(next.currentPhase, 'PRE_ROLL');
+  assert.equal(next.debtResume, undefined);
+});
+
+test('DEBT_SETTLEMENT: END_TURN throws while still in debt', () => {
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 50, propertyIds: [], playerHoldings: { p1: 5 },
+  };
+  const state = makeState({
+    currentPhase: 'DEBT_SETTLEMENT',
+    debtResume: 'ADVANCE_TURN',
+    players: {
+      p1: makePlayer('p1', { cash: -100, netWorth: 150 }),
+      p2: makePlayer('p2'),
+    },
+    districts: { d1: district },
+  });
+
+  assert.throws(() => applyAction(state, { type: 'END_TURN' }), /debt/);
+  assert.throws(() => applyAction(state, { type: 'ROLL_DICE' }), /DEBT_SETTLEMENT/);
+});
+
+test('DEBT_SETTLEMENT: SELL_PROPERTY distress-sells at 75%', () => {
+  const prop: Property = {
+    id: 'prop1', nodeId: 'prop1', districtId: 'd1', ownerId: 'p1',
+    basePrice: 100, currentPrice: 100, baseRent: 20, currentRent: 20,
+    capitalInvested: 0, maxCapital: 300, shopMultiplier: 1,
+  };
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 4, propertyIds: ['prop1'], playerHoldings: {},
+  };
+  const state = makeState({
+    currentPhase: 'DEBT_SETTLEMENT',
+    debtResume: 'ADVANCE_TURN',
+    players: {
+      p1: makePlayer('p1', { cash: -50, netWorth: 50, propertyIds: ['prop1'] }),
+      p2: makePlayer('p2'),
+    },
+    properties: { prop1: prop },
+    districts: { d1: district },
+  });
+
+  const next = applyAction(state, { type: 'SELL_PROPERTY', propertyId: 'prop1' });
+
+  assert.equal(next.players.p1.cash, 25);               // -50 + 75
+  assert.equal(next.properties.prop1.ownerId, null);
+  assert.equal(next.players.p1.propertyIds.length, 0);
+  assert.equal(next.players.p1.isBankrupt, false);
+});
+
+test('SELL_PROPERTY is illegal outside DEBT_SETTLEMENT', () => {
+  const prop: Property = {
+    id: 'prop1', nodeId: 'prop1', districtId: 'd1', ownerId: 'p1',
+    basePrice: 100, currentPrice: 100, baseRent: 20, currentRent: 20,
+    capitalInvested: 0, maxCapital: 300, shopMultiplier: 1,
+  };
+  const state = makeState({
+    players: {
+      p1: makePlayer('p1', { propertyIds: ['prop1'] }),
+      p2: makePlayer('p2'),
+    },
+    properties: { prop1: prop },
+    districts: { d1: { id: 'd1', name: 'D1', stockPrice: 4, propertyIds: ['prop1'], playerHoldings: {} } },
+  });
+
+  assert.throws(
+    () => applyAction(state, { type: 'SELL_PROPERTY', propertyId: 'prop1' }),
+    /SELL_PROPERTY/,
+  );
+});
+
+test('incoming player in debt starts their turn in DEBT_SETTLEMENT, resumes to PRE_ROLL', () => {
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 50, propertyIds: [], playerHoldings: { p2: 5 },
+  };
+  const state = makeState({
+    currentPhase: 'SPACE_ACTION',
+    players: {
+      p1: makePlayer('p1'),
+      p2: makePlayer('p2', { cash: -50, netWorth: 200 }), // charged during p1's turn
+    },
+    districts: { d1: district },
+  });
+
+  const next = applyAction(state, { type: 'END_TURN' });
+  assert.equal(next.currentPlayerId, 'p2');
+  assert.equal(next.currentPhase, 'DEBT_SETTLEMENT');
+  assert.equal(next.debtResume, 'PRE_ROLL');
+
+  const sold = applyAction(next, { type: 'SELL_STOCK', districtId: 'd1', shares: 1 });
+  const settled = applyAction(sold, { type: 'END_TURN' });
+  assert.equal(settled.currentPlayerId, 'p2');          // still p2's turn
+  assert.equal(settled.currentPhase, 'PRE_ROLL');       // now free to roll
+});

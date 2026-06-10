@@ -12,7 +12,7 @@ const CLEANUP_DELAY_MS = 30 * 60 * 1000;
 const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
-  'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT',
+  'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
 ]);
 
 const KNOWN_BUILDING_TYPES = new Set([
@@ -82,7 +82,7 @@ function validateAction(p: unknown): string | null {
     if (typeof act.nodeId !== 'string' || !act.nodeId.trim()) return 'nodeId must be a non-empty string';
   }
 
-  if (act.type === 'BUY_PROPERTY' || act.type === 'PAY_RENT' || act.type === 'BUYOUT_PROPERTY') {
+  if (act.type === 'BUY_PROPERTY' || act.type === 'PAY_RENT' || act.type === 'BUYOUT_PROPERTY' || act.type === 'SELL_PROPERTY') {
     if (typeof act.propertyId !== 'string' || !act.propertyId.trim()) return 'propertyId must be a non-empty string';
   }
 

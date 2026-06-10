@@ -28,6 +28,7 @@ export default function App() {
   const pendingActionRef = useRef(false);
   const [showStockMatrix, setShowStockMatrix] = useState(false);
   const [stockQty, setStockQty] = useState<Record<string, number>>({});
+  const [debtSellQty, setDebtSellQty] = useState<Record<string, number>>({});
   const [showRules, setShowRules] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -756,6 +757,195 @@ export default function App() {
     if (phase === 'PRE_ROLL') {
       return (
         <StockExchange state={state} emitAction={emitAction} playerId={PLAYER_ID} />
+      );
+    }
+
+    // 1b. DEBT_SETTLEMENT: cash is negative — the player chooses which stocks
+    // (and shops, at 75%) to sell until the debt is covered. No auto-selling.
+    if (phase === 'DEBT_SETTLEMENT') {
+      const deficit = Math.max(0, -currentPlayer.cash);
+      const covered = deficit === 0;
+      const myShops = currentPlayer.propertyIds
+        .map(id => state.properties[id])
+        .filter((p): p is NonNullable<typeof p> => !!p);
+      const holdings = Object.values(state.districts)
+        .filter(d => (d.playerHoldings[currentPlayer.id] ?? 0) > 0);
+
+      return (
+        <div style={{ ...consoleInnerPanelStyle, maxWidth: 560 }} className="animate-slide-up">
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '2px', color: '#f43f5e', marginBottom: 4 }}>
+            ⚠ DEBT SETTLEMENT OFFICE
+          </div>
+          <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 18, marginBottom: 6 }}>
+            Debt Settlement
+          </div>
+          <div style={{ fontSize: 12.5, color: '#94a3b8', marginBottom: 8 }}>
+            {!isMyTurn
+              ? `Waiting for ${currentPlayer.name} to settle their debts…`
+              : covered
+                ? 'Debt covered! You may keep selling, or settle to continue.'
+                : 'Sell any mix of your stocks (or shops at 75% value) to cover the debt.'}
+          </div>
+          <div style={{
+            fontSize: 13,
+            fontWeight: 800,
+            fontFamily: "'JetBrains Mono', monospace",
+            color: covered ? '#10b981' : '#f43f5e',
+            marginBottom: 14,
+          }}>
+            Cash: {g(currentPlayer.cash)}{!covered && ` — ${deficit}G short`}
+          </div>
+
+          {holdings.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 12 }}>
+              {holdings.map(d => {
+                const price = d.stockPrice;
+                const held = d.playerHoldings[currentPlayer.id] ?? 0;
+                const toCover = price > 0 ? Math.min(held, Math.max(1, Math.ceil(deficit / price))) : held;
+                const qty = Math.max(1, Math.min(held, debtSellQty[d.id] ?? toCover));
+                const proceeds = qty * price;
+                // Mirror sellStock in engine/economy.ts: 10+ shares drop the price
+                // by floor(price/16)+1, floored at floor(avgShopPrice * 0.04).
+                const shopPrices = d.propertyIds.map(pid => state.properties[pid]?.currentPrice ?? 0);
+                const priceFloor = shopPrices.length > 0
+                  ? Math.floor(shopPrices.reduce((a, b) => a + b, 0) / shopPrices.length * 0.04)
+                  : 0;
+                const newPrice = qty >= 10
+                  ? Math.max(priceFloor, price - (Math.floor(price / 16) + 1))
+                  : price;
+                const setQty = (n: number) => setDebtSellQty(q => ({ ...q, [d.id]: Math.max(1, Math.min(held, n)) }));
+                return (
+                  <div
+                    key={d.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid rgba(255, 255, 255, 0.04)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: d.id === 'd1' ? '#05f5ce' : '#a855f7',
+                        }} />
+                        <span style={{ fontWeight: 700, fontSize: 12.5, color: '#f8fafc' }}>{d.name}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>
+                        {g(price)}/sh · own {held}sh
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={held}
+                        value={qty}
+                        onChange={e => setQty(parseInt(e.target.value, 10) || 1)}
+                        disabled={!isMyTurn}
+                        style={{
+                          width: 52,
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          background: 'rgba(0, 0, 0, 0.3)',
+                          color: '#f8fafc',
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: 12,
+                        }}
+                      />
+                      <button
+                        onClick={() => setQty(toCover)}
+                        disabled={!isMyTurn || covered}
+                        style={{ ...overlayBtn(false), padding: '3px 8px', fontSize: 10 }}
+                      >
+                        Cover ({toCover})
+                      </button>
+                      <button
+                        onClick={() => setQty(held)}
+                        disabled={!isMyTurn}
+                        style={{ ...overlayBtn(false), padding: '3px 8px', fontSize: 10 }}
+                      >
+                        All ({held})
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: 10, color: '#94a3b8', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.5 }}>
+                      Proceeds: <span style={{ color: '#10b981' }}>{g(proceeds)}</span>
+                      {' · '}Price: {qty >= 10
+                        ? <span style={{ color: '#f43f5e' }}>{g(price)} → {g(newPrice)} ({newPrice - price})</span>
+                        : <span>{g(price)} (no impact)</span>}
+                    </div>
+
+                    <button
+                      onClick={() => emitAction({ type: 'SELL_STOCK', districtId: d.id, shares: qty })}
+                      disabled={!isMyTurn}
+                      style={{ ...overlayBtn(true), padding: '6px 10px', fontSize: 11 }}
+                    >
+                      Sell {qty} ({g(proceeds)})
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {myShops.length > 0 && (
+            <div style={{ width: '100%', marginBottom: 12 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '1px', color: '#64748b', marginBottom: 6 }}>
+                DISTRESS SALE — BANK PAYS 75%
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {myShops.map(p => (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid rgba(255, 255, 255, 0.04)',
+                    }}
+                  >
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#f8fafc' }}>
+                      {p.nodeId} <span style={{ color: '#64748b', fontWeight: 400 }}>(worth {g(p.currentPrice)})</span>
+                    </span>
+                    <button
+                      onClick={() => emitAction({ type: 'SELL_PROPERTY', propertyId: p.id })}
+                      disabled={!isMyTurn}
+                      style={{ ...overlayBtn(false, true), padding: '4px 10px', fontSize: 10.5 }}
+                    >
+                      Sell ({g(Math.floor(p.currentPrice * 0.75))})
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => emitAction({ type: 'END_TURN' })}
+            disabled={!isMyTurn || !covered}
+            style={{
+              ...overlayBtn(covered),
+              width: '100%',
+              maxWidth: 240,
+              padding: '8px 0',
+              background: covered && isMyTurn ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : undefined,
+            }}
+          >
+            {covered ? 'Settle & Continue' : `Still ${deficit}G short`}
+          </button>
+        </div>
       );
     }
 

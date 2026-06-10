@@ -104,6 +104,31 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
     return { type: 'ROLL_DICE' };
   }
 
+  // DEBT_SETTLEMENT — sell stock to cover the deficit (largest holding first),
+  // then distress-sell shops; confirm with END_TURN once covered.
+  if (phase === 'DEBT_SETTLEMENT') {
+    const deficit = -player.cash;
+    if (deficit <= 0) return { type: 'END_TURN' };
+
+    let bestDistrictId: string | null = null;
+    let bestValue = 0;
+    for (const [districtId, district] of Object.entries(state.districts)) {
+      const held = district.playerHoldings[botPlayerId] ?? 0;
+      const value = held * district.stockPrice;
+      if (value > bestValue) { bestValue = value; bestDistrictId = districtId; }
+    }
+    if (bestDistrictId) {
+      const district = state.districts[bestDistrictId];
+      const held = district.playerHoldings[botPlayerId] ?? 0;
+      const needed = Math.ceil(deficit / district.stockPrice);
+      return { type: 'SELL_STOCK', districtId: bestDistrictId, shares: Math.min(held, needed) };
+    }
+    if (player.propertyIds.length > 0) {
+      return { type: 'SELL_PROPERTY', propertyId: player.propertyIds[0] };
+    }
+    return { type: 'END_TURN' };
+  }
+
   // 3 — CHOOSING_PATH: head to bank if all suits held, otherwise nearest unowned shop
   if (phase === 'CHOOSING_PATH') {
     const destinations = state.pendingDestinations ?? [];

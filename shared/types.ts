@@ -115,10 +115,12 @@ export type TurnPhase =
   | 'MOVING'
   | 'CHOOSING_PATH'
   | 'SPACE_ACTION'
+  | 'DEBT_SETTLEMENT'  // cash < 0: player chooses stocks/shops to sell until covered
   | 'TURN_END';
 
 export type Action =
   | { type: 'SELL_STOCK'; districtId: string; shares: number }
+  | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'ROLL_DICE' }
   | { type: 'CHOOSE_PATH'; nodeId: string }
   | { type: 'BUY_PROPERTY'; propertyId: string }
@@ -157,6 +159,7 @@ export interface GameState {
   lastRoll?: Record<string, number>;
   passedBankThisTurn?: boolean;
   passedBankWindowUsed?: boolean;  // bonus SPACE_ACTION (stock window) already granted this turn
+  debtResume?: 'ADVANCE_TURN' | 'PRE_ROLL';  // where to go when DEBT_SETTLEMENT clears
   stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
 }
 

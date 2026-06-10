@@ -230,6 +230,22 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'SELL_PROPERTY': {
+      const oldProp = before.properties[action.propertyId];
+      deltas.push({
+        type: 'PROPERTY_DISTRESS_SOLD',
+        payload: {
+          playerId: pid,
+          propertyId: action.propertyId,
+          proceeds: aPlayer.cash - bPlayer.cash,
+        }
+      });
+      if (oldProp && before.districts[oldProp.districtId]?.stockPrice !== after.districts[oldProp.districtId]?.stockPrice) {
+        deltas.push({ type: 'STOCK_PRICE_CHANGED', payload: { districtId: oldProp.districtId, newPrice: after.districts[oldProp.districtId].stockPrice } });
+      }
+      break;
+    }
+
     case 'END_TURN': {
       deltas.push({
         type: 'TURN_ENDED',

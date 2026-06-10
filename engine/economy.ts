@@ -623,54 +623,86 @@ export function checkWinCondition(state: GameState, playerId: string, requireBan
   };
 }
 
-export function checkBankruptcy(state: GameState, playerId: string): GameState {
-  if (state.players[playerId].cash >= 0) return state;
+// Distress sale: the bank buys one shop at 75% of currentPrice. Used by the
+// player's own choice in DEBT_SETTLEMENT and by forced liquidation below.
+export function distressSellProperty(state: GameState, playerId: string, propertyId: string): GameState {
+  const player = state.players[playerId];
+  const prop = state.properties[propertyId];
+  if (!player) throw new Error(`Player ${playerId} not found`);
+  if (!prop) throw new Error(`Property ${propertyId} not found`);
+  if (prop.ownerId !== playerId) throw new Error(`Player does not own property ${propertyId}`);
 
+  const proceeds = Math.floor(prop.currentPrice * DISTRESS_SALE_RATE);
+  const district = state.districts[prop.districtId];
+
+  const s1: GameState = {
+    ...state,
+    players: {
+      ...state.players,
+      [playerId]: {
+        ...player,
+        cash: player.cash + proceeds,
+        propertyIds: player.propertyIds.filter(id => id !== propertyId),
+      },
+    },
+    properties: { ...state.properties, [propertyId]: { ...prop, ownerId: null } },
+    log: [...state.log, `[DISTRESS] ${player.name} sold the shop at ${prop.nodeId} to the bank for ${proceeds}G (75% of value).`],
+  };
+
+  const updatedProps = recalcDistrictMultipliers(district, s1.properties, s1.players);
+  const newStockPrice = recalcStockPrice(district, updatedProps);
+  return recalcAllNetWorths({
+    ...s1,
+    properties: updatedProps,
+    districts: {
+      ...s1.districts,
+      [prop.districtId]: { ...district, stockPrice: newStockPrice },
+    },
+  });
+}
+
+// Max gold a player could raise by selling everything: stock at current
+// prices plus shops at the 75% distress rate.
+export function maxRaisable(state: GameState, playerId: string): number {
+  const player = state.players[playerId];
+  if (!player) return 0;
+  let total = 0;
+  for (const d of Object.values(state.districts)) {
+    total += (d.playerHoldings[playerId] ?? 0) * d.stockPrice;
+  }
+  for (const pid of player.propertyIds) {
+    const prop = state.properties[pid];
+    if (prop) total += Math.floor(prop.currentPrice * DISTRESS_SALE_RATE);
+  }
+  return total;
+}
+
+export function checkBankruptcy(state: GameState, playerId: string): GameState {
+  const player = state.players[playerId];
+  if (player.cash >= 0) return state;
+
+  // Salvageable debt: the player chooses what to sell in the DEBT_SETTLEMENT
+  // phase — never auto-sell on their behalf.
+  if (player.cash + maxRaisable(state, playerId) >= 0) {
+    return {
+      ...state,
+      log: [...state.log, `[DEBT] ${player.name} is ${-player.cash}G in debt and must sell assets to cover it.`],
+    };
+  }
+
+  // Hopeless: even full liquidation cannot cover the debt. Forced
+  // liquidation, then bankruptcy ends the game.
   let s = state;
 
-  // Phase 1: liquidate stock holdings, cheapest-last isn't specified so iterate in order
   for (const districtId of Object.keys(s.districts)) {
-    if (s.players[playerId].cash >= 0) break;
     const shares = s.districts[districtId].playerHoldings[playerId] ?? 0;
     if (shares <= 0) continue;
     s = sellStock(s, playerId, districtId, shares);
   }
 
-  // Phase 2: sell shops at 75% distress rate
-  const propsToSell = [...s.players[playerId].propertyIds];
-  for (const pid of propsToSell) {
-    if (s.players[playerId].cash >= 0) break;
-    const prop = s.properties[pid];
-    if (!prop) continue;
-
-    const proceeds = Math.floor(prop.currentPrice * DISTRESS_SALE_RATE);
-    const currPlayer = s.players[playerId];
-    const district = s.districts[prop.districtId];
-
-    const s1: GameState = {
-      ...s,
-      players: {
-        ...s.players,
-        [playerId]: {
-          ...currPlayer,
-          cash: currPlayer.cash + proceeds,
-          propertyIds: currPlayer.propertyIds.filter(id => id !== pid),
-        },
-      },
-      properties: { ...s.properties, [pid]: { ...prop, ownerId: null } },
-      log: [...s.log, `[DISTRESS] ${currPlayer.name} sold the shop at ${prop.nodeId} to the bank for ${proceeds}G (75% of value).`],
-    };
-
-    const updatedProps = recalcDistrictMultipliers(district, s1.properties, s1.players);
-    const newStockPrice = recalcStockPrice(district, updatedProps);
-    s = recalcAllNetWorths({
-      ...s1,
-      properties: updatedProps,
-      districts: {
-        ...s1.districts,
-        [prop.districtId]: { ...district, stockPrice: newStockPrice },
-      },
-    });
+  for (const pid of [...s.players[playerId].propertyIds]) {
+    if (!s.properties[pid]) continue;
+    s = distressSellProperty(s, playerId, pid);
   }
 
   // Mark bankrupt if net worth still negative after full liquidation

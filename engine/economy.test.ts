@@ -367,9 +367,9 @@ test('checkWinCondition: win when net worth >= target AND at bank node', () => {
 
 // ─── checkBankruptcy ─────────────────────────────────────────────────────────
 
-test('checkBankruptcy: sells stock first to cover debt', () => {
-  // p1 has -100 cash, holds 5 shares at price 20 → proceeds = 100 → cash = 0
-  // 5 < 10 so no price impact; cash = 0 ≥ 0, survives
+test('checkBankruptcy: salvageable debt does NOT auto-sell — player keeps assets', () => {
+  // p1 has -100 cash, holds 5 shares at price 20 → raisable 100 covers it.
+  // No auto-liquidation: debt settles via the DEBT_SETTLEMENT phase.
   const district = makeDistrict({ stockPrice: 20, playerHoldings: { p1: 5 } });
   const state = makeState({
     players: { p1: makePlayer('p1', { cash: -100, netWorth: 0 }) },
@@ -379,12 +379,14 @@ test('checkBankruptcy: sells stock first to cover debt', () => {
   const next = checkBankruptcy(state, 'p1');
 
   assert.equal(next.players.p1.isBankrupt, false);
-  assert.ok(next.players.p1.cash >= 0);
-  assert.equal(next.districts.d1.playerHoldings.p1, 0); // shares sold
+  assert.equal(next.players.p1.cash, -100); // debt remains for the player to settle
+  assert.equal(next.districts.d1.playerHoldings.p1, 5); // shares untouched
+  assert.ok(next.log.some(l => l.startsWith('[DEBT]')));
 });
 
-test('checkBankruptcy: sells shops at 75% when stocks insufficient', () => {
-  // p1 has -200 cash, no stocks, owns shop worth 400 → distress = 300 → cash = 100
+test('checkBankruptcy: salvageable via shop distress value keeps the shop', () => {
+  // p1 has -200 cash, no stocks, owns shop worth 400 → 75% distress = 300 covers it.
+  // The shop must NOT be auto-sold; the player chooses in DEBT_SETTLEMENT.
   const prop = makeProp('shop1', { currentPrice: 400, ownerId: 'p1' });
   const district = makeDistrict({ propertyIds: ['shop1'], stockPrice: 4, playerHoldings: {} });
   const state = makeState({
@@ -399,9 +401,9 @@ test('checkBankruptcy: sells shops at 75% when stocks insufficient', () => {
   const next = checkBankruptcy(state, 'p1');
 
   assert.equal(next.players.p1.isBankrupt, false);
-  assert.ok(next.players.p1.cash >= 0);
-  assert.equal(next.properties.shop1.ownerId, null); // shop released
-  assert.equal(next.players.p1.propertyIds.length, 0);
+  assert.equal(next.players.p1.cash, -200);
+  assert.equal(next.properties.shop1.ownerId, 'p1'); // shop kept
+  assert.ok(next.log.some(l => l.startsWith('[DEBT]')));
 });
 
 test('checkBankruptcy: marks bankrupt when net worth negative after full liquidation', () => {

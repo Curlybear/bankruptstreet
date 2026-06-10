@@ -119,10 +119,12 @@ export function Rules({ onClose }: Props) {
         </tbody></table>
         <div style={p}>Renovate a plot you own at the start of your turn (building cost + 150G).</div>
 
-        <div style={h2}>Bankruptcy</div>
+        <div style={h2}>Debt &amp; Bankruptcy</div>
         <div style={p}>
-          Cash below zero forces liquidation: stocks at market, then shops at{' '}
-          <span style={hl}>75% value</span>. Still negative? You're out — and the game ends,
+          Cash below zero? You enter <span style={hl}>debt settlement</span>: choose any mix of
+          your stocks (at market price) and shops (distress sale at{' '}
+          <span style={hl}>75% value</span>) to sell until the debt is covered — nothing is sold
+          for you. If even selling everything couldn't cover it, you're bankrupt — the game ends,
           richest player standing wins.
         </div>
 

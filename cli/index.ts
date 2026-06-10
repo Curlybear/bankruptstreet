@@ -113,6 +113,7 @@ function actionLabel(action: ReturnType<typeof greedyBotAction>): string {
     case 'BUILD_PLOT':    return `BUILD_PLOT ${action.buildingType} on ${action.propertyId}`;
     case 'RENOVATE_PLOT': return `RENOVATE_PLOT ${action.buildingType} on ${action.propertyId}`;
     case 'TELEPORT':      return `TELEPORT to ${action.nodeId}`;
+    case 'SELL_PROPERTY': return `SELL_PROPERTY ${action.propertyId} (distress)`;
     case 'END_TURN':      return 'END_TURN';
   }
 }

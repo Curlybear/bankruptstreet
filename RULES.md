@@ -91,9 +91,9 @@ Land on an unowned vacant plot to build:
 
 You may **renovate** a plot you own into a different building at the start of your turn (building cost + 150G).
 
-## Bankruptcy
+## Debt & Bankruptcy
 
-If your cash drops below zero, you're forced to liquidate: stocks first at market price, then shops at **75% of value**. If your net worth is still negative, you're bankrupt — and the **game ends immediately**, victory going to the richest surviving player.
+If your cash drops below zero, you enter **debt settlement**: choose any mix of your stocks (sold at market price) and shops (distress sale at **75% of value**) to sell until the debt is covered — nothing is sold automatically on your behalf. You may sell more than you owe if you want out of a position entirely. If even selling everything couldn't cover the debt, you're bankrupt — and the **game ends immediately**, victory going to the richest surviving player.
 
 ## Characters
 

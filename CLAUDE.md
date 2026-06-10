@@ -237,10 +237,12 @@ type TurnPhase =
   | 'MOVING'          // internal
   | 'CHOOSING_PATH'   // player picks direction at branch
   | 'SPACE_ACTION'    // resolving the landed square
+  | 'DEBT_SETTLEMENT' // cash < 0: player chooses stocks/shops to sell until covered
   | 'TURN_END';       // internal cleanup
 
 type Action =
   | { type: 'SELL_STOCK'; districtId: string; shares: number }
+  | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'ROLL_DICE' }
   | { type: 'CHOOSE_PATH'; nodeId: string }
   | { type: 'BUY_PROPERTY'; propertyId: string }
@@ -309,6 +311,7 @@ Legal action map (node type matters within SPACE_ACTION):
 | `SPACE_ACTION` | bank or stockbroker | `BUY_STOCK`, `COLLECT_SALARY` (if all suits held + bank), `END_TURN` |
 | `SPACE_ACTION` | suit node | auto-collect suit → immediately transition to TURN_END (no player input) |
 | `SPACE_ACTION` | venture/vacant | draw card / resolve effect → TURN_END |
+| `DEBT_SETTLEMENT` | any | `SELL_STOCK`, `SELL_PROPERTY` (distress, 75%), then `END_TURN` once cash ≥ 0 |
 
 **Rules:**
 - `applyAction` is a pure function — returns new state, never mutates.
@@ -413,11 +416,11 @@ function checkWinCondition(state: GameState, playerId: string): GameState
 
 // Check and handle bankruptcy (call after any cash reduction)
 function checkBankruptcy(state: GameState, playerId: string): GameState
-// - If player.cash < 0, trigger forced liquidation:
-//     sell stocks at current price until cash >= 0 or no stocks remain
-//     if still cash < 0, sell shops at DISTRESS_SALE_RATE (75%) until cash >= 0
-//     if net worth < 0 after all liquidation, set player.isBankrupt = true
-//     increment state.bankruptCount
+// - If player.cash < 0 but cash + maxRaisable >= 0 (stocks at market + shops
+//   at 75%): leave the debt in place — the player settles it themselves in the
+//   DEBT_SETTLEMENT phase (entered via advanceTurn). NEVER auto-sell.
+// - Only if even full liquidation cannot cover the debt: forced liquidation,
+//   set player.isBankrupt = true, increment state.bankruptCount (game over).
 
 // Recalculate net worth for a player
 function recalcNetWorth(player: Player, state: GameState): number

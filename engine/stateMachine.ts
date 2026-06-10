@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
-  recalcAllNetWorths, bumpStats,
+  distressSellProperty, recalcAllNetWorths, bumpStats,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -20,6 +20,14 @@ function propertyAtNode(state: GameState, nodeId: string) {
 }
 
 function advanceTurn(state: GameState): GameState {
+  // A player may not end their turn in debt: they must choose assets to sell
+  // (DEBT_SETTLEMENT) until cash >= 0. Truly hopeless debt never reaches here
+  // — checkBankruptcy already liquidates and ends the game.
+  const outgoing = state.players[state.currentPlayerId];
+  if (outgoing && !outgoing.isBankrupt && outgoing.cash < 0) {
+    return { ...state, currentPhase: 'DEBT_SETTLEMENT', debtResume: 'ADVANCE_TURN' };
+  }
+
   const idx = state.turnOrder.indexOf(state.currentPlayerId);
   const nextIdx = (idx + 1) % state.turnOrder.length;
   const nextPlayerId = state.turnOrder[nextIdx];
@@ -34,10 +42,14 @@ function advanceTurn(state: GameState): GameState {
   } : undefined;
 
   const nextRound = nextIdx === 0 ? state.round + 1 : state.round;
+  // The incoming player may owe money from charges made on other players'
+  // turns (venture cards). They settle before they can roll.
+  const incomingInDebt = !!updatedPlayer && !updatedPlayer.isBankrupt && updatedPlayer.cash < 0;
   return {
     ...state,
     currentPlayerId: nextPlayerId,
-    currentPhase: 'PRE_ROLL',
+    currentPhase: incomingInDebt ? 'DEBT_SETTLEMENT' : 'PRE_ROLL',
+    debtResume: incomingInDebt ? 'PRE_ROLL' : undefined,
     round: nextRound,
     pendingDestinations: undefined,
     passedBankThisTurn: false,
@@ -297,11 +309,22 @@ export function applyAction(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'SELL_STOCK': {
-      if (currentPhase !== 'PRE_ROLL') {
+      if (currentPhase !== 'PRE_ROLL' && currentPhase !== 'DEBT_SETTLEMENT') {
         throw new Error(`Illegal action SELL_STOCK in phase ${currentPhase}`);
       }
       const { districtId, shares } = action;
-      return sellStock(state, currentPlayerId, districtId, shares);
+      const sold = sellStock(state, currentPlayerId, districtId, shares);
+      // Settling debt: re-check after each sale — price impact of the sale
+      // itself can make a borderline debt hopeless.
+      return currentPhase === 'DEBT_SETTLEMENT' ? checkBankruptcy(sold, currentPlayerId) : sold;
+    }
+
+    case 'SELL_PROPERTY': {
+      if (currentPhase !== 'DEBT_SETTLEMENT') {
+        throw new Error(`Illegal action SELL_PROPERTY in phase ${currentPhase}`);
+      }
+      const sold = distressSellProperty(state, currentPlayerId, action.propertyId);
+      return checkBankruptcy(sold, currentPlayerId);
     }
 
     case 'ROLL_DICE': {
@@ -557,6 +580,15 @@ export function applyAction(state: GameState, action: Action): GameState {
     }
 
     case 'END_TURN': {
+      if (currentPhase === 'DEBT_SETTLEMENT') {
+        if (player.cash < 0) {
+          throw new Error(`Cannot end debt settlement: still ${-player.cash}G in debt`);
+        }
+        const settled: GameState = { ...state, debtResume: undefined };
+        return state.debtResume === 'PRE_ROLL'
+          ? { ...settled, currentPhase: 'PRE_ROLL' }
+          : advanceTurn(settled);
+      }
       if (currentPhase !== 'SPACE_ACTION') {
         throw new Error(`Illegal action END_TURN in phase ${currentPhase}`);
       }
