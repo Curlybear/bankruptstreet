@@ -797,7 +797,7 @@ export default function App() {
           </div>
 
           {holdings.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 12, maxHeight: '36vh', overflowY: 'auto' }}>
               {holdings.map(d => {
                 const price = d.stockPrice;
                 const held = d.playerHoldings[currentPlayer.id] ?? 0;
@@ -1557,7 +1557,7 @@ export default function App() {
             Buy 1–99 shares per district. Trades of 10+ shares move the price. Cash Available: <strong style={{ color: '#10b981', fontFamily: "'JetBrains Mono', monospace" }}>{g(currentPlayer.cash)}</strong>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', marginBottom: 16, maxHeight: '36vh', overflowY: 'auto' }}>
             {Object.values(state.districts).map(d => {
               const price = d.stockPrice;
               const maxAffordable = price > 0 ? Math.min(99, Math.floor(currentPlayer.cash / price)) : 0;

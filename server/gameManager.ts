@@ -1,7 +1,7 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync, renameSync } from 'fs';
 import { join } from 'path';
 import { applyAction } from '../engine/stateMachine.js';
-import { seedVentureGridCardIds } from '../engine/economy.js';
+import { seedVentureGridCardIds, recalcStockPrice } from '../engine/economy.js';
 import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
 import { getPath } from '../engine/navigation.js';
 import { CHARACTERS, CHARACTER_IDS } from '../shared/characters.js';
@@ -63,6 +63,13 @@ function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 
 
   const def = BOARDS[boardId] ?? BOARDS[DEFAULT_BOARD_ID];
   const board = symmetrizeBoard(structuredClone(def.board), def.oneWayEdges);
+  const properties = structuredClone(def.properties);
+  const districts = structuredClone(def.districts);
+  // Authored stockPrice values drift from the formula; derive them so prices
+  // start exactly at their floor (selling can never push a price *up*).
+  for (const d of Object.values(districts)) {
+    d.stockPrice = recalcStockPrice(d, properties);
+  }
 
   return {
     roomId,
@@ -72,8 +79,8 @@ function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 
     currentPlayerId: playerIds[0],
     currentPhase: 'PRE_ROLL',
     board,
-    properties: structuredClone(def.properties),
-    districts: structuredClone(def.districts),
+    properties,
+    districts,
     round: 1,
     targetNetWorth,
     winnerId: null,

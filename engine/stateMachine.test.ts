@@ -305,13 +305,20 @@ test('passing bank grants exactly one bonus SPACE_ACTION window, then END_TURN a
   assert.equal(s2.passedBankWindowUsed, false);
 });
 
-test('BUY_STOCK is legal in the stock window away from bank, and ends the turn', () => {
+test('BUY_STOCK is legal in the stock window away from bank; turn ends on END_TURN', () => {
   const state = makeWindowState({ passedBankWindowUsed: true });
 
   const next = applyAction(state, { type: 'BUY_STOCK', districtId: 'd1', shares: 5 });
   assert.equal(next.districts.d1.playerHoldings.p1, 5);
   assert.equal(next.players.p1.cash, 1000 - 50);
-  assert.equal(next.currentPlayerId, 'p2');           // turn ends after the buy
+  assert.equal(next.currentPlayerId, 'p1');           // player may keep trading…
+  assert.equal(next.currentPhase, 'SPACE_ACTION');
+
+  const more = applyAction(next, { type: 'BUY_STOCK', districtId: 'd1', shares: 5 });
+  assert.equal(more.districts.d1.playerHoldings.p1, 10);
+
+  const done = applyAction(more, { type: 'END_TURN' }); // …and finishes explicitly
+  assert.equal(done.currentPlayerId, 'p2');
 });
 
 test('space actions other than BUY_STOCK/END_TURN are illegal in the stock window', () => {

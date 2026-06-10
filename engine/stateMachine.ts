@@ -490,7 +490,9 @@ export function applyAction(state: GameState, action: Action): GameState {
       }
       const { districtId, shares } = action;
       const s = buyStock(state, currentPlayerId, districtId, shares);
-      return advanceTurn(checkWinCondition(s, currentPlayerId));
+      // Stay in SPACE_ACTION: the player may keep trading (other districts,
+      // more shares) and finishes the visit with END_TURN ("Done Trading").
+      return checkWinCondition(s, currentPlayerId);
     }
 
     case 'COLLECT_SALARY': {
@@ -500,7 +502,9 @@ export function applyAction(state: GameState, action: Action): GameState {
       const node = currentNode(state);
       if (node.type !== 'bank') throw new Error(`COLLECT_SALARY requires bank node`);
       const s = collectSalary(state, currentPlayerId);
-      return advanceSpaceResolution(checkWinCondition(s, currentPlayerId));
+      // Stay in SPACE_ACTION: collecting salary shouldn't forfeit the
+      // chance to trade stock at the bank.
+      return checkWinCondition(s, currentPlayerId);
     }
 
     case 'BUILD_PLOT': {
