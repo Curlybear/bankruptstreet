@@ -26,6 +26,12 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
   const isActive = playerId === state.currentPlayerId;
   const currentPlayer = state.players[playerId];
 
+  // Only districts with holdings get full sell cards; the rest collapse to
+  // compact price pills so the desk doesn't waste rows on unsellable stock.
+  const allDistricts = Object.values(state.districts);
+  const heldDistricts = allDistricts.filter(d => (d.playerHoldings[playerId] ?? 0) > 0);
+  const unheldDistricts = allDistricts.filter(d => (d.playerHoldings[playerId] ?? 0) === 0);
+
   function val(did: string) {
     return inputs[did] ?? '';
   }
@@ -126,12 +132,12 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
       </div>
 
       {/* Grid of Districts - 2 column layout for console compactness */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr 1fr', 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
         gap: '10px',
       }}>
-        {Object.values(state.districts).map(d => {
+        {heldDistricts.map(d => {
           const held = d.playerHoldings[playerId] ?? 0;
           const sellQty = parseInt(val(d.id), 10) || 0;
           const sellable = isActive && held > 0;
@@ -261,6 +267,33 @@ export function StockExchange({ state, emitAction, playerId }: Props) {
           );
         })}
       </div>
+
+      {/* Districts without holdings: compact price pills instead of empty cards */}
+      {unheldDistricts.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+          {heldDistricts.length === 0 && (
+            <span style={{ fontSize: '10px', color: '#475569', fontStyle: 'italic', marginRight: '4px' }}>
+              No shares held — buy at the Bank or a Stockbroker. Prices:
+            </span>
+          )}
+          {unheldDistricts.map(d => (
+            <span
+              key={d.id}
+              style={{
+                fontSize: '10px',
+                color: '#94a3b8',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.04)',
+                borderRadius: '10px',
+                padding: '2px 8px',
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              {d.name} <strong style={{ color: '#06b6d4' }}>{g(d.stockPrice)}</strong>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* 🏗️ Plot Renovation Portal */}
       {myVacantPlots.length > 0 && (

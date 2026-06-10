@@ -118,9 +118,9 @@ export function PlayerStats({ state, playerId }: Props) {
       fontFamily: "'Outfit', sans-serif",
       overflow: 'hidden',
     }}>
-      {/* 1. Scrollable Player Info Panel */}
+      {/* 1. Scrollable Player Info Panel (hugs content; feed absorbs leftover space) */}
       <div style={{
-        flex: '1 1 0px',
+        flex: '0 1 auto',
         overflowY: 'auto',
         padding: '16px',
         display: 'flex',
@@ -465,9 +465,10 @@ export function PlayerStats({ state, playerId }: Props) {
         </div>
       </div>
 
-      {/* 2. Fixed Bottom Activity logs Feed (collapsible) */}
+      {/* 2. Bottom Activity logs Feed (collapsible; grows into unused sidebar space) */}
       <div style={{
-        flex: feedOpen ? '0 0 240px' : '0 0 auto',
+        flex: feedOpen ? '1 1 240px' : '0 0 auto',
+        minHeight: feedOpen ? 180 : undefined,
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         background: 'rgba(5, 5, 10, 0.4)',
         padding: '12px',

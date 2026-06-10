@@ -612,7 +612,43 @@ function renderAll(state: GameState, refs: PixiRefs, hoveredNodeId: string | nul
   drawHighlights(state, refs, hoveredNodeId);
 }
 
+const BOARD_PAD = 90; // room for node tiles + labels around the outermost centers
+
+function boardBounds(nodePos: PixiRefs['nodePos']) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of nodePos.values()) {
+    minX = Math.min(minX, p.px); maxX = Math.max(maxX, p.px);
+    minY = Math.min(minY, p.py); maxY = Math.max(maxY, p.py);
+  }
+  return { minX, minY, maxX, maxY, w: maxX - minX + BOARD_PAD * 2, h: maxY - minY + BOARD_PAD * 2 };
+}
+
+// True when the whole board is visible at the current camera scale — then
+// there is nothing to follow and the camera should stay put (board centered).
+function wholeBoardVisible(refs: PixiRefs): boolean {
+  const { app, camera, nodePos } = refs;
+  if (nodePos.size === 0) return false;
+  const b = boardBounds(nodePos);
+  return b.w * camera.scale.x <= app.screen.width && b.h * camera.scale.y <= app.screen.height;
+}
+
+// Scale the camera so the whole board fits the canvas (clamped so tiny or
+// huge canvases stay readable), then center the board. Wheel zoom overrides.
+function fitCameraScale(refs: PixiRefs) {
+  const { app, camera, nodePos } = refs;
+  if (nodePos.size === 0) return;
+  const b = boardBounds(nodePos);
+  const scale = Math.max(0.45, Math.min(1.15, Math.min(app.screen.width / b.w, app.screen.height / b.h)));
+  camera.scale.set(scale);
+  const cx = (b.minX + b.maxX) / 2;
+  const cy = (b.minY + b.maxY) / 2;
+  camera.x = app.screen.width / 2 - cx * scale;
+  camera.y = app.screen.height / 2 - cy * scale;
+}
+
 function panToNode(nodeId: string | undefined, refs: PixiRefs) {
+  // Board fully on screen → following the player would only shove it off-center.
+  if (wholeBoardVisible(refs)) return;
   if (!nodeId) return;
   const { app, camera, nodePos } = refs;
   const pos = nodePos.get(nodeId);
@@ -684,12 +720,18 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
   const stateRef = useRef<GameState | null>(null);
   const hoveredRef = useRef<string | null>(null);
   const lastPannedPlayerIdRef = useRef<string | null>(null);
+  const userZoomedRef = useRef(false);   // wheel zoom disables auto fit-to-canvas
+  const didFitRef = useRef(false);
 
   // Init PixiJS once.
   useEffect(() => {
     let destroyed    = false;
     let initialized  = false;
     let pixiApp: Application | null = null;
+
+    // Fresh camera per mount (StrictMode remount keeps refs, not the Pixi app)
+    didFitRef.current = false;
+    userZoomedRef.current = false;
 
     let isDragging = false;
     let startX = 0;
@@ -737,6 +779,7 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
       const localX = (mouseX - cameraContainer.x) / cameraContainer.scale.x;
       const localY = (mouseY - cameraContainer.y) / cameraContainer.scale.y;
 
+      userZoomedRef.current = true;
       const zoomIntensity = 0.08;
       const zoomFactor = e.deltaY < 0 ? (1 + zoomIntensity) : (1 - zoomIntensity);
       const nextScale = Math.max(0.4, Math.min(2.0, cameraContainer.scale.x * zoomFactor));
@@ -767,12 +810,15 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
       isDragging = false;
     };
 
+    let resizeObserver: ResizeObserver | null = null;
+
     async function init() {
+      const mount = mountRef.current;
       const app = new Application();
       pixiApp = app;
       await app.init({
-        width: 1000,
-        height: 480, // Expanded height for 11x5 grid Alefgard layout
+        // Fill whatever space the layout gives the board (canvas tracks the mount div)
+        resizeTo: mount ?? undefined,
         backgroundColor: 0x0b0b14,
         antialias: true,
       });
@@ -783,6 +829,22 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
 
       mountRef.current?.appendChild(app.canvas);
       canvasEl = app.canvas;
+
+      // resizeTo only reacts to window resizes; observe the mount div so layout
+      // changes (console growing/shrinking) also resize the canvas.
+      if (mount) {
+        resizeObserver = new ResizeObserver(() => {
+          if (destroyed) return;
+          app.resize();
+          const ref = pixiRef.current;
+          const st = stateRef.current;
+          if (ref && st) {
+            if (!userZoomedRef.current) fitCameraScale(ref);
+            panToNode(st.players[st.currentPlayerId]?.currentNodeId, ref);
+          }
+        });
+        resizeObserver.observe(mount);
+      }
 
       const camera = new Container();
       cameraContainer = camera;
@@ -810,6 +872,8 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
 
       if (stateRef.current) {
         renderAll(stateRef.current, refs, hoveredRef.current);
+        fitCameraScale(refs);
+        didFitRef.current = true;
         panToNode(stateRef.current.players[stateRef.current.currentPlayerId]?.currentNodeId, refs);
       }
     }
@@ -818,6 +882,7 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
 
     return () => {
       destroyed        = true;
+      resizeObserver?.disconnect();
       if (canvasEl) {
         canvasEl.removeEventListener('mousedown', onMouseDown);
         canvasEl.removeEventListener('wheel', onWheel);
@@ -843,7 +908,14 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
     stateRef.current = state;
     if (!state || !pixiRef.current) return;
     renderAll(state, pixiRef.current, hoveredRef.current);
-    
+
+    // First state after mount: fit the whole board to the canvas.
+    if (!didFitRef.current) {
+      didFitRef.current = true;
+      fitCameraScale(pixiRef.current);
+      panToNode(state.players[state.currentPlayerId]?.currentNodeId, pixiRef.current);
+    }
+
     // Only auto-pan if the active player actually changed!
     if (state.currentPlayerId !== lastPannedPlayerIdRef.current) {
       lastPannedPlayerIdRef.current = state.currentPlayerId;
@@ -885,14 +957,13 @@ export function Board({ socket, state, hoveredNodeId }: Props) {
   }, [socket]);
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div
         ref={mountRef}
         style={{
           width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '16px 0',
+          height: '100%',
+          overflow: 'hidden',
           background: 'radial-gradient(circle at 50% 50%, #111124 0%, #070710 100%)',
           borderBottom: '1px solid #1a1a2e',
         }}

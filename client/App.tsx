@@ -2019,19 +2019,19 @@ export default function App() {
           height: '100%',
           overflow: 'hidden',
         }}>
-          {/* Board Display Screen (Framed in rich arcade layout) */}
+          {/* Board Display Screen — takes all height the console doesn't need */}
           <div style={{
+            flex: 1,
+            minHeight: 0,
             background: 'rgba(0, 0, 0, 0.45)',
             borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-            padding: '12px 16px',
+            padding: '10px 12px',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center',
-            flexShrink: 0,
+            alignItems: 'stretch',
           }}>
             <div style={{
               width: '100%',
-              maxWidth: '1040px',
               borderRadius: '16px',
               overflow: 'hidden',
               border: '1px solid rgba(139, 92, 246, 0.15)',
@@ -2041,11 +2041,12 @@ export default function App() {
             </div>
           </div>
 
-          {/* Operations & Action Console at bottom */}
+          {/* Operations & Action Console at bottom — sized to its content */}
           <div style={{
-            flex: 1,
+            flexShrink: 0,
+            maxHeight: '48vh',
             background: 'radial-gradient(circle at 50% 10%, #0d0d1e 0%, #06060c 100%)',
-            padding: '16px 24px',
+            padding: '12px 24px',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
