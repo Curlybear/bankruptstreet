@@ -184,23 +184,6 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
 
   // 4–9 — SPACE_ACTION
   if (phase === 'SPACE_ACTION') {
-    // Dart of Gold result waiting on a recipient: penalties go to the richest
-    // opponent, prizes stay home.
-    if (state.arcadeResult?.needsTarget && state.arcadeResult.playerId === botPlayerId) {
-      const prize = state.arcadeResult.prize;
-      if (prize.kind === 'shops_down') {
-        let richestId = botPlayerId;
-        let richest = -Infinity;
-        for (const pid of state.turnOrder) {
-          const p = state.players[pid];
-          if (pid === botPlayerId || p.isBankrupt) continue;
-          if (p.netWorth > richest) { richest = p.netWorth; richestId = pid; }
-        }
-        return { type: 'ARCADE_GIVE', targetPlayerId: richestId };
-      }
-      return { type: 'ARCADE_GIVE', targetPlayerId: botPlayerId };
-    }
-
     // Interactive venture card: decide before the generic acknowledge below.
     if (state.pendingVenture) {
       const pv = state.pendingVenture;

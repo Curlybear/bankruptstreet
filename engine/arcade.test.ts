@@ -131,26 +131,24 @@ test('memory rejects an out-of-range pick', () => {
 
 // ─── Dart of Gold ─────────────────────────────────────────────────────────────
 
-test('darts waits for a recipient: END_TURN blocked until ARCADE_GIVE', () => {
-  const state = makeState();
-  // Math.random()=0 → wedge 0 = treasure chest, 100G x level
+test('darts lands on a random player and applies the prize immediately', () => {
+  const state = makeState({
+    players: {
+      p1: makePlayer('p1', { level: 2 }),
+      p2: makePlayer('p2', { currentNodeId: 'bank' }),
+    },
+  });
+  // Math.random()=0 → wedge 0 = treasure chest (100G x level), target = alive[0] = p1
   const thrown = withRandom(0, () => applyAction(state, { type: 'ARCADE_PLAY', game: 'darts' }));
-  assert.equal(thrown.arcadeResult?.needsTarget, true);
-  assert.equal(thrown.players.p1.cash, 1000); // not applied yet
-  assert.throws(
-    () => applyAction(thrown, { type: 'END_TURN' }),
-    /Must assign the dart prize/
-  );
-  const given = applyAction(thrown, { type: 'ARCADE_GIVE', targetPlayerId: 'p2' });
-  assert.equal(given.players.p2.cash, 1000 + 100);
-  assert.equal(given.players.p1.cash, 1000);
-  assert.equal(given.arcadeResult?.needsTarget, false);
-  assert.equal(given.arcadeResult?.targetPlayerId, 'p2');
-  const done = applyAction(given, { type: 'END_TURN' });
+  assert.equal(thrown.arcadeResult?.targetPlayerId, 'p1');
+  assert.equal(thrown.players.p1.cash, 1000 + 200);
+  assert.equal(thrown.players.p2.cash, 1000);
+  // No pending step: END_TURN works straight away
+  const done = applyAction(thrown, { type: 'END_TURN' });
   assert.equal(done.currentPlayerId, 'p2');
 });
 
-test('darts shops_down penalty given to an opponent hits their shops', () => {
+test('darts penalty can land on another player and hits their shops', () => {
   const state = makeState({
     players: {
       p1: makePlayer('p1'),
@@ -158,25 +156,23 @@ test('darts shops_down penalty given to an opponent hits their shops', () => {
     },
     properties: { shop1: makeProp('shop1', { ownerId: 'p2' }) },
   });
-  // Math.random()=0.7 → wedge floor(5.6)=5 = shops_down
+  // Math.random()=0.7 → wedge floor(5.6)=5 = shops_down, target = alive[floor(1.4)] = p2
   const thrown = withRandom(0.7, () => applyAction(state, { type: 'ARCADE_PLAY', game: 'darts' }));
   assert.equal(thrown.arcadeResult?.prize.kind, 'shops_down');
-  const given = applyAction(thrown, { type: 'ARCADE_GIVE', targetPlayerId: 'p2' });
-  assert.equal(given.properties.shop1.basePrice, 95); // 100 - 5%
+  assert.equal(thrown.arcadeResult?.targetPlayerId, 'p2');
+  assert.equal(thrown.properties.shop1.basePrice, 95); // 100 - 5%
 });
 
-test('ARCADE_GIVE rejects a bankrupt target', () => {
+test('darts never lands on a bankrupt player', () => {
   const state = makeState({
     players: {
       p1: makePlayer('p1'),
       p2: makePlayer('p2', { currentNodeId: 'bank', isBankrupt: true }),
     },
   });
-  const thrown = withRandom(0, () => applyAction(state, { type: 'ARCADE_PLAY', game: 'darts' }));
-  assert.throws(
-    () => applyAction(thrown, { type: 'ARCADE_GIVE', targetPlayerId: 'p2' }),
-    /Invalid dart target/
-  );
+  // target index 0.7 would be p2 among [p1, p2], but bankrupt players are excluded
+  const thrown = withRandom(0.7, () => applyAction(state, { type: 'ARCADE_PLAY', game: 'darts' }));
+  assert.equal(thrown.arcadeResult?.targetPlayerId, 'p1');
 });
 
 // ─── Bot behaviour ────────────────────────────────────────────────────────────
@@ -190,18 +186,9 @@ test('bot plays a free arcade game at the casino', () => {
   assert.ok(next.arcadeResult);
 });
 
-test('bot gives dart penalties to the richest opponent and prizes to itself', () => {
-  const penalty = makeState({
-    arcadeResult: { playerId: 'p1', game: 'darts', prize: { kind: 'shops_down', pct: 5 }, needsTarget: true },
-    players: {
-      p1: makePlayer('p1'),
-      p2: makePlayer('p2', { currentNodeId: 'bank', netWorth: 5000 }),
-    },
+test('bot ends its visit after an arcade result is shown', () => {
+  const state = makeState({
+    arcadeResult: { playerId: 'p1', game: 'darts', prize: { kind: 'cash', amount: 100 }, targetPlayerId: 'p1' },
   });
-  assert.deepEqual(greedyBotAction(penalty, 'p1'), { type: 'ARCADE_GIVE', targetPlayerId: 'p2' });
-
-  const prize = makeState({
-    arcadeResult: { playerId: 'p1', game: 'darts', prize: { kind: 'cash', amount: 100 }, needsTarget: true },
-  });
-  assert.deepEqual(greedyBotAction(prize, 'p1'), { type: 'ARCADE_GIVE', targetPlayerId: 'p1' });
+  assert.deepEqual(greedyBotAction(state, 'p1'), { type: 'END_TURN' });
 });

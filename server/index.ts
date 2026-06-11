@@ -47,7 +47,7 @@ const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
   'CHOOSE_VENTURE_CARD', 'VENTURE_CHOICE', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
-  'CASINO_BET', 'ARCADE_PLAY', 'ARCADE_GIVE', 'VOTE_END', 'AUCTION_BID', 'AUCTION_PASS',
+  'CASINO_BET', 'ARCADE_PLAY', 'VOTE_END', 'AUCTION_BID', 'AUCTION_PASS',
 ]);
 
 const KNOWN_BUILDING_TYPES = new Set([
@@ -166,9 +166,6 @@ function validateAction(p: unknown): string | null {
     if (act.pick !== undefined && (!Number.isInteger(act.pick) || (act.pick as number) < 0 || (act.pick as number) > 8)) {
       return 'pick must be an integer between 0 and 8';
     }
-  }
-  if (act.type === 'ARCADE_GIVE') {
-    if (typeof act.targetPlayerId !== 'string' || !act.targetPlayerId.trim()) return 'targetPlayerId must be a non-empty string';
   }
 
   if (act.type === 'VENTURE_CHOICE') {

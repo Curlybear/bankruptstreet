@@ -117,7 +117,6 @@ function actionLabel(action: ReturnType<typeof greedyBotAction>): string {
     case 'SELL_PROPERTY': return `SELL_PROPERTY ${action.propertyId} (distress)`;
     case 'CASINO_BET':    return `CASINO_BET ${action.wager}g on ${action.game} (${action.choice})`;
     case 'ARCADE_PLAY':   return `ARCADE_PLAY ${action.game}${action.pick !== undefined ? ` box ${action.pick}` : ''}`;
-    case 'ARCADE_GIVE':   return `ARCADE_GIVE → ${action.targetPlayerId}`;
     case 'VOTE_END':      return `VOTE_END ${action.vote ? 'end game' : 'keep playing'} (${action.playerId})`;
     case 'AUCTION_BID':   return `AUCTION_BID ${action.amount}g (${action.playerId})`;
     case 'AUCTION_PASS':  return `AUCTION_PASS (${action.playerId})`;

@@ -708,8 +708,8 @@ function describePrize(prize: ArcadePrize): string {
   }
 }
 
-// Apply a prize (or penalty) to a player. Used by slots/memory immediately and
-// by darts once the thrower picks a recipient.
+// Apply a prize (or penalty) to a player. Slots/memory pay the player;
+// darts pays whoever the dart randomly lands on.
 function applyArcadePrize(state: GameState, recipientId: string, prize: ArcadePrize): GameState {
   const player = state.players[recipientId];
   let s: GameState = { ...state, players: { ...state.players }, properties: { ...state.properties }, districts: { ...state.districts }, log: [...state.log] };
@@ -847,7 +847,8 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
   }
 
   if (game === 'darts') {
-    // Dart of Gold: throw at the wheel, then choose who receives the result.
+    // Dart of Gold: throw at the wheel — the prize (or penalty) lands on a
+    // random alive player.
     const wedge = Math.floor(Math.random() * ARCADE_DART_WEDGES.length);
     const kind = ARCADE_DART_WEDGES[wedge];
     const cashAmounts = [100, 0, 10, 0, 30, 0, 0, 10];  // chest / coin / 3 coins / coin per wedge
@@ -857,30 +858,17 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
       kind === 'shops_up' ? { kind: 'shops_up', pct: 5 } :
       kind === 'shops_down' ? { kind: 'shops_down', pct: 5 } :
       { kind: 'suit_yourself' };
-    return {
+    const alive = state.turnOrder.filter(pid => !state.players[pid].isBankrupt);
+    const targetPlayerId = alive[Math.floor(Math.random() * alive.length)];
+    const s: GameState = {
       ...state,
-      arcadeResult: { playerId, game, prize, needsTarget: true },
-      log: [...state.log, `[ARCADE] ${player.name} throws the Dart of Gold: ${describePrize(prize)} — now choosing who receives it…`],
+      arcadeResult: { playerId, game, prize, targetPlayerId },
+      log: [...state.log, `[ARCADE] ${player.name} throws the Dart of Gold: ${describePrize(prize)} — it lands on ${state.players[targetPlayerId].name}!`],
     };
+    return applyArcadePrize(s, targetPlayerId, prize);
   }
 
   throw new Error(`Unknown arcade game: ${String(game)}`);
-}
-
-// Darts step 2: the thrower assigns the prize (or penalty) to any alive player.
-export function applyArcadeGive(state: GameState, playerId: string, targetPlayerId: string): GameState {
-  const result = state.arcadeResult;
-  if (!result || !result.needsTarget) throw new Error(`No dart prize awaiting a recipient`);
-  if (result.playerId !== playerId) throw new Error(`Only the thrower assigns the dart prize`);
-  const target = state.players[targetPlayerId];
-  if (!target || target.isBankrupt) throw new Error(`Invalid dart target ${targetPlayerId}`);
-
-  const s: GameState = {
-    ...state,
-    arcadeResult: { ...result, needsTarget: false, targetPlayerId },
-    log: [...state.log, `[ARCADE] ${state.players[playerId].name} gives the dart result to ${target.name}!`],
-  };
-  return applyArcadePrize(s, targetPlayerId, result.prize);
 }
 
 // requireBankNode=false is used for pass-through wins: walking past the bank

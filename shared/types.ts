@@ -153,7 +153,6 @@ export type Action =
   | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'CASINO_BET'; game: CasinoGame; wager: number; choice: string }  // casino node, one bet per visit
   | { type: 'ARCADE_PLAY'; game: ArcadeGame; pick?: number }  // casino node, free play, shares the one-game-per-visit gate
-  | { type: 'ARCADE_GIVE'; targetPlayerId: string }  // darts: assign the thrown prize/penalty to a player
   | { type: 'VOTE_END'; playerId: string; vote: boolean }  // end-game vote (any alive human, any time during a vote)
   | { type: 'AUCTION_BID'; playerId: string; amount: number }  // any eligible bidder during an auction
   | { type: 'AUCTION_PASS'; playerId: string }
@@ -239,16 +238,15 @@ export type ArcadePrize =
   | { kind: 'nothing' };
 
 // Outcome of an arcade game — kept on GameState until the turn advances so the
-// client can animate it. Darts: the prize is unapplied (needsTarget) until the
-// thrower picks a recipient via ARCADE_GIVE.
+// client can animate it. Darts: the prize (or penalty) lands on a random
+// alive player, recorded in targetPlayerId.
 export interface ArcadeResult {
   playerId: string;
   game: ArcadeGame;
   prize: ArcadePrize;
   reels?: string[];          // slots: 3 displayed symbols
   pickIndex?: number;        // memory: which box was opened
-  needsTarget?: boolean;     // darts: prize not yet assigned
-  targetPlayerId?: string;   // darts: recipient once assigned
+  targetPlayerId?: string;   // darts: who the dart landed on
 }
 
 // Opened when a bankruptcy doesn't end the game: every surviving human must

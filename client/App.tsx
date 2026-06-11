@@ -260,12 +260,11 @@ function arcadePrizeLabel(prize: ArcadePrize): { text: string; good: boolean } {
   }
 }
 
-// Animated arcade outcome: short suspense, then the reveal. Darts adds a
-// recipient picker (the thrower hands the prize — or penalty — to any player).
-function ArcadeResultView({ result, players, turnOrder, canAct, emitAction }: {
+// Animated arcade outcome: short suspense, then the reveal. Darts shows who
+// the prize — or penalty — randomly landed on.
+function ArcadeResultView({ result, players, canAct, emitAction }: {
   result: ArcadeResult;
   players: GameState['players'];
-  turnOrder: string[];
   canAct: boolean;
   emitAction: (action: Action) => void;
 }) {
@@ -327,41 +326,13 @@ function ArcadeResultView({ result, players, turnOrder, canAct, emitAction }: {
         </div>
       )}
 
-      {revealed && result.needsTarget && (
-        canAct ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>
-              Choose who receives it:
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {turnOrder.filter(pid => !players[pid].isBankrupt).map(pid => (
-                <button
-                  key={pid}
-                  onClick={() => emitAction({ type: 'ARCADE_GIVE', targetPlayerId: pid })}
-                  style={{
-                    padding: '7px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-                    background: pid === result.playerId ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.04)',
-                    color: pid === result.playerId ? '#34d399' : '#cbd5e1',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  {players[pid].name}{pid === result.playerId ? ' (me)' : ''}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ fontSize: 11.5, color: '#64748b', fontStyle: 'italic' }}>
-            {players[result.playerId]?.name} is choosing who receives it…
-          </div>
-        )
-      )}
-
-      {revealed && !result.needsTarget && (
+      {revealed && (
         <>
-          {result.targetPlayerId && result.targetPlayerId !== result.playerId && (
+          {result.targetPlayerId && (
             <div style={{ fontSize: 11.5, color: '#94a3b8' }}>
-              Given to <strong style={{ color: '#f8fafc' }}>{players[result.targetPlayerId]?.name}</strong>
+              The dart lands on <strong style={{ color: '#f8fafc' }}>
+                {players[result.targetPlayerId]?.name}{result.targetPlayerId === result.playerId ? ' (you!)' : ''}
+              </strong>
             </div>
           )}
           {canAct && (
@@ -2235,7 +2206,6 @@ export default function App() {
                 key={`${arcade.playerId}-${arcade.game}-${(arcade.reels ?? []).join('')}-${arcade.pickIndex ?? ''}-${arcade.prize.kind}`}
                 result={arcade}
                 players={state.players}
-                turnOrder={state.turnOrder}
                 canAct={isMyTurn}
                 emitAction={emitAction}
               />
@@ -2286,7 +2256,7 @@ export default function App() {
                   >
                     <span>{ARCADE_GAME_NAMES[game]}</span>
                     <span style={{ fontSize: 9.5, fontWeight: 600, color: '#34d399' }}>
-                      FREE · Lv {currentPlayer.level} prizes{game === 'darts' ? ' · you pick who gets it' : ''}
+                      FREE · Lv {currentPlayer.level} prizes{game === 'darts' ? ' · lands on a random player' : ''}
                     </span>
                   </button>
                 ))}

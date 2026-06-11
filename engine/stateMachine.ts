@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, resolveVentureChoice, buildPlot, renovatePlot, checkBankruptcy,
-  distressSellProperty, playCasino, playArcade, applyArcadeGive, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
+  distressSellProperty, playCasino, playArcade, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
   openAuction, applyAuctionBid, applyAuctionPass,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
@@ -473,13 +473,6 @@ export function applyAction(state: GameState, action: Action): GameState {
       return playArcade(state, currentPlayerId, action.game, action.pick);
     }
 
-    case 'ARCADE_GIVE': {
-      if (currentPhase !== 'SPACE_ACTION') {
-        throw new Error(`Illegal action ARCADE_GIVE in phase ${currentPhase}`);
-      }
-      return applyArcadeGive(state, currentPlayerId, action.targetPlayerId);
-    }
-
     case 'ROLL_DICE': {
       if (currentPhase !== 'PRE_ROLL') {
         throw new Error(`Illegal action ROLL_DICE in phase ${currentPhase}`);
@@ -777,9 +770,6 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (state.pendingVenture) {
         // Mandatory sales would otherwise be freely declinable via END_TURN.
         throw new Error(`Must resolve the venture offer (VENTURE_CHOICE) before ending turn`);
-      }
-      if (state.arcadeResult?.needsTarget) {
-        throw new Error(`Must assign the dart prize (ARCADE_GIVE) before ending turn`);
       }
       if (state.activeVentureCard) {
         const isRollAgain = state.activeVentureCard.effectType === 'ROLL_AGAIN';
