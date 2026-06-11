@@ -1,0 +1,9 @@
+services:
+  bankruptstreet:
+    build: .
+    container_name: bankruptstreet
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"   # only the reverse proxy reaches it
+    volumes:
+      - ./data:/app/data        # rooms survive container rebuilds

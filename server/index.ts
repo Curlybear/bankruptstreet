@@ -1,4 +1,7 @@
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
+import { existsSync, statSync, createReadStream } from 'fs';
+import { join, extname, normalize } from 'path';
 import { Server } from 'socket.io';
 import { GameManager, computeDeltas, makePlayer, pickUnusedCharacter } from './gameManager.js';
 import { BOARDS, DEFAULT_BOARD_ID } from './boards.js';
@@ -6,7 +9,38 @@ import { CHARACTERS } from '../shared/characters.js';
 import { greedyBotAction } from '../engine/bot.js';
 import type { Action } from '../shared/types.js';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT ?? 3001);
+
+// In production the same process serves the built client (single container,
+// same-origin websockets). In dev Vite serves the client and this is unused.
+const CLIENT_DIST = process.env.CLIENT_DIST ?? 'client/dist';
+const MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.json': 'application/json',
+  '.woff2': 'font/woff2',
+  '.map': 'application/json',
+};
+
+function serveStatic(req: { url?: string }, res: import('http').ServerResponse): void {
+  const urlPath = (req.url ?? '/').split('?')[0];
+  // Resolve inside CLIENT_DIST only — reject traversal.
+  const safe = normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
+  let filePath = join(CLIENT_DIST, safe);
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    filePath = join(CLIENT_DIST, 'index.html');  // SPA fallback
+  }
+  if (!existsSync(filePath)) {
+    res.writeHead(404).end('client build not found');
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] ?? 'application/octet-stream' });
+  createReadStream(filePath).pipe(res);
+}
 const CLEANUP_DELAY_MS = 30 * 60 * 1000;
 
 const KNOWN_ACTION_TYPES = new Set([
@@ -459,7 +493,11 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 // Only start listening when invoked directly (not imported by tests).
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const manager = new GameManager('data');  // rooms survive server restarts
-  const io = new Server(PORT, { cors: { origin: '*' } });
+  const httpServer = createServer(serveStatic);
+  const io = new Server(httpServer, { cors: { origin: '*' } });
   attachHandlers(io, manager);
-  console.log(`[${new Date().toISOString()}] server listening on port ${PORT}`);
+  httpServer.listen(PORT, () => {
+    const hasClient = existsSync(join(CLIENT_DIST, 'index.html'));
+    console.log(`[${new Date().toISOString()}] server listening on port ${PORT}${hasClient ? ` (serving ${CLIENT_DIST})` : ' (socket only — no client build found)'}`);
+  });
 }

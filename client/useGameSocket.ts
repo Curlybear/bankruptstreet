@@ -1,9 +1,15 @@
+/// <reference types="vite/client" />
 import { useState, useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type { GameState, Action } from '../shared/types';
 
+// Dev: Vite serves the client on :5173 and the game server runs on :3001.
+// Prod: one process serves both, so the socket connects same-origin (which
+// also makes wss:// behind a TLS proxy work with zero config).
 export const SOCKET_URL = typeof window !== 'undefined'
-  ? `${window.location.protocol}//${window.location.hostname}:3001`
+  ? (import.meta.env.PROD
+      ? window.location.origin
+      : `${window.location.protocol}//${window.location.hostname}:3001`)
   : 'http://localhost:3001';
 
 export interface ActiveRoom {
