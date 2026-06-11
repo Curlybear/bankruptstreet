@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
-  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive,
+  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -143,7 +143,7 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
     s = { ...s, passedBankThisTurn: true };
     s = bumpStats(s, playerId, { lapsCompleted: 1 });
     const p = s.players[playerId];
-    if (p.suits.heart && p.suits.diamond && p.suits.club && p.suits.spade) {
+    if (canPromote(p)) {
       s = collectSalary(s, playerId, false);  // pass-through: player is past the bank
     }
   }
@@ -336,9 +336,9 @@ function resolveSpace(state: GameState): GameState {
         [player.id]: { ...player, arrivedFromNodeId: undefined },
       },
     };
-    // Auto-collect salary if all 4 suits held — must happen before win check.
-    const { suits } = player;
-    if (suits.heart && suits.diamond && suits.club && suits.spade) {
+    // Auto-collect salary if the suits (plus wildcards) are complete —
+    // must happen before the win check.
+    if (canPromote(player)) {
       s = collectSalary(s, player.id);
     }
     // Win condition check before entering SPACE_ACTION.
@@ -443,7 +443,9 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (currentPhase !== 'PRE_ROLL') {
         throw new Error(`Illegal action ROLL_DICE in phase ${currentPhase}`);
       }
-      const roll = Math.floor(Math.random() * 6) + 1;
+      // Venture cards can force the next roll (move exactly 1 / exactly 7).
+      const roll = player.forcedRoll ?? (Math.floor(Math.random() * 6) + 1);
+      const forced = player.forcedRoll !== undefined;
       // The first step may not go back the way the player arrived. If that
       // leaves no legal move (dead-end node), allow backtracking as fallback.
       const blocked = player.arrivedFromNodeId;
@@ -461,6 +463,7 @@ export function applyAction(state: GameState, action: Action): GameState {
           currentPhase: 'CHOOSING_PATH',
           pendingDestinations: destinations,
           lastRoll: nextLastRoll,
+          players: forced ? { ...state.players, [currentPlayerId]: { ...player, forcedRoll: undefined } } : state.players,
           log: [...state.log, logMsg],
         };
       }
@@ -474,6 +477,7 @@ export function applyAction(state: GameState, action: Action): GameState {
             ...player,
             currentNodeId: destinations[0],
             arrivedFromNodeId: path.length >= 2 ? path[path.length - 2] : undefined,
+            forcedRoll: undefined,
           },
         },
         lastRoll: nextLastRoll,

@@ -58,13 +58,22 @@ function DiceOverlay({ roll }: { roll: number }) {
         gap: 2,
         animation: phase === 'rolling' ? 'dice-shake 0.22s linear infinite' : 'dice-settle 0.35s ease-out',
       }}>
-        {Array.from({ length: 9 }).map((_, i) => (
+        {face <= 6 ? Array.from({ length: 9 }).map((_, i) => (
           <span key={i} style={{
             borderRadius: '50%',
             background: PIP_MAP[face]?.includes(i) ? '#101426' : 'transparent',
             margin: 1,
           }} />
-        ))}
+        )) : (
+          <span style={{
+            gridColumn: '1 / -1', gridRow: '1 / -1', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, fontWeight: 900, color: '#101426',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>
+            {face}
+          </span>
+        )}
       </div>
     </div>
   );

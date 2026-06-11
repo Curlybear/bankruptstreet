@@ -66,7 +66,9 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 
 ## Suits, Salary & Promotion
 
-Collect all four suits (♥ ♦ ♣ ♠), then reach the bank (landing or passing):
+Collect all four suits (♥ ♦ ♣ ♠), then reach the bank (landing or passing).
+**Suit Yourself cards** (🃏, max 9) are wildcards from venture cards — they
+fill in for any missing suits at promotion time and are spent doing so:
 
 > **Salary = 250G + 10% of your total shop value + 150G × your level**
 

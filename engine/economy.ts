@@ -572,6 +572,14 @@ export function sellStock(
 
 // requireBankNode=false is used for pass-through salary: the player walked past
 // the bank mid-move and now stands on a different node.
+// True when the player's suits plus their Suit Yourself wildcards cover all
+// four suits — the promotion condition.
+export function canPromote(player: Player): boolean {
+  const { suits } = player;
+  const missing = [suits.heart, suits.diamond, suits.club, suits.spade].filter(h => !h).length;
+  return missing <= (player.suitYourself ?? 0);
+}
+
 export function collectSalary(state: GameState, playerId: string, requireBankNode = true): GameState {
   const player = state.players[playerId];
   if (!player) throw new Error(`Player ${playerId} not found`);
@@ -581,10 +589,11 @@ export function collectSalary(state: GameState, playerId: string, requireBankNod
     if (!node || node.type !== 'bank') throw new Error(`Player must be at a bank node`);
   }
 
-  const { suits } = player;
-  if (!suits.heart || !suits.diamond || !suits.club || !suits.spade) {
-    throw new Error(`Player must hold all 4 suits to collect salary`);
+  if (!canPromote(player)) {
+    throw new Error(`Player must hold all 4 suits (or wildcards) to collect salary`);
   }
+  const { suits } = player;
+  const missing = [suits.heart, suits.diamond, suits.club, suits.spade].filter(h => !h).length;
 
   const shopValue = player.propertyIds.reduce(
     (sum, pid) => sum + (state.properties[pid]?.currentPrice ?? 0), 0,
@@ -601,6 +610,8 @@ export function collectSalary(state: GameState, playerId: string, requireBankNod
         cash: player.cash + salary,
         level: newLevel,
         suits: { heart: false, diamond: false, club: false, spade: false },
+        // Wildcards are spent to cover the missing suits
+        suitYourself: (player.suitYourself ?? 0) - missing,
       },
     },
     log: [...state.log, `[SALARY] ${player.name} collected ${salary}g (level ${newLevel})`],
@@ -1410,6 +1421,84 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
     text: 'Your investment matures! Gain 200G cash.',
     payout: 200,
     effectType: 'CASH_GAIN'
+  },
+  {
+    title: 'Suit Yourself',
+    text: 'Freebie! Take a Suit Yourself card — a wildcard for any missing suit. (Max 9.)',
+    payout: 0,
+    effectType: 'SUIT_YOURSELF_GAIN'
+  },
+  {
+    title: 'Suits All Round',
+    text: 'Freebie! All players take a Suit Yourself card!',
+    payout: 0,
+    effectType: 'SUIT_YOURSELF_ALL'
+  },
+  {
+    title: 'Suit Merchant',
+    text: 'Suit venture! Buy a Suit Yourself card for 100G.',
+    payout: 100,
+    effectType: 'SUIT_YOURSELF_BUY'
+  },
+  {
+    title: 'Suit Bargain',
+    text: 'Suit venture! Buy a Suit Yourself card for 50G.',
+    payout: 50,
+    effectType: 'SUIT_YOURSELF_BUY'
+  },
+  {
+    title: 'Suit Scramble',
+    text: 'Freebie! Roll the die and get half the number shown of Suit Yourself cards (rounded down).',
+    payout: 0,
+    effectType: 'SUIT_YOURSELF_ROLL'
+  },
+  {
+    title: 'Assets Tax',
+    text: 'Misadventure! You pay an assets tax of two gold coins per share of stock you own!',
+    payout: 2,
+    effectType: 'STOCK_TAX_PER_SHARE'
+  },
+  {
+    title: 'Musical Squares',
+    text: 'Misadventure! All other players swap places!',
+    payout: 0,
+    effectType: 'SWAP_OTHERS'
+  },
+  {
+    title: 'Go-Slow Order',
+    text: 'Misadventure! All other players can only move forward 1 on their next turn.',
+    payout: 1,
+    effectType: 'MOVE_RESTRICTION'
+  },
+  {
+    title: 'Forced March',
+    text: 'Misadventure! All other players must move exactly 7 on their next turn.',
+    payout: 7,
+    effectType: 'MOVE_RESTRICTION'
+  },
+  {
+    title: 'Advance Payday',
+    text: 'Special bonus! You receive half of your salary!',
+    payout: 0,
+    effectType: 'HALF_SALARY'
+  },
+  {
+    title: 'Sudden Promotion',
+    text: 'Special bonus! You get a sudden promotion and receive a salary! (You lose any suits you have.)',
+    payout: 0,
+    effectType: 'SUDDEN_PROMOTION'
+  },
+  {
+    title: 'Patron of Industry',
+    text: 'Capital venture! The bank invests 200G of its own money in your shops.',
+    payout: 200,
+    effectType: 'FREE_CAPITAL'
+  },
+  {
+    title: 'Royal Grant',
+    text: 'Capital venture! The bank invests 400G of its own money in your shops.',
+    payout: 400,
+    effectType: 'FREE_CAPITAL'
   }
 ];
 
@@ -1992,6 +2081,114 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
         shopRentsDoubledUntilNextTurn: true
       };
       s.log.push(`[VENTURE EFFECT] ${player.name}'s shop rents are doubled until their next turn!`);
+      break;
+    }
+    case 'SUIT_YOURSELF_GAIN': {
+      const p = s.players[playerId];
+      const held = p.suitYourself ?? 0;
+      if (held >= 9) {
+        s.players[playerId] = { ...p, cash: p.cash + 100 };
+        s.log.push(`[VENTURE EFFECT] ${p.name} already holds 9 Suit Yourself cards — 100G instead!`);
+      } else {
+        s.players[playerId] = { ...p, suitYourself: held + 1 };
+        s.log.push(`[VENTURE EFFECT] ${p.name} takes a Suit Yourself card! (${held + 1}/9)`);
+      }
+      break;
+    }
+
+    case 'SUIT_YOURSELF_ALL': {
+      for (const pid of s.turnOrder) {
+        const p = s.players[pid];
+        if (p.isBankrupt) continue;
+        const held = p.suitYourself ?? 0;
+        if (held >= 9) continue;
+        s.players[pid] = { ...p, suitYourself: held + 1 };
+      }
+      s.log.push(`[VENTURE EFFECT] Every player takes a Suit Yourself card!`);
+      break;
+    }
+
+    case 'SUIT_YOURSELF_BUY': {
+      const p = s.players[playerId];
+      const held = p.suitYourself ?? 0;
+      const price = card.payout > 0 ? card.payout : 100;
+      if (held >= 9) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} already holds 9 Suit Yourself cards — no sale.`);
+      } else if (p.cash < price) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} can't afford the ${price}G Suit Yourself card.`);
+      } else {
+        s.players[playerId] = { ...p, cash: p.cash - price, suitYourself: held + 1 };
+        s.log.push(`[VENTURE EFFECT] ${p.name} buys a Suit Yourself card for ${price}G! (${held + 1}/9)`);
+      }
+      break;
+    }
+
+    case 'SUIT_YOURSELF_ROLL': {
+      const p = s.players[playerId];
+      const roll = Math.floor(Math.random() * 6) + 1;
+      const gain = Math.floor(roll / 2);
+      const next = Math.min(9, (p.suitYourself ?? 0) + gain);
+      s.players[playerId] = { ...p, suitYourself: next };
+      s.log.push(`[VENTURE EFFECT] ${p.name} rolled a ${roll} and gains ${gain} Suit Yourself card${gain === 1 ? '' : 's'}!`);
+      break;
+    }
+
+    case 'STOCK_TAX_PER_SHARE': {
+      const p = s.players[playerId];
+      const shares = Object.values(s.districts).reduce((sum, d) => sum + (d.playerHoldings[playerId] ?? 0), 0);
+      const tax = shares * (card.payout > 0 ? card.payout : 2);
+      s.players[playerId] = { ...p, cash: p.cash - tax };
+      s.log.push(`[VENTURE EFFECT] ${p.name} pays an assets tax of ${tax}G (${shares} shares)!`);
+      if (tax > 0) s = checkBankruptcy(s, playerId);
+      break;
+    }
+
+    case 'SWAP_OTHERS': {
+      const others = s.turnOrder.filter(pid => pid !== playerId && !s.players[pid].isBankrupt);
+      if (others.length >= 2) {
+        // Rotate the others' positions by one seat
+        const positions = others.map(pid => s.players[pid].currentNodeId);
+        others.forEach((pid, i) => {
+          const from = positions[(i + 1) % positions.length];
+          s.players[pid] = { ...s.players[pid], currentNodeId: from, arrivedFromNodeId: undefined };
+        });
+        s.log.push(`[VENTURE EFFECT] All other players swap places!`);
+      } else {
+        s.log.push(`[VENTURE EFFECT] Not enough players to swap places.`);
+      }
+      break;
+    }
+
+    case 'MOVE_RESTRICTION': {
+      const steps = card.payout > 0 ? card.payout : 1;
+      for (const pid of s.turnOrder) {
+        if (pid === playerId || s.players[pid].isBankrupt) continue;
+        s.players[pid] = { ...s.players[pid], forcedRoll: steps };
+      }
+      s.log.push(`[VENTURE EFFECT] All other players can only move ${steps} on their next turn!`);
+      break;
+    }
+
+    case 'HALF_SALARY': {
+      const p = s.players[playerId];
+      const shopValue = p.propertyIds.reduce((sum, pid) => sum + (s.properties[pid]?.currentPrice ?? 0), 0);
+      const half = Math.floor((BASE_SALARY + Math.floor(shopValue * 0.10) + (p.level * PROMO_BONUS_PER_LEVEL)) / 2);
+      s.players[playerId] = { ...p, cash: p.cash + half };
+      s.log.push(`[VENTURE EFFECT] ${p.name} receives half a salary: ${half}G!`);
+      break;
+    }
+
+    case 'SUDDEN_PROMOTION': {
+      const p = s.players[playerId];
+      const shopValue = p.propertyIds.reduce((sum, pid) => sum + (s.properties[pid]?.currentPrice ?? 0), 0);
+      const salary = BASE_SALARY + Math.floor(shopValue * 0.10) + (p.level * PROMO_BONUS_PER_LEVEL);
+      s.players[playerId] = {
+        ...p,
+        cash: p.cash + salary,
+        level: p.level + 1,
+        suits: { heart: false, diamond: false, club: false, spade: false },
+      };
+      s.log.push(`[SALARY] ${p.name} gets a sudden promotion and receives ${salary}G! (Suits reset.)`);
       break;
     }
   }

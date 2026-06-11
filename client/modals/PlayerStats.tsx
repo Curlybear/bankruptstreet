@@ -459,6 +459,26 @@ export function PlayerStats({ state, playerId }: Props) {
                         </div>
                       );
                     })}
+                    {(player.suitYourself ?? 0) > 0 && (
+                      <div
+                        title={`${player.suitYourself} Suit Yourself wildcard${player.suitYourself === 1 ? '' : 's'}`}
+                        style={{
+                          height: '18px',
+                          padding: '0 5px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          fontSize: '9px',
+                          fontWeight: 800,
+                          backgroundColor: 'rgba(250, 204, 21, 0.1)',
+                          border: '1px solid rgba(250, 204, 21, 0.4)',
+                          color: '#fde047',
+                        }}
+                      >
+                        🃏×{player.suitYourself}
+                      </div>
+                    )}
                   </div>
                 </div>
 

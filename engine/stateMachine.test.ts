@@ -1103,3 +1103,68 @@ test('last-standing limit (99) ends only when one player remains', () => {
   const next = applyAction(state, { type: 'END_TURN' });
   assert.equal(next.winnerId, 'p2');                       // only one left standing
 });
+
+// ─── Suit Yourself wildcards & forced rolls ───────────────────────────────────
+
+test('Suit Yourself wildcards complete a promotion and are spent', () => {
+  // p1 has 2 suits + 2 wildcards → lands on bank → salary, wildcards consumed
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 0 } },
+    bank: { id: 'bank', type: 'bank', neighbors: ['a'], coordinates: { x: 1, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', {
+        currentNodeId: 'a',
+        suits: { heart: true, diamond: true, club: false, spade: false },
+        suitYourself: 3,
+        level: 1,
+      }),
+      p2: makePlayer('p2', { currentNodeId: 'bank' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 0;  // roll 1 → land on bank
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.level, 2);                       // promoted
+    assert.equal(next.players.p1.suitYourself, 1);                // 2 of 3 spent
+    assert.equal(next.players.p1.suits.heart, false);             // suits reset
+    assert.equal(next.players.p1.cash, 1000 + 250 + 150);         // base + level bonus
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('forced roll overrides the die and is consumed', () => {
+  // Corridor long enough that a forced 1 is distinguishable from random 1-6
+  const board: Record<string, Node> = {};
+  const ids = ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7'];
+  ids.forEach((id, i) => {
+    board[id] = {
+      id,
+      type: i === 0 ? 'bank' : 'stockbroker',
+      neighbors: i < ids.length - 1 ? [ids[i + 1]] : [],
+      coordinates: { x: i, y: 0 },
+    };
+  });
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'n0', forcedRoll: 7 }),
+      p2: makePlayer('p2', { currentNodeId: 'n0' }),
+    },
+  });
+
+  const origRandom = Math.random;
+  Math.random = () => 0.99;  // would roll 6 if random were used
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'n7');            // moved exactly 7
+    assert.equal(next.players.p1.forcedRoll, undefined);          // consumed
+  } finally {
+    Math.random = origRandom;
+  }
+});

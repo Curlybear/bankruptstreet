@@ -99,7 +99,9 @@ export function Rules({ onClose }: Props) {
         <div style={p}>
           Collect ♥ ♦ ♣ ♠, then reach the bank:{' '}
           <span style={hl}>salary = 250G + 10% of your shop value + 150G × level</span>.
-          Suits reset, level rises — salaries scale with your empire.
+          Suits reset, level rises — salaries scale with your empire.{' '}
+          <span style={hl}>Suit Yourself cards</span> (🃏, max 9, from venture cards) are
+          wildcards spent to fill any missing suits at promotion.
         </div>
 
         <div style={h2}>Venture Cards</div>

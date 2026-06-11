@@ -30,7 +30,16 @@ export interface VentureCard {
     | 'FREE_CAPITAL'             // 100G free capital into best shop
     | 'ALL_SHOPS_PRICE_UP'       // all owned shops +10% base value & rent
     | 'WARP_BROKER'              // warp to nearest stockbroker
-    | 'DOUBLE_RENT_TEMP';        // own shop rents ×2 until next turn
+    | 'DOUBLE_RENT_TEMP'         // own shop rents ×2 until next turn
+    | 'SUIT_YOURSELF_GAIN'       // +1 wildcard suit (cap 9; 100G if full)
+    | 'SUIT_YOURSELF_ALL'        // every player +1 wildcard suit
+    | 'SUIT_YOURSELF_BUY'        // pay `payout`G for a wildcard suit (auto if affordable)
+    | 'SUIT_YOURSELF_ROLL'       // roll; gain floor(roll/2) wildcard suits
+    | 'STOCK_TAX_PER_SHARE'      // pay `payout`G per share held
+    | 'SWAP_OTHERS'              // all other players swap places
+    | 'MOVE_RESTRICTION'         // all others' next roll is forced to `payout`
+    | 'HALF_SALARY'              // receive half a salary (no promotion)
+    | 'SUDDEN_PROMOTION';        // full salary + level up; suits reset
   targetId?: string; // districtId, suit, etc.
 }
 
@@ -90,6 +99,8 @@ export interface Player {
   isBankrupt: boolean;
   characterId?: string;  // roster character (drives bot personality; cosmetic for humans)
   isBot?: boolean;       // server-driven AI seat (bots don't vote in end-game votes)
+  suitYourself?: number; // wildcard suits (max 9) — spent to fill missing suits at promotion
+  forcedRoll?: number;   // next roll is forced to this value (venture cards), consumed on use
   arrivedFromNodeId?: string;  // node walked from on arrival — next roll can't start back that way
   shopsClosedUntilNextTurn?: boolean;
   shopPricesHalvedUntilNextTurn?: boolean;
