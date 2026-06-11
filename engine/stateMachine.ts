@@ -1,7 +1,7 @@
 import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
-  buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
+  buyoutProperty, resolveVentureCard, resolveVentureChoice, buildPlot, renovatePlot, checkBankruptcy,
   distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
   openAuction, applyAuctionBid, applyAuctionPass,
 } from './economy.js';
@@ -70,6 +70,7 @@ function advanceTurn(state: GameState): GameState {
     passedBankThisTurn: false,
     passedBankWindowUsed: false,
     casinoResult: null,
+    pendingVenture: null,
     // Cap the log so persisted state stays bounded (it grows every action).
     log: [...state.log, `[TURN] Round ${nextRound} — ${incomingPlayer?.name ?? nextPlayerId}'s turn.`].slice(-300),
     players: updatedPlayer ? {
@@ -716,6 +717,17 @@ export function applyAction(state: GameState, action: Action): GameState {
       return resolveVentureCard(state, currentPlayerId, cardIndex);
     }
 
+    case 'VENTURE_CHOICE': {
+      if (currentPhase !== 'SPACE_ACTION') {
+        throw new Error(`Illegal action VENTURE_CHOICE in phase ${currentPhase}`);
+      }
+      if (!state.pendingVenture) {
+        throw new Error(`No pending venture to resolve`);
+      }
+      // Stay in SPACE_ACTION: the player confirms the card with END_TURN.
+      return checkWinCondition(resolveVentureChoice(state, currentPlayerId, action), currentPlayerId);
+    }
+
     case 'END_TURN': {
       if (currentPhase === 'DEBT_SETTLEMENT') {
         if (player.cash < 0) {
@@ -738,6 +750,10 @@ export function applyAction(state: GameState, action: Action): GameState {
         if (prop?.ownerId !== null && prop?.ownerId !== currentPlayerId) {
           throw new Error(`Illegal action END_TURN in phase ${currentPhase}: must PAY_RENT on opponent shop`);
         }
+      }
+      if (state.pendingVenture) {
+        // Mandatory sales would otherwise be freely declinable via END_TURN.
+        throw new Error(`Must resolve the venture offer (VENTURE_CHOICE) before ending turn`);
       }
       if (state.activeVentureCard) {
         const isRollAgain = state.activeVentureCard.effectType === 'ROLL_AGAIN';

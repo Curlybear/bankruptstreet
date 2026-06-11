@@ -209,6 +209,20 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'VENTURE_CHOICE': {
+      deltas.push({
+        type: 'VENTURE_CHOICE_RESOLVED',
+        payload: {
+          playerId: pid,
+          kind: action.kind,
+          districtId: action.districtId ?? null,
+          shares: action.shares ?? null,
+          propertyId: action.propertyId ?? null,
+        }
+      });
+      break;
+    }
+
     case 'BUILD_PLOT': {
       const prop = after.properties[action.propertyId];
       deltas.push({

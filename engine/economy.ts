@@ -1,4 +1,4 @@
-import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats, CasinoGame } from '../shared/types.js';
+import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats, CasinoGame, PendingVenture, Action } from '../shared/types.js';
 
 
 export const BASE_SALARY = 250;
@@ -1629,6 +1629,110 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
     text: 'Misadventure! You are forced to auction your best shop — bidding starts at twice its value.',
     payout: 0,
     effectType: 'FORCED_AUCTION'
+  },
+  // ── Interactive venture cards (resolved via VENTURE_CHOICE) ──
+  {
+    title: 'Premium Sale',
+    text: 'Stock venture! You can sell stocks you own at 35% above the market value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_STOCK',
+    priceFactor: 135
+  },
+  {
+    title: 'Seller\'s Market',
+    text: 'Stock venture! You can sell stocks you own at 20% above the market value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_STOCK',
+    priceFactor: 120
+  },
+  {
+    title: 'Bargain Stocks',
+    text: 'Stock venture! You can buy stocks in a district of your choice at 10% below the market value.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_STOCK',
+    priceFactor: 90
+  },
+  {
+    title: 'Open Exchange',
+    text: 'Stock venture! You can buy stocks in a district of your choice.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_STOCK',
+    priceFactor: 100
+  },
+  {
+    title: 'Eager Broker',
+    text: 'Stock venture! You can buy stocks in a district of your choice at 10% above the market value.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_STOCK',
+    priceFactor: 110
+  },
+  {
+    title: 'Cashback Offer',
+    text: 'Cashback venture! You can sell a shop back to the bank for twice its shop value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 200
+  },
+  {
+    title: 'Golden Handshake',
+    text: 'Cashback venture! You can sell a shop back to the bank for three times its shop value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 300
+  },
+  {
+    title: 'Royal Buyout',
+    text: 'Cashback venture! You can sell a shop back to the bank for four times its shop value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 400
+  },
+  {
+    title: 'Sweetened Deal',
+    text: 'Cashback venture! You can sell a shop back to the bank for 500G more than its shop value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 100,
+    flatBonus: 500
+  },
+  {
+    title: 'Property Pick',
+    text: 'Property venture! You can buy any unowned shop at its value.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_SHOP',
+    priceFactor: 100
+  },
+  {
+    title: 'Pricey Property',
+    text: 'Property venture! You can buy any unowned shop for twice its value.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_SHOP',
+    priceFactor: 200
+  },
+  {
+    title: 'Finder\'s Fee',
+    text: 'Property venture! You can buy any unowned shop for 200G more than its value.',
+    payout: 0,
+    effectType: 'VENTURE_BUY_SHOP',
+    priceFactor: 100,
+    flatBonus: 200
+  },
+  {
+    title: 'Compulsory Purchase',
+    text: 'Misadventure! The bank is forcibly buying you out! You\'re compelled to sell a shop for only twice its value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 200,
+    mandatory: true
+  },
+  {
+    title: 'Eminent Domain',
+    text: 'Misadventure! The bank is forcibly buying you out! You\'re compelled to sell a shop for 200G more than its value.',
+    payout: 0,
+    effectType: 'VENTURE_SELL_SHOP',
+    priceFactor: 100,
+    flatBonus: 200,
+    mandatory: true
   }
 ];
 
@@ -2330,6 +2434,59 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
       s.log.push(`[SALARY] ${p.name} gets a sudden promotion and receives ${salary}G! (Suits reset.)`);
       break;
     }
+
+    case 'VENTURE_SELL_STOCK': {
+      const p = s.players[playerId];
+      const holdsAny = Object.values(s.districts).some(d => (d.playerHoldings[playerId] ?? 0) > 0);
+      if (!holdsAny) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} owns no stock — the offer fizzles.`);
+        break;
+      }
+      s.pendingVenture = makePendingVenture(card, 'sell_stock');
+      s.log.push(`[VENTURE EFFECT] ${p.name} may sell stock at ${card.priceFactor}% of market value.`);
+      break;
+    }
+
+    case 'VENTURE_BUY_STOCK': {
+      const p = s.players[playerId];
+      const cheapestUnit = Math.min(...Object.values(s.districts)
+        .map(d => ventureStockUnitPrice(d.stockPrice, card.priceFactor ?? 100)));
+      if (!Number.isFinite(cheapestUnit) || p.cash < cheapestUnit) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} can't afford a single share — the offer fizzles.`);
+        break;
+      }
+      s.pendingVenture = makePendingVenture(card, 'buy_stock');
+      s.log.push(`[VENTURE EFFECT] ${p.name} may buy stock at ${card.priceFactor}% of market value.`);
+      break;
+    }
+
+    case 'VENTURE_SELL_SHOP': {
+      const p = s.players[playerId];
+      if (p.propertyIds.length === 0) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} owns no shops — the offer fizzles.`);
+        break;
+      }
+      s.pendingVenture = makePendingVenture(card, 'sell_shop');
+      s.log.push(card.mandatory
+        ? `[VENTURE EFFECT] ${p.name} must sell a shop to the bank!`
+        : `[VENTURE EFFECT] ${p.name} may sell a shop to the bank at a premium.`);
+      break;
+    }
+
+    case 'VENTURE_BUY_SHOP': {
+      const p = s.players[playerId];
+      const affordable = Object.values(s.properties).some(prop =>
+        prop.ownerId === null
+        && (prop.buildingType === undefined || prop.buildingType === 'vacant')
+        && p.cash >= ventureShopPrice(prop.currentPrice, card.priceFactor ?? 100, card.flatBonus));
+      if (!affordable) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} can't afford any unowned shop — the offer fizzles.`);
+        break;
+      }
+      s.pendingVenture = makePendingVenture(card, 'buy_shop');
+      s.log.push(`[VENTURE EFFECT] ${p.name} may buy any unowned shop.`);
+      break;
+    }
   }
 
   // Shuffle grid if all 64 cleared
@@ -2340,6 +2497,208 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
   }
 
   return recalcAllNetWorths(s);
+}
+
+// ─── Interactive venture cards (VENTURE_CHOICE) ───────────────────────────────
+
+function makePendingVenture(card: VentureCard, kind: PendingVenture['kind']): PendingVenture {
+  return {
+    title: card.title,
+    kind,
+    priceFactor: card.priceFactor ?? 100,
+    flatBonus: card.flatBonus,
+    mandatory: card.mandatory,
+  };
+}
+
+// Unit price for venture stock deals: % of market, never below 1G.
+export function ventureStockUnitPrice(stockPrice: number, factor: number): number {
+  return Math.max(1, Math.floor(stockPrice * factor / 100));
+}
+
+// Shop price for venture property deals: % of value plus any flat bonus.
+export function ventureShopPrice(value: number, factor: number, flatBonus = 0): number {
+  return Math.floor(value * factor / 100) + flatBonus;
+}
+
+export function resolveVentureChoice(
+  state: GameState,
+  playerId: string,
+  action: Extract<Action, { type: 'VENTURE_CHOICE' }>,
+): GameState {
+  const pending = state.pendingVenture;
+  const player = state.players[playerId];
+  if (!pending) throw new Error(`No pending venture to resolve`);
+  if (!player) throw new Error(`Player ${playerId} not found`);
+
+  if (action.kind === 'skip') {
+    if (pending.mandatory) throw new Error(`This venture is mandatory and cannot be skipped`);
+    return {
+      ...state,
+      pendingVenture: null,
+      log: [...state.log, `[VENTURE] ${player.name} declines the offer (${pending.title}).`],
+    };
+  }
+
+  if (action.kind !== pending.kind) {
+    throw new Error(`VENTURE_CHOICE kind ${action.kind} does not match pending venture ${pending.kind}`);
+  }
+
+  switch (pending.kind) {
+    case 'buy_stock': {
+      const { districtId, shares } = action;
+      if (!districtId || !shares) throw new Error(`buy_stock requires districtId and shares`);
+      const district = state.districts[districtId];
+      if (!district) throw new Error(`District ${districtId} not found`);
+      if (!Number.isInteger(shares) || shares < 1) throw new Error(`Shares must be a positive integer`);
+      if (shares > 99) throw new Error(`Cannot purchase more than 99 stocks in one district at a time`);
+      const unit = ventureStockUnitPrice(district.stockPrice, pending.priceFactor);
+      const cost = shares * unit;
+      if (player.cash < cost) throw new Error(`Cannot afford ${shares} shares (need ${cost}g)`);
+
+      let newStockPrice = district.stockPrice;
+      if (shares >= STOCK_PRICE_CHANGE_THRESHOLD) {
+        newStockPrice = district.stockPrice + Math.floor(district.stockPrice / 16) + 1;
+      }
+
+      const s1: GameState = {
+        ...state,
+        pendingVenture: null,
+        players: {
+          ...state.players,
+          [playerId]: { ...player, cash: player.cash - cost },
+        },
+        districts: {
+          ...state.districts,
+          [districtId]: {
+            ...district,
+            stockPrice: newStockPrice,
+            playerHoldings: {
+              ...district.playerHoldings,
+              [playerId]: (district.playerHoldings[playerId] ?? 0) + shares,
+            },
+          },
+        },
+        log: [...state.log, `[VENTURE] ${player.name} bought ${shares} shares of ${district.name} at ${unit}G each (${pending.priceFactor}% of market) for ${cost}G.`
+          + (newStockPrice !== district.stockPrice ? ` Price ${district.stockPrice}G → ${newStockPrice}G.` : '')],
+      };
+      return recalcAllNetWorths(bumpStats(s1, playerId, { sharesBought: shares }));
+    }
+
+    case 'sell_stock': {
+      const { districtId, shares } = action;
+      if (!districtId || !shares) throw new Error(`sell_stock requires districtId and shares`);
+      const district = state.districts[districtId];
+      if (!district) throw new Error(`District ${districtId} not found`);
+      if (!Number.isInteger(shares) || shares < 1) throw new Error(`Shares must be a positive integer`);
+      const held = district.playerHoldings[playerId] ?? 0;
+      if (held < shares) throw new Error(`Player holds ${held} shares, cannot sell ${shares}`);
+      const unit = ventureStockUnitPrice(district.stockPrice, pending.priceFactor);
+      const proceeds = shares * unit;
+
+      let newStockPrice = district.stockPrice;
+      if (shares >= STOCK_PRICE_CHANGE_THRESHOLD) {
+        const priceFloor = recalcStockPrice(district, state.properties);
+        newStockPrice = Math.max(
+          priceFloor,
+          district.stockPrice - (Math.floor(district.stockPrice / 16) + 1),
+        );
+      }
+
+      const s1: GameState = {
+        ...state,
+        pendingVenture: null,
+        players: {
+          ...state.players,
+          [playerId]: { ...player, cash: player.cash + proceeds },
+        },
+        districts: {
+          ...state.districts,
+          [districtId]: {
+            ...district,
+            stockPrice: newStockPrice,
+            playerHoldings: { ...district.playerHoldings, [playerId]: held - shares },
+          },
+        },
+        log: [...state.log, `[VENTURE] ${player.name} sold ${shares} shares of ${district.name} at ${unit}G each (${pending.priceFactor}% of market) for ${proceeds}G.`
+          + (newStockPrice !== district.stockPrice ? ` Price ${district.stockPrice}G → ${newStockPrice}G.` : '')],
+      };
+      return recalcAllNetWorths(bumpStats(s1, playerId, { sharesSold: shares }));
+    }
+
+    case 'buy_shop': {
+      const { propertyId } = action;
+      if (!propertyId) throw new Error(`buy_shop requires propertyId`);
+      const prop = state.properties[propertyId];
+      if (!prop) throw new Error(`Property ${propertyId} not found`);
+      if (prop.ownerId !== null) throw new Error(`Property ${propertyId} is already owned`);
+      if (prop.buildingType !== undefined && prop.buildingType !== 'vacant') {
+        throw new Error(`Property ${propertyId} is not a purchasable shop`);
+      }
+      const price = ventureShopPrice(prop.currentPrice, pending.priceFactor, pending.flatBonus);
+      if (player.cash < price) throw new Error(`Cannot afford property (need ${price}g)`);
+
+      const district = state.districts[prop.districtId];
+      const s1: GameState = {
+        ...state,
+        pendingVenture: null,
+        players: {
+          ...state.players,
+          [playerId]: {
+            ...player,
+            cash: player.cash - price,
+            propertyIds: [...player.propertyIds, propertyId],
+          },
+        },
+        properties: { ...state.properties, [propertyId]: { ...prop, ownerId: playerId } },
+        log: [...state.log, `[VENTURE] ${player.name} bought the shop at ${prop.nodeId} for ${price}G (venture deal).`],
+      };
+      const updatedProps = recalcDistrictMultipliers(district, s1.properties, s1.players);
+      const s2: GameState = {
+        ...s1,
+        properties: updatedProps,
+        districts: {
+          ...s1.districts,
+          [prop.districtId]: { ...district, stockPrice: recalcStockPrice(district, updatedProps) },
+        },
+      };
+      return recalcAllNetWorths(bumpStats(s2, playerId, { propertiesBought: 1 }));
+    }
+
+    case 'sell_shop': {
+      const { propertyId } = action;
+      if (!propertyId) throw new Error(`sell_shop requires propertyId`);
+      const prop = state.properties[propertyId];
+      if (!prop) throw new Error(`Property ${propertyId} not found`);
+      if (prop.ownerId !== playerId) throw new Error(`Player does not own property ${propertyId}`);
+      const proceeds = ventureShopPrice(prop.currentPrice, pending.priceFactor, pending.flatBonus);
+
+      const district = state.districts[prop.districtId];
+      const s1: GameState = {
+        ...state,
+        pendingVenture: null,
+        players: {
+          ...state.players,
+          [playerId]: {
+            ...player,
+            cash: player.cash + proceeds,
+            propertyIds: player.propertyIds.filter(id => id !== propertyId),
+          },
+        },
+        properties: { ...state.properties, [propertyId]: { ...prop, ownerId: null } },
+        log: [...state.log, `[VENTURE] ${player.name} sold the shop at ${prop.nodeId} to the bank for ${proceeds}G (venture deal).`],
+      };
+      const updatedProps = recalcDistrictMultipliers(district, s1.properties, s1.players);
+      return recalcAllNetWorths({
+        ...s1,
+        properties: updatedProps,
+        districts: {
+          ...s1.districts,
+          [prop.districtId]: { ...district, stockPrice: recalcStockPrice(district, updatedProps) },
+        },
+      });
+    }
+  }
 }
 
 export function buildPlot(

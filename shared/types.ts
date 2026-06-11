@@ -40,8 +40,25 @@ export interface VentureCard {
     | 'MOVE_RESTRICTION'         // all others' next roll is forced to `payout`
     | 'HALF_SALARY'              // receive half a salary (no promotion)
     | 'SUDDEN_PROMOTION'         // full salary + level up; suits reset
-    | 'FORCED_AUCTION';          // auction the drawer's best shop, reserve 2x value
+    | 'FORCED_AUCTION'           // auction the drawer's best shop, reserve 2x value
+    | 'VENTURE_BUY_STOCK'        // interactive: buy stock at priceFactor% of market
+    | 'VENTURE_SELL_STOCK'       // interactive: sell held stock at priceFactor% of market
+    | 'VENTURE_BUY_SHOP'         // interactive: buy any unowned shop at priceFactor% + flatBonus
+    | 'VENTURE_SELL_SHOP';       // interactive: sell a shop to the bank at priceFactor% + flatBonus
   targetId?: string; // districtId, suit, etc.
+  priceFactor?: number; // interactive cards: % of market/value (90, 110, 135, 200...)
+  flatBonus?: number;    // interactive cards: flat gold added to the unit/shop price
+  mandatory?: boolean;   // forced bank sales: skip is not allowed
+}
+
+// An interactive venture card waiting on the drawer's decision. END_TURN is
+// blocked until it is resolved (or skipped) via VENTURE_CHOICE.
+export interface PendingVenture {
+  title: string;
+  kind: 'buy_stock' | 'sell_stock' | 'sell_shop' | 'buy_shop';
+  priceFactor: number;   // % of market/value
+  flatBonus?: number;
+  mandatory?: boolean;   // forced bank sales (no skip)
 }
 
 export interface Node {
@@ -147,6 +164,7 @@ export type Action =
   | { type: 'COLLECT_SALARY' }
   | { type: 'BUYOUT_PROPERTY'; propertyId: string }
   | { type: 'CHOOSE_VENTURE_CARD'; cardIndex: number }
+  | { type: 'VENTURE_CHOICE'; kind: 'buy_stock' | 'sell_stock' | 'sell_shop' | 'buy_shop' | 'skip'; districtId?: string; shares?: number; propertyId?: string }
   | { type: 'BUILD_PLOT'; propertyId: string; buildingType: BuildingType }
   | { type: 'RENOVATE_PLOT'; propertyId: string; buildingType: BuildingType }
   | { type: 'TELEPORT'; nodeId: string }
@@ -171,6 +189,7 @@ export interface GameState {
   ventureGrid?: { cleared: boolean; playerId: string | null }[]; // Length 64
   ventureGridCardIds?: number[]; // Length 64, seeded card numbers
   activeVentureCard?: VentureCard | null;
+  pendingVenture?: PendingVenture | null;  // interactive venture card awaiting VENTURE_CHOICE
   status?: 'LOBBY' | 'ACTIVE' | 'FINISHED';
   creatorId?: string;
   lastRoll?: Record<string, number>;

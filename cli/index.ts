@@ -110,6 +110,7 @@ function actionLabel(action: ReturnType<typeof greedyBotAction>): string {
     case 'COLLECT_SALARY':return 'COLLECT_SALARY';
     case 'BUYOUT_PROPERTY':return `BUYOUT_PROPERTY ${action.propertyId}`;
     case 'CHOOSE_VENTURE_CARD': return `CHOOSE_VENTURE_CARD cardIndex ${action.cardIndex}`;
+    case 'VENTURE_CHOICE': return `VENTURE_CHOICE ${action.kind}${action.districtId ? ` ${action.shares}sh in ${action.districtId}` : ''}${action.propertyId ? ` ${action.propertyId}` : ''}`;
     case 'BUILD_PLOT':    return `BUILD_PLOT ${action.buildingType} on ${action.propertyId}`;
     case 'RENOVATE_PLOT': return `RENOVATE_PLOT ${action.buildingType} on ${action.propertyId}`;
     case 'TELEPORT':      return `TELEPORT to ${action.nodeId}`;

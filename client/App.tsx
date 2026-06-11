@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Action } from '../shared/types';
+import type { Action, GameState } from '../shared/types';
 import { Board } from './Board';
 import { PlayerStats } from './modals/PlayerStats';
 import { StockExchange } from './modals/StockExchange';
@@ -238,6 +238,155 @@ function CasinoResultView({ result, canAct, onEndTurn }: {
       >
         {revealed ? (result.won ? 'Collect & Continue' : 'Shuffle Out') : 'Skip — End Turn'}
       </button>
+    </div>
+  );
+}
+
+// Choice UI for interactive venture cards: stock kinds get a district picker +
+// share count with a price preview; shop kinds get one button per eligible shop.
+function VentureChoicePanel({ state, playerId, emitAction }: {
+  state: GameState;
+  playerId: string;
+  emitAction: (action: Action) => void;
+}) {
+  const pending = state.pendingVenture!;
+  const me = state.players[playerId];
+  const isBuyStock = pending.kind === 'buy_stock';
+  const isSellStock = pending.kind === 'sell_stock';
+
+  const unitPrice = (stockPrice: number) =>
+    Math.max(1, Math.floor(stockPrice * pending.priceFactor / 100));
+  const shopPrice = (value: number) =>
+    Math.floor(value * pending.priceFactor / 100) + (pending.flatBonus ?? 0);
+
+  const eligibleDistricts = Object.values(state.districts).filter(d =>
+    isSellStock ? (d.playerHoldings[playerId] ?? 0) > 0 : true);
+
+  const [districtId, setDistrictId] = useState(eligibleDistricts[0]?.id ?? '');
+  const [shares, setShares] = useState(1);
+
+  const confirmBtn: React.CSSProperties = {
+    padding: '10px 24px',
+    borderRadius: 10,
+    fontFamily: "'Outfit', sans-serif",
+    fontWeight: 700,
+    fontSize: 12.5,
+    cursor: 'pointer',
+    background: 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)',
+    color: '#190f00',
+    border: 'none',
+    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+  };
+  const skipBtn: React.CSSProperties = {
+    ...confirmBtn,
+    background: 'rgba(255, 255, 255, 0.04)',
+    color: '#cbd5e1',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    boxShadow: 'none',
+  };
+  const fieldStyle: React.CSSProperties = {
+    background: '#090918',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    color: '#f1f5f9',
+    padding: '8px 10px',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 12.5,
+  };
+
+  if (isBuyStock || isSellStock) {
+    const district = state.districts[districtId];
+    const unit = district ? unitPrice(district.stockPrice) : 0;
+    const held = district ? (district.playerHoldings[playerId] ?? 0) : 0;
+    const maxShares = !district ? 0
+      : isSellStock ? Math.min(99, held)
+      : Math.min(99, Math.floor(me.cash / unit));
+    const qty = Math.max(1, Math.min(shares, Math.max(1, maxShares)));
+    const total = qty * unit;
+    const valid = !!district && maxShares >= 1 && qty <= maxShares;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <select
+            value={districtId}
+            onChange={e => setDistrictId(e.target.value)}
+            style={{ ...fieldStyle, flex: 1 }}
+          >
+            {eligibleDistricts.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.name} — {unitPrice(d.stockPrice)}G/share{isSellStock ? ` (held: ${d.playerHoldings[playerId] ?? 0})` : ''}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(1, maxShares)}
+            value={qty}
+            onChange={e => setShares(parseInt(e.target.value, 10) || 1)}
+            style={{ ...fieldStyle, width: 70 }}
+          />
+        </div>
+        <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: "'JetBrains Mono', monospace" }}>
+          {qty} × {unit}G = <span style={{ color: '#fde047', fontWeight: 700 }}>{total}G</span>
+          {isBuyStock ? ` (cash: ${me.cash}G)` : ''}
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button
+            disabled={!valid}
+            onClick={() => emitAction({ type: 'VENTURE_CHOICE', kind: pending.kind, districtId, shares: qty })}
+            style={{ ...confirmBtn, opacity: valid ? 1 : 0.4, flex: 1 }}
+          >
+            {isSellStock ? 'Sell Shares' : 'Buy Shares'}
+          </button>
+          <button onClick={() => emitAction({ type: 'VENTURE_CHOICE', kind: 'skip' })} style={skipBtn}>
+            Skip
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Shop kinds: one button per eligible property.
+  const isSellShop = pending.kind === 'sell_shop';
+  const props = isSellShop
+    ? me.propertyIds.map(pid => state.properties[pid]).filter(Boolean)
+    : Object.values(state.properties).filter(p =>
+        p.ownerId === null && (p.buildingType === undefined || p.buildingType === 'vacant'));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {props.map(p => {
+          const price = shopPrice(p.currentPrice);
+          const unaffordable = !isSellShop && price > me.cash;
+          return (
+            <button
+              key={p.id}
+              disabled={unaffordable}
+              onClick={() => emitAction({ type: 'VENTURE_CHOICE', kind: pending.kind, propertyId: p.id })}
+              style={{
+                ...skipBtn,
+                opacity: unaffordable ? 0.35 : 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '8px 14px',
+              }}
+            >
+              <span>{p.nodeId} (value {p.currentPrice}G)</span>
+              <span style={{ color: '#fde047', fontWeight: 800 }}>
+                {isSellShop ? `+${price}G` : `-${price}G`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {!pending.mandatory && (
+        <button onClick={() => emitAction({ type: 'VENTURE_CHOICE', kind: 'skip' })} style={skipBtn}>
+          Skip
+        </button>
+      )}
     </div>
   );
 }
@@ -2694,7 +2843,7 @@ export default function App() {
               ...(() => {
                 const effectStyle = (() => {
                   const type = state.activeVentureCard!.effectType;
-                  if (['CASH_GAIN', 'STOCK_GAIN', 'STOCK_BUFF', 'SUIT_GIFT', 'ROLL_AGAIN', 'PROP_BUFF', 'SHOP_MULTIPLIER_BONUS', 'SUIT_HEART_OR_CASH', 'STOCK_DIVIDEND_10', 'STOCK_DIVIDEND_20', 'COMMISSION_TEMP'].includes(type)) {
+                  if (type.startsWith('VENTURE_') ? !state.activeVentureCard!.mandatory : ['CASH_GAIN', 'STOCK_GAIN', 'STOCK_BUFF', 'SUIT_GIFT', 'ROLL_AGAIN', 'PROP_BUFF', 'SHOP_MULTIPLIER_BONUS', 'SUIT_HEART_OR_CASH', 'STOCK_DIVIDEND_10', 'STOCK_DIVIDEND_20', 'COMMISSION_TEMP'].includes(type)) {
                     return {
                       color: '#10b981',
                       border: '1px solid rgba(16, 185, 129, 0.2)',
@@ -2748,14 +2897,21 @@ export default function App() {
                   if (type === 'DICEY_CLOSED') return `Dicey Adventure Rolled!`;
                   if (type === 'HALF_RENT_TEMP') return `Temporary Shop Clearance Special!`;
                   if (type === 'COMMISSION_TEMP') return `50% Commission Bonus Activated!`;
+                  const factor = state.activeVentureCard!.priceFactor ?? 100;
+                  if (type === 'VENTURE_SELL_STOCK') return `Sell Stock at ${factor}% of Market Value!`;
+                  if (type === 'VENTURE_BUY_STOCK') return `Buy Stock at ${factor}% of Market Value!`;
+                  if (type === 'VENTURE_BUY_SHOP') return `Buy Any Unowned Shop!`;
+                  if (type === 'VENTURE_SELL_SHOP') return state.activeVentureCard!.mandatory ? `Forced Shop Sale!` : `Sell a Shop to the Bank!`;
                   return 'Active Effect Applied';
                 })()}
               </span>
               <span>✦</span>
             </div>
 
-            {/* Action button: OK or Waiting */}
-            {isMyTurn ? (
+            {/* Action button: choice UI, OK, or Waiting */}
+            {isMyTurn && state.pendingVenture ? (
+              <VentureChoicePanel state={state} playerId={PLAYER_ID} emitAction={emitAction} />
+            ) : isMyTurn ? (
               <button
                 onClick={() => emitAction({ type: 'END_TURN' })}
                 style={{

@@ -1,5 +1,5 @@
 import { CHARACTERS, DEFAULT_PERSONALITY, type BotPersonality } from '../shared/characters.js';
-import { auctionMinBid, auctionBidders } from '../engine/economy.js';
+import { auctionMinBid, auctionBidders, ventureStockUnitPrice, ventureShopPrice } from '../engine/economy.js';
 import type { GameState, Action } from '../shared/types.js';
 
 // Purchase price tracking for sell-on-drop logic (rule 1).
@@ -184,6 +184,71 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
 
   // 4–9 — SPACE_ACTION
   if (phase === 'SPACE_ACTION') {
+    // Interactive venture card: decide before the generic acknowledge below.
+    if (state.pendingVenture) {
+      const pv = state.pendingVenture;
+
+      if (pv.kind === 'sell_stock') {
+        // Premium sale: dump the whole highest-value holding.
+        let bestDistrictId: string | null = null;
+        let bestValue = 0;
+        for (const [districtId, district] of Object.entries(state.districts)) {
+          const held = district.playerHoldings[botPlayerId] ?? 0;
+          const value = held * district.stockPrice;
+          if (held > 0 && value > bestValue) { bestValue = value; bestDistrictId = districtId; }
+        }
+        if (bestDistrictId) {
+          const held = state.districts[bestDistrictId].playerHoldings[botPlayerId] ?? 0;
+          return { type: 'VENTURE_CHOICE', kind: 'sell_stock', districtId: bestDistrictId, shares: Math.min(99, held) };
+        }
+      }
+
+      if (pv.kind === 'buy_stock' && pv.priceFactor < 100) {
+        // Discounted stock: like pickStockBuy but at the deal's unit price.
+        let bestDistrictId: string | null = null;
+        let bestCount = 0;
+        for (const [districtId, district] of Object.entries(state.districts)) {
+          const count = district.propertyIds.filter(
+            pid => state.properties[pid]?.ownerId === botPlayerId,
+          ).length;
+          if (count > bestCount) { bestCount = count; bestDistrictId = districtId; }
+        }
+        if (bestDistrictId) {
+          const unit = ventureStockUnitPrice(state.districts[bestDistrictId].stockPrice, pv.priceFactor);
+          const shares = Math.min(99, Math.floor((player.cash - personality.cashReserve) / unit));
+          if (shares >= personality.stockBatch) {
+            return { type: 'VENTURE_CHOICE', kind: 'buy_stock', districtId: bestDistrictId, shares };
+          }
+        }
+      }
+
+      if (pv.kind === 'buy_shop' && pv.priceFactor <= 100) {
+        // At-or-below value: grab the best shop the budget allows.
+        const affordable = Object.values(state.properties)
+          .filter(p => p.ownerId === null && (p.buildingType === undefined || p.buildingType === 'vacant'))
+          .filter(p => ventureShopPrice(p.currentPrice, pv.priceFactor, pv.flatBonus) <= player.cash - personality.cashReserve)
+          .sort((a, b) => b.currentPrice - a.currentPrice);
+        if (affordable.length > 0) {
+          return { type: 'VENTURE_CHOICE', kind: 'buy_shop', propertyId: affordable[0].id };
+        }
+      }
+
+      if (pv.kind === 'sell_shop') {
+        // Sell the lowest-value shop — a profit at 2-4x, the least loss when forced.
+        const owned = player.propertyIds
+          .map(pid => state.properties[pid])
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .sort((a, b) => a.currentPrice - b.currentPrice);
+        if (owned.length > 0 && (pv.mandatory || pv.priceFactor > 100 || (pv.flatBonus ?? 0) > 0)) {
+          return { type: 'VENTURE_CHOICE', kind: 'sell_shop', propertyId: owned[0].id };
+        }
+      }
+
+      if (!pv.mandatory) {
+        return { type: 'VENTURE_CHOICE', kind: 'skip' };
+      }
+    }
+
     if (state.activeVentureCard) {
       return { type: 'END_TURN' };
     }

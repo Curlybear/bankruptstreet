@@ -46,7 +46,7 @@ const CLEANUP_DELAY_MS = 30 * 60 * 1000;
 const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
-  'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
+  'CHOOSE_VENTURE_CARD', 'VENTURE_CHOICE', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
   'CASINO_BET', 'VOTE_END', 'AUCTION_BID', 'AUCTION_PASS',
 ]);
 
@@ -156,6 +156,20 @@ function validateAction(p: unknown): string | null {
   if (act.type === 'CHOOSE_VENTURE_CARD') {
     if (!Number.isInteger(act.cardIndex) || (act.cardIndex as number) < 0 || (act.cardIndex as number) >= 64) {
       return 'cardIndex must be an integer between 0 and 63';
+    }
+  }
+
+  if (act.type === 'VENTURE_CHOICE') {
+    const kinds = ['buy_stock', 'sell_stock', 'sell_shop', 'buy_shop', 'skip'];
+    if (typeof act.kind !== 'string' || !kinds.includes(act.kind)) {
+      return `unknown venture choice kind: ${String(act.kind)}`;
+    }
+    if (act.kind === 'buy_stock' || act.kind === 'sell_stock') {
+      if (typeof act.districtId !== 'string' || !act.districtId.trim()) return 'districtId must be a non-empty string';
+      if (!Number.isInteger(act.shares) || (act.shares as number) <= 0) return 'shares must be a positive integer';
+    }
+    if (act.kind === 'buy_shop' || act.kind === 'sell_shop') {
+      if (typeof act.propertyId !== 'string' || !act.propertyId.trim()) return 'propertyId must be a non-empty string';
     }
   }
 
