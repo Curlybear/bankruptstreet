@@ -3,6 +3,7 @@ import type { Node, Property, District } from '../shared/types.js';
 export interface BoardDef {
   id: string;
   name: string;
+  suggestedTarget: number;      // default target net worth for this board
   board: Record<string, Node>;          // forward edges only; symmetrized at game start
   properties: Record<string, Property>;
   districts: Record<string, District>;
@@ -93,14 +94,14 @@ const ALEFGARD_BOARD: Record<string, Node> = {
 
 const ALEFGARD_PROPERTIES: Record<string, Property> = {
   tantegel_1: { id: 'tantegel_1', nodeId: 'tantegel_1', districtId: 'tantegel', ownerId: null, basePrice: 150, currentPrice: 150, baseRent: 12, currentRent: 12, capitalInvested: 0, maxCapital: 300, shopMultiplier: 1 },
-  tantegel_2: { id: 'tantegel_2', nodeId: 'tantegel_2', districtId: 'tantegel', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  tantegel_2: { id: 'tantegel_2', nodeId: 'tantegel_2', districtId: 'tantegel', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
 
   garinham_1: { id: 'garinham_1', nodeId: 'garinham_1', districtId: 'garinham', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 16, currentRent: 16, capitalInvested: 0, maxCapital: 400, shopMultiplier: 1 },
   garinham_2: { id: 'garinham_2', nodeId: 'garinham_2', districtId: 'garinham', ownerId: null, basePrice: 220, currentPrice: 220, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 440, shopMultiplier: 1 },
   garinham_3: { id: 'garinham_3', nodeId: 'garinham_3', districtId: 'garinham', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
   garinham_4: { id: 'garinham_4', nodeId: 'garinham_4', districtId: 'garinham', ownerId: null, basePrice: 250, currentPrice: 250, baseRent: 21, currentRent: 21, capitalInvested: 0, maxCapital: 500, shopMultiplier: 1 },
-  garinham_5: { id: 'garinham_5', nodeId: 'garinham_5', districtId: 'garinham', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
-  garinham_6: { id: 'garinham_6', nodeId: 'garinham_6', districtId: 'garinham', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
+  garinham_5: { id: 'garinham_5', nodeId: 'garinham_5', districtId: 'garin_pass', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
+  garinham_6: { id: 'garinham_6', nodeId: 'garinham_6', districtId: 'garin_pass', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
 
   bridge_north_1: { id: 'bridge_north_1', nodeId: 'bridge_north_1', districtId: 'bridges', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 15, currentRent: 15, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
   bridge_north_2: { id: 'bridge_north_2', nodeId: 'bridge_north_2', districtId: 'bridges', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 15, currentRent: 15, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
@@ -116,21 +117,21 @@ const ALEFGARD_PROPERTIES: Record<string, Property> = {
 
   rimuldar_1: { id: 'rimuldar_1', nodeId: 'rimuldar_1', districtId: 'rimuldar', ownerId: null, basePrice: 320, currentPrice: 320, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 640, shopMultiplier: 1 },
   rimuldar_2: { id: 'rimuldar_2', nodeId: 'rimuldar_2', districtId: 'rimuldar', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 30, currentRent: 30, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
-  rimuldar_3: { id: 'rimuldar_3', nodeId: 'rimuldar_3', districtId: 'rimuldar', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
-  rimuldar_4: { id: 'rimuldar_4', nodeId: 'rimuldar_4', districtId: 'rimuldar', ownerId: null, basePrice: 380, currentPrice: 380, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 760, shopMultiplier: 1 },
-  rimuldar_5: { id: 'rimuldar_5', nodeId: 'rimuldar_5', districtId: 'rimuldar', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 36, currentRent: 36, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
-  rimuldar_6: { id: 'rimuldar_6', nodeId: 'rimuldar_6', districtId: 'rimuldar', ownerId: null, basePrice: 420, currentPrice: 420, baseRent: 38, currentRent: 38, capitalInvested: 0, maxCapital: 840, shopMultiplier: 1 },
+  rimuldar_3: { id: 'rimuldar_3', nodeId: 'rimuldar_3', districtId: 'rimuldar', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
+  rimuldar_4: { id: 'rimuldar_4', nodeId: 'rimuldar_4', districtId: 'galenholm', ownerId: null, basePrice: 380, currentPrice: 380, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 760, shopMultiplier: 1 },
+  rimuldar_5: { id: 'rimuldar_5', nodeId: 'rimuldar_5', districtId: 'galenholm', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 36, currentRent: 36, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
+  rimuldar_6: { id: 'rimuldar_6', nodeId: 'rimuldar_6', districtId: 'galenholm', ownerId: null, basePrice: 420, currentPrice: 420, baseRent: 38, currentRent: 38, capitalInvested: 0, maxCapital: 840, shopMultiplier: 1 },
 
   bridge_south_1: { id: 'bridge_south_1', nodeId: 'bridge_south_1', districtId: 'bridges', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 15, currentRent: 15, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
   bridge_south_2: { id: 'bridge_south_2', nodeId: 'bridge_south_2', districtId: 'bridges', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 15, currentRent: 15, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
 
   domdora_1: { id: 'domdora_1', nodeId: 'domdora_1', districtId: 'domdora', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
   domdora_2: { id: 'domdora_2', nodeId: 'domdora_2', districtId: 'domdora', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
-  domdora_3: { id: 'domdora_3', nodeId: 'domdora_3', districtId: 'domdora', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  domdora_3: { id: 'domdora_3', nodeId: 'domdora_3', districtId: 'domdora', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
   domdora_4: { id: 'domdora_4', nodeId: 'domdora_4', districtId: 'domdora', ownerId: null, basePrice: 300, currentPrice: 300, baseRent: 26, currentRent: 26, capitalInvested: 0, maxCapital: 600, shopMultiplier: 1 },
-  domdora_5: { id: 'domdora_5', nodeId: 'domdora_5', districtId: 'domdora', ownerId: null, basePrice: 320, currentPrice: 320, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 640, shopMultiplier: 1 },
-  domdora_6: { id: 'domdora_6', nodeId: 'domdora_6', districtId: 'domdora', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 30, currentRent: 30, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
-  domdora_7: { id: 'domdora_7', nodeId: 'domdora_7', districtId: 'domdora', ownerId: null, basePrice: 360, currentPrice: 360, baseRent: 32, currentRent: 32, capitalInvested: 0, maxCapital: 720, shopMultiplier: 1 },
+  domdora_5: { id: 'domdora_5', nodeId: 'domdora_5', districtId: 'hauksness', ownerId: null, basePrice: 320, currentPrice: 320, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 640, shopMultiplier: 1 },
+  domdora_6: { id: 'domdora_6', nodeId: 'domdora_6', districtId: 'hauksness', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 30, currentRent: 30, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
+  domdora_7: { id: 'domdora_7', nodeId: 'domdora_7', districtId: 'hauksness', ownerId: null, basePrice: 360, currentPrice: 360, baseRent: 32, currentRent: 32, capitalInvested: 0, maxCapital: 720, shopMultiplier: 1 },
 
   charlock_warp_in_1: { id: 'charlock_warp_in_1', nodeId: 'charlock_warp_in_1', districtId: 'charlock', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
   charlock_2: { id: 'charlock_2', nodeId: 'charlock_2', districtId: 'charlock', ownerId: null, basePrice: 600, currentPrice: 600, baseRent: 51, currentRent: 51, capitalInvested: 0, maxCapital: 1200, shopMultiplier: 1 },
@@ -141,11 +142,14 @@ const ALEFGARD_PROPERTIES: Record<string, Property> = {
 
 const ALEFGARD_DISTRICTS: Record<string, District> = {
   tantegel: { id: 'tantegel', name: 'Tantegel', stockPrice: 10, propertyIds: ['tantegel_1', 'tantegel_2'], playerHoldings: {} },
-  garinham: { id: 'garinham', name: 'Garinham', stockPrice: 8, propertyIds: ['garinham_1', 'garinham_2', 'garinham_3', 'garinham_4', 'garinham_5', 'garinham_6'], playerHoldings: {} },
+  garinham:   { id: 'garinham',   name: 'Garinham',   stockPrice: 8, propertyIds: ['garinham_1', 'garinham_2', 'garinham_3', 'garinham_4'], playerHoldings: {} },
+  garin_pass: { id: 'garin_pass', name: 'Garin Pass', stockPrice: 9, propertyIds: ['garinham_5', 'garinham_6'], playerHoldings: {} },
   kol:      { id: 'kol',      name: 'Kol',      stockPrice: 9, propertyIds: ['kol_1', 'kol_2', 'kol_4', 'kol_5'], playerHoldings: {} },
-  domdora:  { id: 'domdora',  name: 'Domdora',  stockPrice: 7, propertyIds: ['domdora_1', 'domdora_2', 'domdora_3', 'domdora_4', 'domdora_5', 'domdora_6', 'domdora_7'], playerHoldings: {} },
+  domdora:   { id: 'domdora',   name: 'Domdora',   stockPrice: 7,  propertyIds: ['domdora_1', 'domdora_2', 'domdora_3', 'domdora_4'], playerHoldings: {} },
+  hauksness: { id: 'hauksness', name: 'Hauksness', stockPrice: 13, propertyIds: ['domdora_5', 'domdora_6', 'domdora_7'], playerHoldings: {} },
   cantlin:  { id: 'cantlin',  name: 'Cantlin',  stockPrice: 11, propertyIds: ['cantlin_1', 'cantlin_2', 'cantlin_3'], playerHoldings: {} },
-  rimuldar: { id: 'rimuldar', name: 'Rimuldar', stockPrice: 9, propertyIds: ['rimuldar_1', 'rimuldar_2', 'rimuldar_3', 'rimuldar_4', 'rimuldar_5', 'rimuldar_6'], playerHoldings: {} },
+  rimuldar:  { id: 'rimuldar',  name: 'Rimuldar',  stockPrice: 9,  propertyIds: ['rimuldar_1', 'rimuldar_2', 'rimuldar_3'], playerHoldings: {} },
+  galenholm: { id: 'galenholm', name: 'Galenholm', stockPrice: 16, propertyIds: ['rimuldar_4', 'rimuldar_5', 'rimuldar_6'], playerHoldings: {} },
   charlock: { id: 'charlock', name: 'Charlock', stockPrice: 15, propertyIds: ['charlock_warp_in_1', 'charlock_2', 'charlock_1', 'charlock_3', 'charlock_warp_in_2'], playerHoldings: {} },
   bridges:  { id: 'bridges',  name: 'Bridges',  stockPrice: 5, propertyIds: ['bridge_north_1', 'bridge_north_2', 'bridge_south_1', 'bridge_south_2'], playerHoldings: {} },
 };
@@ -230,7 +234,7 @@ const TORLAND_PROPERTIES: Record<string, Property> = {
 
   hamlin_1: { id: 'hamlin_1', nodeId: 'hamlin_1', districtId: 'hamlin', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
   hamlin_2: { id: 'hamlin_2', nodeId: 'hamlin_2', districtId: 'hamlin', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
-  hamlin_3: { id: 'hamlin_3', nodeId: 'hamlin_3', districtId: 'hamlin', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  hamlin_3: { id: 'hamlin_3', nodeId: 'hamlin_3', districtId: 'hamlin', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
 
   beran_1: { id: 'beran_1', nodeId: 'beran_1', districtId: 'beran', ownerId: null, basePrice: 320, currentPrice: 320, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 640, shopMultiplier: 1 },
   beran_2: { id: 'beran_2', nodeId: 'beran_2', districtId: 'beran', ownerId: null, basePrice: 340, currentPrice: 340, baseRent: 30, currentRent: 30, capitalInvested: 0, maxCapital: 680, shopMultiplier: 1 },
@@ -245,7 +249,7 @@ const TORLAND_PROPERTIES: Record<string, Property> = {
 
   tuhn_1: { id: 'tuhn_1', nodeId: 'tuhn_1', districtId: 'tuhn', ownerId: null, basePrice: 220, currentPrice: 220, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 440, shopMultiplier: 1 },
   tuhn_2: { id: 'tuhn_2', nodeId: 'tuhn_2', districtId: 'tuhn', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
-  tuhn_3: { id: 'tuhn_3', nodeId: 'tuhn_3', districtId: 'tuhn', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  tuhn_3: { id: 'tuhn_3', nodeId: 'tuhn_3', districtId: 'tuhn', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
 
   // Rapids shops: cheap to buy, high rent — risky one-way territory.
   rapids_1: { id: 'rapids_1', nodeId: 'rapids_1', districtId: 'rapids', ownerId: null, basePrice: 180, currentPrice: 180, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 360, shopMultiplier: 1 },
@@ -335,7 +339,7 @@ const ALIAHAN_PROPERTIES: Record<string, Property> = {
   noaniels_1: { id: 'noaniels_1', nodeId: 'noaniels_1', districtId: 'noaniels', ownerId: null, basePrice: 190, currentPrice: 190, baseRent: 16, currentRent: 16, capitalInvested: 0, maxCapital: 380, shopMultiplier: 1 },
   noaniels_2: { id: 'noaniels_2', nodeId: 'noaniels_2', districtId: 'noaniels', ownerId: null, basePrice: 210, currentPrice: 210, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 420, shopMultiplier: 1 },
 
-  kazave_vac: { id: 'kazave_vac', nodeId: 'kazave_vac', districtId: 'kazave', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
+  kazave_vac: { id: 'kazave_vac', nodeId: 'kazave_vac', districtId: 'kazave', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 50, circusLevel: 0 },
   kazave_1: { id: 'kazave_1', nodeId: 'kazave_1', districtId: 'kazave', ownerId: null, basePrice: 220, currentPrice: 220, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 440, shopMultiplier: 1 },
 
   romaly_1: { id: 'romaly_1', nodeId: 'romaly_1', districtId: 'romaly', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
@@ -376,6 +380,7 @@ export const BOARDS: Record<string, BoardDef> = {
   alefgard: {
     id: 'alefgard',
     name: 'Alefgard',
+    suggestedTarget: 8000,
     board: ALEFGARD_BOARD,
     properties: ALEFGARD_PROPERTIES,
     districts: ALEFGARD_DISTRICTS,
@@ -384,6 +389,7 @@ export const BOARDS: Record<string, BoardDef> = {
   torland: {
     id: 'torland',
     name: 'Torland',
+    suggestedTarget: 15000,
     board: TORLAND_BOARD,
     properties: TORLAND_PROPERTIES,
     districts: TORLAND_DISTRICTS,
@@ -392,6 +398,7 @@ export const BOARDS: Record<string, BoardDef> = {
   aliahan: {
     id: 'aliahan',
     name: 'Aliahan',
+    suggestedTarget: 12000,
     board: ALIAHAN_BOARD,
     properties: ALIAHAN_PROPERTIES,
     districts: ALIAHAN_DISTRICTS,

@@ -70,7 +70,7 @@ export function recalcDistrictMultipliers(
         rent = Math.floor(circusPrices[lvl] / 4);  // tier rents 25/125/250/500
       } else if (prop.buildingType === 'checkpoint') {
         price = 200;
-        rent = prop.checkpointToll ?? 200;
+        rent = prop.checkpointToll ?? 50;
       } else if (prop.buildingType === 'balloonport') {
         price = 200;
         rent = 200;
@@ -390,7 +390,7 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
     } else if (prop.buildingType === 'estate_agency' || prop.buildingType === 'vacant') {
       rent = 0;
     } else if (prop.buildingType === 'checkpoint') {
-      rent = prop.checkpointToll ?? 200;
+      rent = prop.checkpointToll ?? 50;
     }
   }
 
@@ -2211,7 +2211,7 @@ export function buildPlot(
     baseRent = 80;
     currentRent = 80;
   } else if (buildingType === 'checkpoint') {
-    checkpointToll = 200;
+    checkpointToll = 50;
     currentRent = 200;
   } else if (buildingType === 'circus') {
     circusLevel = 0;
@@ -2291,7 +2291,7 @@ export function renovatePlot(
     baseRent = 80;
     currentRent = 80;
   } else if (buildingType === 'checkpoint') {
-    checkpointToll = 200;
+    checkpointToll = 50;
     currentRent = 200;
   } else if (buildingType === 'circus') {
     circusLevel = 0;

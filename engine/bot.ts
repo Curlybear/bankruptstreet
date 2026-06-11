@@ -216,7 +216,10 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
           if (personality.preferThreeStar && player.cash >= 1000) {
             return { type: 'BUILD_PLOT', propertyId: prop.id, buildingType: 'three_star_shop' };
           } else if (player.cash >= 200 + personality.cashReserve) {
-            return { type: 'BUILD_PLOT', propertyId: prop.id, buildingType: 'checkpoint' };
+            // Rotate cheap builds — carpet-checkpointing was the #1 cause of
+            // bankruptcies in balance sims.
+            const cheap = ['checkpoint', 'circus', 'balloonport', 'home'] as const;
+            return { type: 'BUILD_PLOT', propertyId: prop.id, buildingType: cheap[player.propertyIds.length % cheap.length] };
           }
           return { type: 'END_TURN' };
         }

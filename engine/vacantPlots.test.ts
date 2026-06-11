@@ -97,8 +97,8 @@ test('BUILD_PLOT successfully purchases and develops vacant plot', () => {
 
   assert.equal(next.properties.plot1.ownerId, 'p1');
   assert.equal(next.properties.plot1.buildingType, 'checkpoint');
-  assert.equal(next.properties.plot1.checkpointToll, 200);
-  assert.equal(next.properties.plot1.currentRent, 200);
+  assert.equal(next.properties.plot1.checkpointToll, 50);   // tolls start small (+10/pass, cap 250)
+  assert.equal(next.properties.plot1.currentRent, 50);
   assert.equal(next.properties.plot1.currentPrice, 200);
   
   // Cash deducted (2000 - 200 = 1800G)

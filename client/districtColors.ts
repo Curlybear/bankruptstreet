@@ -14,6 +14,9 @@ const NAMED: Record<string, number> = {
   rimuldar: 0x8b5cf6, // violet
   charlock: 0xec4899, // magenta
   bridges:  0x64748b, // steel gray
+  garin_pass: 0x84cc16, // lime
+  hauksness:  0xf97316, // burnt orange
+  galenholm:  0xe879f9, // orchid
   // Torland
   lianport:   0x06b6d4, // cyan
   cannock:    0x10b981, // green

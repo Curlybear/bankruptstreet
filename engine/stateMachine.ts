@@ -154,7 +154,7 @@ function processPathMovement(state: GameState, playerId: string, path: string[])
     if (prop && prop.buildingType === 'checkpoint' && prop.ownerId !== null && prop.ownerId !== playerId) {
       const owner = s.players[prop.ownerId];
       if (owner && !owner.shopsClosedUntilNextTurn) {
-        const toll = prop.checkpointToll ?? 200;
+        const toll = prop.checkpointToll ?? 50;
         const payer = s.players[playerId];
         s = {
           ...s,

@@ -355,11 +355,11 @@ export default function App() {
 
   // 1. Render Main Menu if not connected to a room
   if (!roomId || !playerId) {
-    const stakes = [10000, 15000, 20000, 25000];
+    const stakes = [8000, 10000, 12000, 15000, 20000];
     const boards = [
-      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — 8 districts, warp pipes to Charlock' },
-      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis' },
-      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island' },
+      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — warp pipes to Charlock island', target: 8000 },
+      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis', target: 15000 },
+      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island', target: 12000 },
     ];
     const tickerItems = [
       'TANTEGEL ▲ 7G', 'GARINHAM ▲ 9G', 'KOL ▲ 9G', 'DOMDORA ▼ 11G', 'CANTLIN ▲ 12G',
@@ -546,7 +546,7 @@ export default function App() {
                       <button
                         key={b.id}
                         className="character-card"
-                        onClick={() => setBoardChoice(b.id)}
+                        onClick={() => { setBoardChoice(b.id); setTargetNetWorth(b.target); }}
                         style={{
                           padding: '10px 12px',
                           borderRadius: 12,
