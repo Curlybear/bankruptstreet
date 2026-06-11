@@ -8,7 +8,7 @@ import { CHARACTERS } from '../shared/characters';
 import { Rules } from './modals/Rules';
 import { districtColorHex } from './districtColors';
 import { sfx, isMuted, setMuted } from './sfx';
-import type { CasinoResult } from '../shared/types';
+import type { CasinoResult, ArcadeResult, ArcadePrize } from '../shared/types';
 import { useGameSocket } from './useGameSocket';
 
 function g(n: number) { return `${n}G`; }
@@ -238,6 +238,146 @@ function CasinoResultView({ result, canAct, onEndTurn }: {
       >
         {revealed ? (result.won ? 'Collect & Continue' : 'Shuffle Out') : 'Skip — End Turn'}
       </button>
+    </div>
+  );
+}
+
+const ARCADE_GAME_NAMES: Record<string, string> = {
+  slots: '🎰 Round the Blocks',
+  memory: '📦 Memory Block',
+  darts: '🎯 Dart of Gold',
+};
+
+function arcadePrizeLabel(prize: ArcadePrize): { text: string; good: boolean } {
+  switch (prize.kind) {
+    case 'cash': return { text: `+${prize.amount}G`, good: true };
+    case 'shops_up': return { text: `All shops +${prize.pct}% value & rent`, good: true };
+    case 'shops_down': return { text: `All shops -${prize.pct}% value & rent`, good: false };
+    case 'stock': return { text: `${prize.shares} free shares`, good: true };
+    case 'suit_yourself': return { text: `Suit Yourself card 🃏`, good: true };
+    case 'warp': return { text: `Warped to ${prize.nodeId}! 🌀`, good: true };
+    case 'nothing': return { text: `Nothing… better luck next time`, good: false };
+  }
+}
+
+// Animated arcade outcome: short suspense, then the reveal. Darts adds a
+// recipient picker (the thrower hands the prize — or penalty — to any player).
+function ArcadeResultView({ result, players, turnOrder, canAct, emitAction }: {
+  result: ArcadeResult;
+  players: GameState['players'];
+  turnOrder: string[];
+  canAct: boolean;
+  emitAction: (action: Action) => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), 900);
+    return () => clearTimeout(t);
+  }, []);
+
+  const prize = arcadePrizeLabel(result.prize);
+  const accent = prize.good ? '#34d399' : '#fb7185';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+      {result.game === 'slots' && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          {(result.reels ?? []).map((symbol, i) => (
+            <div key={i} style={{
+              width: 56, height: 56, borderRadius: 10, fontSize: 28,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#090918', border: '1px solid rgba(250, 204, 21, 0.25)',
+              animation: revealed ? 'none' : `marquee-blink 0.25s ease-in-out ${i * 0.12}s infinite`,
+            }}>
+              {revealed ? (symbol || '—') : '❔'}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result.game === 'memory' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 40px)', gap: 6 }}>
+          {Array.from({ length: 9 }, (_, i) => (
+            <div key={i} style={{
+              width: 40, height: 40, borderRadius: 8, fontSize: 18,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: i === result.pickIndex ? 'rgba(250, 204, 21, 0.12)' : '#090918',
+              border: i === result.pickIndex ? `1px solid ${accent}` : '1px solid rgba(255, 255, 255, 0.06)',
+            }}>
+              {i === result.pickIndex ? (revealed ? (prize.good ? '✨' : '🐢') : '❔') : '📦'}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result.game === 'darts' && (
+        <div style={{
+          fontSize: 34, animation: revealed ? 'none' : 'marquee-blink 0.3s ease-in-out infinite',
+        }}>
+          🎯
+        </div>
+      )}
+
+      {revealed && (
+        <div style={{
+          padding: '8px 18px', borderRadius: 10, fontWeight: 800, fontSize: 13.5,
+          color: accent, background: `${accent}11`, border: `1px solid ${accent}44`,
+        }}>
+          {prize.text}
+        </div>
+      )}
+
+      {revealed && result.needsTarget && (
+        canAct ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>
+              Choose who receives it:
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {turnOrder.filter(pid => !players[pid].isBankrupt).map(pid => (
+                <button
+                  key={pid}
+                  onClick={() => emitAction({ type: 'ARCADE_GIVE', targetPlayerId: pid })}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                    background: pid === result.playerId ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                    color: pid === result.playerId ? '#34d399' : '#cbd5e1',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  {players[pid].name}{pid === result.playerId ? ' (me)' : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11.5, color: '#64748b', fontStyle: 'italic' }}>
+            {players[result.playerId]?.name} is choosing who receives it…
+          </div>
+        )
+      )}
+
+      {revealed && !result.needsTarget && (
+        <>
+          {result.targetPlayerId && result.targetPlayerId !== result.playerId && (
+            <div style={{ fontSize: 11.5, color: '#94a3b8' }}>
+              Given to <strong style={{ color: '#f8fafc' }}>{players[result.targetPlayerId]?.name}</strong>
+            </div>
+          )}
+          {canAct && (
+            <button
+              onClick={() => emitAction({ type: 'END_TURN' })}
+              style={{
+                padding: '10px 28px', borderRadius: 10, fontWeight: 800, fontSize: 12.5, cursor: 'pointer',
+                background: 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)', color: '#190f00', border: 'none',
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+              }}
+            >
+              Continue
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -472,6 +612,8 @@ export default function App() {
       [l => l.startsWith('[BANKRUPT]') || l.startsWith('[DEBT]') || l.startsWith('[DISTRESS]'), sfx.alert],
       [l => l.startsWith('[CASINO]') && l.includes('Paid'), sfx.jackpot],
       [l => l.startsWith('[CASINO]'), sfx.lose],
+      [l => l.startsWith('[ARCADE]') && (l.includes('nothing') || l.includes('lose')), sfx.lose],
+      [l => l.startsWith('[ARCADE]') && l.includes('wins'), sfx.jackpot],
       [l => l.startsWith('[SALARY]'), sfx.salary],
       [l => l.includes('collected') && l.includes('suit'), sfx.salary],
       [l => l.startsWith('[RENT]') || l.startsWith('[TAX]') || l.startsWith('[CHECKPOINT]'), sfx.pay],
@@ -2041,8 +2183,9 @@ export default function App() {
     // 5b. SPACE_ACTION: casino floor — wager on a minigame or walk away
     if (atCasino) {
       const result = state.casinoResult;
+      const arcade = state.arcadeResult;
       const wager = Math.max(10, Math.min(casinoWager, 500, currentPlayer.cash));
-      const canBet = isMyTurn && !result && currentPlayer.cash >= 10;
+      const canBet = isMyTurn && !result && !arcade && currentPlayer.cash >= 10;
       const resultSig = result
         ? `${result.playerId}-${result.game}-${result.wager}-${result.winnerSlime ?? ''}-${result.card1 ?? ''}-${result.card2 ?? ''}`
         : '';
@@ -2080,7 +2223,24 @@ export default function App() {
             ))}
           </div>
 
-          {result ? (
+          {arcade ? (
+            <>
+              <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 17, marginBottom: 10 }}>
+                {ARCADE_GAME_NAMES[arcade.game]}
+                <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 12, marginLeft: 8 }}>
+                  {state.players[arcade.playerId]?.name} plays for free
+                </span>
+              </div>
+              <ArcadeResultView
+                key={`${arcade.playerId}-${arcade.game}-${(arcade.reels ?? []).join('')}-${arcade.pickIndex ?? ''}-${arcade.prize.kind}`}
+                result={arcade}
+                players={state.players}
+                turnOrder={state.turnOrder}
+                canAct={isMyTurn}
+                emitAction={emitAction}
+              />
+            </>
+          ) : result ? (
             <>
               <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 17, marginBottom: 10 }}>
                 {result.game === 'derby' ? '🏁 Slime Derby' : '🃏 High-Low'}
@@ -2103,7 +2263,59 @@ export default function App() {
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
                 {!isMyTurn
                   ? `Waiting for ${currentPlayer.name} at the tables…`
-                  : 'One bet per visit. The house honors all payouts — in gold, on the spot.'}
+                  : 'One game per visit. The house honors all payouts — in gold, on the spot.'}
+              </div>
+
+              {/* Free arcade games — prizes scale with player level */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, width: '100%', marginBottom: 14,
+              }}>
+                {(['slots', 'darts'] as const).map(game => (
+                  <button
+                    key={game}
+                    onClick={() => emitAction({ type: 'ARCADE_PLAY', game })}
+                    disabled={!isMyTurn}
+                    style={{
+                      borderRadius: 12, padding: '10px 6px', cursor: isMyTurn ? 'pointer' : 'default',
+                      opacity: isMyTurn ? 1 : 0.5,
+                      background: 'rgba(16, 185, 129, 0.05)',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      color: '#f8fafc', fontWeight: 800, fontSize: 12,
+                      display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
+                    }}
+                  >
+                    <span>{ARCADE_GAME_NAMES[game]}</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 600, color: '#34d399' }}>
+                      FREE · Lv {currentPlayer.level} prizes{game === 'darts' ? ' · you pick who gets it' : ''}
+                    </span>
+                  </button>
+                ))}
+                <div style={{
+                  borderRadius: 12, padding: '8px 6px',
+                  background: 'rgba(16, 185, 129, 0.05)',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center',
+                }}>
+                  <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 12 }}>{ARCADE_GAME_NAMES.memory}</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 18px)', gap: 3 }}>
+                    {Array.from({ length: 9 }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => emitAction({ type: 'ARCADE_PLAY', game: 'memory', pick: i })}
+                        disabled={!isMyTurn}
+                        style={{
+                          width: 18, height: 18, borderRadius: 4, fontSize: 9, padding: 0,
+                          cursor: isMyTurn ? 'pointer' : 'default', opacity: isMyTurn ? 1 : 0.5,
+                          background: '#090918', color: '#fde68a',
+                          border: '1px solid rgba(250, 204, 21, 0.25)',
+                        }}
+                      >
+                        ?
+                      </button>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 9.5, fontWeight: 600, color: '#34d399' }}>FREE · pick a box</span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

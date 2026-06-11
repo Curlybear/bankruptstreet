@@ -152,6 +152,8 @@ export type Action =
   | { type: 'SELL_STOCK'; districtId: string; shares: number }
   | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'CASINO_BET'; game: CasinoGame; wager: number; choice: string }  // casino node, one bet per visit
+  | { type: 'ARCADE_PLAY'; game: ArcadeGame; pick?: number }  // casino node, free play, shares the one-game-per-visit gate
+  | { type: 'ARCADE_GIVE'; targetPlayerId: string }  // darts: assign the thrown prize/penalty to a player
   | { type: 'VOTE_END'; playerId: string; vote: boolean }  // end-game vote (any alive human, any time during a vote)
   | { type: 'AUCTION_BID'; playerId: string; amount: number }  // any eligible bidder during an auction
   | { type: 'AUCTION_PASS'; playerId: string }
@@ -197,6 +199,7 @@ export interface GameState {
   passedBankWindowUsed?: boolean;  // bonus SPACE_ACTION (stock window) already granted this turn
   debtResume?: 'ADVANCE_TURN' | 'PRE_ROLL';  // where to go when DEBT_SETTLEMENT clears
   casinoResult?: CasinoResult | null;  // set after CASINO_BET, cleared on turn advance
+  arcadeResult?: ArcadeResult | null;  // set after ARCADE_PLAY, cleared on turn advance
   bankruptcyLimit?: number;  // bankruptcies that end the game (default 1; 99 = last player standing)
   endVote?: EndVote | null;  // pending unanimous vote to end the game early
   auction?: Auction | null;  // pending shop auction (pauses all other actions)
@@ -221,6 +224,31 @@ export interface CasinoResult {
   // highlow
   card1?: number;       // 1-13
   card2?: number;
+}
+
+export type ArcadeGame = 'slots' | 'memory' | 'darts';
+
+// What an arcade game pays out. Cash amounts are level-scaled at play time.
+export type ArcadePrize =
+  | { kind: 'cash'; amount: number }
+  | { kind: 'shops_up'; pct: number }     // all recipient's shops: base value & rent +pct%
+  | { kind: 'shops_down'; pct: number }   // ...or -pct% (Bowser)
+  | { kind: 'stock'; shares: number }     // shares in the recipient's strongest district
+  | { kind: 'suit_yourself' }             // +1 wildcard (cap 9 → 100G instead)
+  | { kind: 'warp'; nodeId: string }      // slots only: teleport, turn continues there
+  | { kind: 'nothing' };
+
+// Outcome of an arcade game — kept on GameState until the turn advances so the
+// client can animate it. Darts: the prize is unapplied (needsTarget) until the
+// thrower picks a recipient via ARCADE_GIVE.
+export interface ArcadeResult {
+  playerId: string;
+  game: ArcadeGame;
+  prize: ArcadePrize;
+  reels?: string[];          // slots: 3 displayed symbols
+  pickIndex?: number;        // memory: which box was opened
+  needsTarget?: boolean;     // darts: prize not yet assigned
+  targetPlayerId?: string;   // darts: recipient once assigned
 }
 
 // Opened when a bankruptcy doesn't end the game: every surviving human must

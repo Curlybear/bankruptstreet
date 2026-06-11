@@ -936,7 +936,7 @@ test('CASINO_BET: derby win pays 4x, one bet per visit, END_TURN leaves the tabl
 
     assert.throws(
       () => applyAction(next, { type: 'CASINO_BET', game: 'derby', wager: 100, choice: '0' }),
-      /one bet per casino stop/,
+      /one game per casino stop/,
     );
 
     const done = applyAction(next, { type: 'END_TURN' });

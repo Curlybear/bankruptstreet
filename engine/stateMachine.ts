@@ -2,7 +2,7 @@ import { findPaths, getPath } from './navigation.js';
 import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, resolveVentureChoice, buildPlot, renovatePlot, checkBankruptcy,
-  distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
+  distressSellProperty, playCasino, playArcade, applyArcadeGive, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
   openAuction, applyAuctionBid, applyAuctionPass,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
@@ -70,6 +70,7 @@ function advanceTurn(state: GameState): GameState {
     passedBankThisTurn: false,
     passedBankWindowUsed: false,
     casinoResult: null,
+    arcadeResult: null,
     pendingVenture: null,
     // Cap the log so persisted state stays bounded (it grows every action).
     log: [...state.log, `[TURN] Round ${nextRound} — ${incomingPlayer?.name ?? nextPlayerId}'s turn.`].slice(-300),
@@ -450,11 +451,33 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (node.type !== 'casino') {
         throw new Error(`CASINO_BET requires a casino node, got ${node.type}`);
       }
-      if (state.casinoResult) {
-        throw new Error(`Already placed a bet this visit — one bet per casino stop`);
+      if (state.casinoResult || state.arcadeResult) {
+        throw new Error(`Already played this visit — one game per casino stop`);
       }
       // Stay in SPACE_ACTION: the client animates the result, then END_TURN.
       return playCasino(state, currentPlayerId, action.game, action.wager, action.choice);
+    }
+
+    case 'ARCADE_PLAY': {
+      if (currentPhase !== 'SPACE_ACTION') {
+        throw new Error(`Illegal action ARCADE_PLAY in phase ${currentPhase}`);
+      }
+      const node = currentNode(state);
+      if (node.type !== 'casino') {
+        throw new Error(`ARCADE_PLAY requires a casino node, got ${node.type}`);
+      }
+      if (state.casinoResult || state.arcadeResult) {
+        throw new Error(`Already played this visit — one game per casino stop`);
+      }
+      // Stay in SPACE_ACTION: the client animates the result, then END_TURN.
+      return playArcade(state, currentPlayerId, action.game, action.pick);
+    }
+
+    case 'ARCADE_GIVE': {
+      if (currentPhase !== 'SPACE_ACTION') {
+        throw new Error(`Illegal action ARCADE_GIVE in phase ${currentPhase}`);
+      }
+      return applyArcadeGive(state, currentPlayerId, action.targetPlayerId);
     }
 
     case 'ROLL_DICE': {
@@ -754,6 +777,9 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (state.pendingVenture) {
         // Mandatory sales would otherwise be freely declinable via END_TURN.
         throw new Error(`Must resolve the venture offer (VENTURE_CHOICE) before ending turn`);
+      }
+      if (state.arcadeResult?.needsTarget) {
+        throw new Error(`Must assign the dart prize (ARCADE_GIVE) before ending turn`);
       }
       if (state.activeVentureCard) {
         const isRollAgain = state.activeVentureCard.effectType === 'ROLL_AGAIN';

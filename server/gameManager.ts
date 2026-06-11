@@ -290,6 +290,28 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'ARCADE_PLAY': {
+      deltas.push({
+        type: 'ARCADE_RESOLVED',
+        payload: {
+          playerId: pid,
+          result: after.arcadeResult ?? null,
+        }
+      });
+      break;
+    }
+
+    case 'ARCADE_GIVE': {
+      deltas.push({
+        type: 'ARCADE_PRIZE_GIVEN',
+        payload: {
+          playerId: pid,
+          targetPlayerId: action.targetPlayerId,
+        }
+      });
+      break;
+    }
+
     case 'AUCTION_BID':
     case 'AUCTION_PASS': {
       deltas.push({

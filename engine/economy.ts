@@ -1,4 +1,4 @@
-import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats, CasinoGame, PendingVenture, Action } from '../shared/types.js';
+import type { GameState, District, Property, Player, VentureCard, BuildingType, Node, PlayerStats, CasinoGame, PendingVenture, Action, ArcadeGame, ArcadePrize, ArcadeResult } from '../shared/types.js';
 
 
 export const BASE_SALARY = 250;
@@ -670,6 +670,217 @@ export function playCasino(
   };
 
   return recalcAllNetWorths(s1);
+}
+
+// ─── Arcade minigames (free play, level-scaled prizes) ───────────────────────
+
+function weightedPick<T>(entries: Array<[T, number]>): T {
+  const total = entries.reduce((sum, [, w]) => sum + w, 0);
+  let roll = Math.random() * total;
+  for (const [value, weight] of entries) {
+    roll -= weight;
+    if (roll < 0) return value;
+  }
+  return entries[entries.length - 1][0];
+}
+
+// Slots warp destination: anywhere except warp pipes and the casino itself.
+function randomWarpDestination(state: GameState, currentNodeId: string): string {
+  const candidates = Object.values(state.board)
+    .filter(n => n.type !== 'warp' && n.type !== 'casino' && n.id !== currentNodeId)
+    .map(n => n.id);
+  return candidates[Math.floor(Math.random() * candidates.length)] ?? currentNodeId;
+}
+
+export const ARCADE_DART_WEDGES: ArcadePrize['kind'][] = [
+  'cash', 'stock', 'cash', 'shops_up', 'cash', 'shops_down', 'suit_yourself', 'cash',
+];
+
+function describePrize(prize: ArcadePrize): string {
+  switch (prize.kind) {
+    case 'cash': return `${prize.amount}G`;
+    case 'shops_up': return `all shops +${prize.pct}% value & rent`;
+    case 'shops_down': return `all shops -${prize.pct}% value & rent`;
+    case 'stock': return `${prize.shares} free shares`;
+    case 'suit_yourself': return `a Suit Yourself card`;
+    case 'warp': return `a warp to ${prize.nodeId}`;
+    case 'nothing': return `nothing`;
+  }
+}
+
+// Apply a prize (or penalty) to a player. Used by slots/memory immediately and
+// by darts once the thrower picks a recipient.
+function applyArcadePrize(state: GameState, recipientId: string, prize: ArcadePrize): GameState {
+  const player = state.players[recipientId];
+  let s: GameState = { ...state, players: { ...state.players }, properties: { ...state.properties }, districts: { ...state.districts }, log: [...state.log] };
+
+  switch (prize.kind) {
+    case 'cash': {
+      s.players[recipientId] = { ...player, cash: player.cash + prize.amount };
+      s.log.push(`[ARCADE] ${player.name} wins ${prize.amount}G!`);
+      break;
+    }
+
+    case 'shops_up':
+    case 'shops_down': {
+      const factor = prize.kind === 'shops_up' ? 1 + prize.pct / 100 : 1 - prize.pct / 100;
+      const shopIds = player.propertyIds.filter(pid => s.properties[pid]?.buildingType === undefined);
+      if (shopIds.length === 0) {
+        s.log.push(`[ARCADE] ${player.name} owns no shops — the effect fizzles.`);
+        break;
+      }
+      const affectedDistricts = new Set<string>();
+      for (const pid of shopIds) {
+        const prop = s.properties[pid];
+        s.properties[pid] = {
+          ...prop,
+          basePrice: Math.max(1, Math.floor(prop.basePrice * factor)),
+          baseRent: Math.max(1, Math.floor(prop.baseRent * factor)),
+        };
+        affectedDistricts.add(prop.districtId);
+      }
+      for (const dId of affectedDistricts) {
+        const dist = s.districts[dId];
+        s.properties = recalcDistrictMultipliers(dist, s.properties, s.players);
+        s.districts[dId] = { ...dist, stockPrice: recalcStockPrice(dist, s.properties) };
+      }
+      s.log.push(`[ARCADE] ${player.name}'s ${shopIds.length} shop${shopIds.length === 1 ? '' : 's'} ${prize.kind === 'shops_up' ? 'gain' : 'lose'} ${prize.pct}% base value & rent!`);
+      break;
+    }
+
+    case 'stock': {
+      // Strongest district: where the recipient owns the most shops (STOCK_GAIN rule).
+      let bestDistrictId = Object.keys(s.districts)[0];
+      let maxShops = -1;
+      for (const [dId, district] of Object.entries(s.districts)) {
+        const count = district.propertyIds.filter(pid => s.properties[pid]?.ownerId === recipientId).length;
+        if (count > maxShops) { maxShops = count; bestDistrictId = dId; }
+      }
+      const dist = s.districts[bestDistrictId];
+      s.districts[bestDistrictId] = {
+        ...dist,
+        playerHoldings: { ...dist.playerHoldings, [recipientId]: (dist.playerHoldings[recipientId] ?? 0) + prize.shares },
+      };
+      s.log.push(`[ARCADE] ${player.name} receives ${prize.shares} free shares of ${dist.name}!`);
+      break;
+    }
+
+    case 'suit_yourself': {
+      const held = player.suitYourself ?? 0;
+      if (held >= 9) {
+        s.players[recipientId] = { ...player, cash: player.cash + 100 };
+        s.log.push(`[ARCADE] ${player.name} already holds 9 Suit Yourself cards — 100G instead!`);
+      } else {
+        s.players[recipientId] = { ...player, suitYourself: held + 1 };
+        s.log.push(`[ARCADE] ${player.name} wins a Suit Yourself card! (${held + 1}/9)`);
+      }
+      break;
+    }
+
+    case 'warp': {
+      s.players[recipientId] = { ...player, currentNodeId: prize.nodeId, arrivedFromNodeId: undefined };
+      s.log.push(`[ARCADE] ${player.name} is warped to ${prize.nodeId}!`);
+      break;
+    }
+
+    case 'nothing': {
+      s.log.push(`[ARCADE] ${player.name} wins nothing. Better luck next time!`);
+      break;
+    }
+  }
+
+  return recalcAllNetWorths(s);
+}
+
+// One game per casino visit (shared with CASINO_BET). Free play; cash prizes
+// scale with the player's level, per the original arcade.
+export function playArcade(state: GameState, playerId: string, game: ArcadeGame, pick?: number): GameState {
+  const player = state.players[playerId];
+  if (!player) throw new Error(`Player ${playerId} not found`);
+  const level = player.level;
+
+  if (game === 'slots') {
+    // Round the Blocks: line up three-of-a-kind.
+    const outcome = weightedPick<{ prize: ArcadePrize; symbol: string }>([
+      [{ prize: { kind: 'cash', amount: 500 * level }, symbol: '7️⃣' }, 5],
+      [{ prize: { kind: 'cash', amount: 50 * level }, symbol: '🍄' }, 22],
+      [{ prize: { kind: 'stock', shares: 5 }, symbol: '📈' }, 12],
+      [{ prize: { kind: 'suit_yourself' }, symbol: '🃏' }, 10],
+      [{ prize: { kind: 'warp', nodeId: randomWarpDestination(state, player.currentNodeId) }, symbol: '🌀' }, 8],
+      [{ prize: { kind: 'nothing' }, symbol: '' }, 43],
+    ]);
+    const symbols = ['7️⃣', '🍄', '📈', '🃏', '🌀'];
+    let reels: string[];
+    if (outcome.prize.kind === 'nothing') {
+      reels = [0, 1, 2].map(() => symbols[Math.floor(Math.random() * symbols.length)]);
+      if (reels[0] === reels[1] && reels[1] === reels[2]) {
+        reels[2] = symbols[(symbols.indexOf(reels[2]) + 1) % symbols.length];
+      }
+    } else {
+      reels = [outcome.symbol, outcome.symbol, outcome.symbol];
+    }
+
+    const s: GameState = {
+      ...state,
+      arcadeResult: { playerId, game, prize: outcome.prize, reels },
+      log: [...state.log, `[ARCADE] ${player.name} plays Round the Blocks: ${reels.join(' ')} — ${describePrize(outcome.prize)}!`],
+    };
+    return applyArcadePrize(s, playerId, outcome.prize);
+  }
+
+  if (game === 'memory') {
+    // Memory Block: open one of nine boxes.
+    if (!Number.isInteger(pick) || pick! < 0 || pick! > 8) throw new Error(`Memory pick must be 0-8`);
+    const prize = weightedPick<ArcadePrize>([
+      [{ kind: 'cash', amount: 10 * level }, 35],
+      [{ kind: 'stock', shares: 5 }, 18],
+      [{ kind: 'shops_up', pct: 10 }, 15],
+      [{ kind: 'suit_yourself' }, 15],
+      [{ kind: 'shops_down', pct: 5 }, 17],
+    ]);
+    const s: GameState = {
+      ...state,
+      arcadeResult: { playerId, game, prize, pickIndex: pick },
+      log: [...state.log, `[ARCADE] ${player.name} plays Memory Block and opens box ${pick! + 1}: ${describePrize(prize)}!`],
+    };
+    return applyArcadePrize(s, playerId, prize);
+  }
+
+  if (game === 'darts') {
+    // Dart of Gold: throw at the wheel, then choose who receives the result.
+    const wedge = Math.floor(Math.random() * ARCADE_DART_WEDGES.length);
+    const kind = ARCADE_DART_WEDGES[wedge];
+    const cashAmounts = [100, 0, 10, 0, 30, 0, 0, 10];  // chest / coin / 3 coins / coin per wedge
+    const prize: ArcadePrize =
+      kind === 'cash' ? { kind: 'cash', amount: cashAmounts[wedge] * level } :
+      kind === 'stock' ? { kind: 'stock', shares: 5 } :
+      kind === 'shops_up' ? { kind: 'shops_up', pct: 5 } :
+      kind === 'shops_down' ? { kind: 'shops_down', pct: 5 } :
+      { kind: 'suit_yourself' };
+    return {
+      ...state,
+      arcadeResult: { playerId, game, prize, needsTarget: true },
+      log: [...state.log, `[ARCADE] ${player.name} throws the Dart of Gold: ${describePrize(prize)} — now choosing who receives it…`],
+    };
+  }
+
+  throw new Error(`Unknown arcade game: ${String(game)}`);
+}
+
+// Darts step 2: the thrower assigns the prize (or penalty) to any alive player.
+export function applyArcadeGive(state: GameState, playerId: string, targetPlayerId: string): GameState {
+  const result = state.arcadeResult;
+  if (!result || !result.needsTarget) throw new Error(`No dart prize awaiting a recipient`);
+  if (result.playerId !== playerId) throw new Error(`Only the thrower assigns the dart prize`);
+  const target = state.players[targetPlayerId];
+  if (!target || target.isBankrupt) throw new Error(`Invalid dart target ${targetPlayerId}`);
+
+  const s: GameState = {
+    ...state,
+    arcadeResult: { ...result, needsTarget: false, targetPlayerId },
+    log: [...state.log, `[ARCADE] ${state.players[playerId].name} gives the dart result to ${target.name}!`],
+  };
+  return applyArcadePrize(s, targetPlayerId, result.prize);
 }
 
 // requireBankNode=false is used for pass-through wins: walking past the bank
