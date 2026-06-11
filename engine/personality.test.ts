@@ -62,21 +62,29 @@ test('cashReserve: slime (500) skips investing at 400 cash; erdrick (200) invest
   assert.equal(action.type, 'INVEST');
 });
 
-test('investAmount: dragonlord invests 300, erdrick 175', () => {
+test('investing goes deep: down to the cash reserve, capped at 999/turn', () => {
   const base = makeState({
     properties: { shop1: ownShop },
     districts: { d1: district },
   });
 
-  for (const [charId, expected] of [['dragonlord', 300], ['erdrick', 175]] as const) {
+  // Plenty of cash → both personalities max the 999/turn cap
+  for (const charId of ['dragonlord', 'erdrick'] as const) {
     const s: GameState = {
       ...base,
       players: { ...base.players, p1: makeTestPlayer('p1', { cash: 2000, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: charId }) },
     };
     const action = greedyBotAction(s, 'p1');
     assert.equal(action.type, 'INVEST');
-    assert.equal((action as { amount: number }).amount, expected, `${charId} invest amount`);
+    assert.equal((action as { amount: number }).amount, 999, `${charId} invests the cap`);
   }
+
+  // Tight cash → the reserve differentiates them (dragonlord 100 vs slime 500)
+  const tightDragon: GameState = {
+    ...base,
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 700, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'dragonlord' }) },
+  };
+  assert.equal((greedyBotAction(tightDragon, 'p1') as { amount: number }).amount, 600); // 700 - 100 reserve
 });
 
 test('stock buying: one aggregated buy down to the reserve; stockBatch is the minimum position', () => {
@@ -140,7 +148,7 @@ test('unknown/missing characterId falls back to default personality', () => {
   });
   const action = greedyBotAction(base, 'p1');
   assert.equal(action.type, 'INVEST');
-  assert.equal((action as { amount: number }).amount, 175);  // DEFAULT_PERSONALITY
+  assert.equal((action as { amount: number }).amount, 999);  // deep invest, default reserve 175
 });
 
 test('makePlayer assigns character names; pickUnusedCharacter avoids collisions', () => {

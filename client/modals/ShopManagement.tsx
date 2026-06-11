@@ -14,7 +14,7 @@ const MAX_INVEST = 999;
 
 function projectedRent(prop: Property, extra: number): number {
   const newCapital = prop.capitalInvested + extra;
-  return Math.floor((prop.baseRent + Math.floor(newCapital / 10)) * prop.shopMultiplier);
+  return Math.floor(prop.baseRent * (prop.shopMultiplier + newCapital / prop.basePrice));
 }
 
 export function ShopManagement({ state, property, emitAction, playerId }: Props) {

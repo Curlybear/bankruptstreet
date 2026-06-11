@@ -48,12 +48,11 @@ export function recalcDistrictMultipliers(
     if (ownerId) ownedCount[ownerId] = (ownedCount[ownerId] ?? 0) + 1;
   }
 
-  function multiplierFor(count: number): number {
-    if (count > 0 && count >= totalShops) return 5;
-    // Partial ownership caps at x4 so big districts (6-7 shops) can't exceed
-    // the full-domination peak before even completing the set.
-    return Math.max(1, Math.min(4, count));
-  }
+  // Vanilla Fortune Street tables (derived from the modding district
+  // simulator — see docs/research/02-shops-districts.md). Index = shops the
+  // owner holds in this district. Values NEVER scale with district count;
+  // only the fee and the investment ceiling do.
+  void totalShops;
 
   const updated = { ...properties };
   for (const pid of district.propertyIds) {
@@ -100,17 +99,25 @@ export function recalcDistrictMultipliers(
     }
 
     const count = prop.ownerId ? (ownedCount[prop.ownerId] ?? 0) : 0;
-    const m = multiplierFor(count);
+    const idx = Math.min(count, 5);
+    const feeMult = FEE_MULTIPLIER[idx];
+    const value = prop.basePrice + prop.capitalInvested;
     updated[pid] = {
       ...prop,
-      shopMultiplier: m,
-      currentPrice: prop.basePrice * m + prop.capitalInvested,
-      maxCapital: prop.basePrice * m * 2,
-      currentRent: Math.floor((prop.baseRent + Math.floor(prop.capitalInvested / 10)) * m),
+      shopMultiplier: feeMult,
+      currentPrice: value,
+      maxCapital: Math.floor(value * MAX_CAPITAL_MULT[idx]),
+      // Fee grows with the district table AND with invested capital: a full
+      // shop-value of capital adds +1x to the fee multiplier (Blue Pichu).
+      currentRent: Math.floor(prop.baseRent * (feeMult + prop.capitalInvested / prop.basePrice)),
     };
   }
   return updated;
 }
+
+// Shops owned in district → fee multiplier / max-capital multiple of value.
+const FEE_MULTIPLIER   = [1, 1, 1.25, 2, 3.25, 6];
+const MAX_CAPITAL_MULT = [0, 0.5, 1, 3, 9, 11];
 
 export function recalcAllNetWorths(state: GameState): GameState {
   const players = Object.fromEntries(
@@ -338,10 +345,7 @@ export function invest(
   if (player.cash < amount) throw new Error(`Cannot afford investment`);
 
   const newCapital = prop.capitalInvested + amount;
-  const newRent = Math.floor((prop.baseRent + Math.floor(newCapital / 10)) * prop.shopMultiplier);
-  const newPrice = prop.basePrice * prop.shopMultiplier + newCapital;
-
-  const updatedProp = { ...prop, capitalInvested: newCapital, currentPrice: newPrice, currentRent: newRent };
+  const updatedProp = { ...prop, capitalInvested: newCapital };
   const updatedProps = { ...state.properties, [propertyId]: updatedProp };
 
   const district = state.districts[prop.districtId];
@@ -359,7 +363,7 @@ export function invest(
       ...state.districts,
       [prop.districtId]: { ...district, stockPrice: newStockPrice },
     },
-    log: [...state.log, `[INVEST] ${player.name} invested ${amount}G in ${prop.nodeId} (capital ${newCapital}G, rent now ${newRent}G).`],
+    log: [...state.log, `[INVEST] ${player.name} invested ${amount}G in ${prop.nodeId} (capital ${newCapital}G, rent now ${updatedProps2[propertyId].currentRent}G).`],
   };
 
   return recalcAllNetWorths(s1);
@@ -402,27 +406,12 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
     rent = rent * 2;
   }
 
-  const totalShares = Object.values(district.playerHoldings).reduce((s, n) => s + n, 0);
   const updatedPlayers = { ...state.players };
-  const dividendLogs: string[] = [];
 
   if (rent > 0) {
     // Payer pays rent; owner receives rent
     updatedPlayers[payerId] = { ...payer, cash: payer.cash - rent };
     updatedPlayers[prop.ownerId] = { ...owner, cash: owner.cash + rent };
-
-    // Bank separately pays commission to each shareholder (does NOT reduce rent paid)
-    if (totalShares > 0) {
-      for (const [pid, shares] of Object.entries(district.playerHoldings)) {
-        if (shares <= 0) continue;
-        const commission = Math.floor(rent * 0.10 * (shares / totalShares));
-        if (commission > 0) {
-          const p = updatedPlayers[pid];
-          updatedPlayers[pid] = { ...p, cash: p.cash + commission };
-          dividendLogs.push(`[DIVIDEND] ${p.name} earned a ${commission}G shareholder dividend (${shares}sh in ${district.name}).`);
-        }
-      }
-    }
   }
 
   const s1: GameState = { ...state, players: updatedPlayers, log: [...state.log] };
@@ -436,7 +425,6 @@ export function payRent(state: GameState, payerId: string, propertyId: string): 
   } else if (rent > 0) {
     s1.log.push(`[RENT] ${payer.name} paid ${rent}G rent to ${owner.name} at ${prop.nodeId}.`);
   }
-  s1.log.push(...dividendLogs);
 
   // Boon/Boom Player commissions on rent
   if (rent > 0) {
@@ -2020,13 +2008,7 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
       }
       const target = candidates[0];
       const amount = Math.min(card.payout > 0 ? card.payout : 100, target.maxCapital - target.capitalInvested);
-      const newCapital = target.capitalInvested + amount;
-      s.properties[target.id] = {
-        ...target,
-        capitalInvested: newCapital,
-        currentPrice: target.basePrice * target.shopMultiplier + newCapital,
-        currentRent: Math.floor((target.baseRent + Math.floor(newCapital / 10)) * target.shopMultiplier),
-      };
+      s.properties[target.id] = { ...target, capitalInvested: target.capitalInvested + amount };
       const dist = s.districts[target.districtId];
       s.properties = recalcDistrictMultipliers(dist, s.properties, s.players);
       s.districts[target.districtId] = { ...dist, stockPrice: recalcStockPrice(dist, s.properties) };

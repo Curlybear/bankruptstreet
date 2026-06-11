@@ -50,10 +50,11 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 
 ## Shops, Rent & Investment
 
-- A shop's value: `basePrice × multiplier + capital invested`.
-- Rent: `(baseRent + capital/10) × multiplier`.
-- **District multiplier**: owning more shops in one district multiplies all of yours — 1 shop ×1, 2 shops ×2, up to **×4** … full district domination jumps to **×5**.
-- **Investing**: when you land on your own shop you may invest up to **999G per turn**, capped by the shop's max capital (2× its base value × multiplier). Investment raises rent and the district's stock price.
+- A shop's **value** = base value + invested capital. District ownership never changes a shop's value — only its rent.
+- **Rent** = base rent × (district multiplier + capital ÷ base value). Investing a full base-value's worth of capital adds +1× to the rent multiplier.
+- **District multiplier** (the original game's table): 1 shop **×1**, 2 shops **×1.25**, 3 shops **×2**, 4 shops **×3.25**, 5+ shops **×6**.
+- **Max capital** scales with district ownership too: 1 shop → ½× value, 2 → 1×, 3 → 3×, 4 → 9×, 5+ → 11×.
+- **Investing**: when you land on your own shop you may invest up to **999G per turn**, capped by the shop's max capital. Investment raises the shop's value, its rent, and the district's stock price.
 - **Buyouts**: landing on an opponent's shop, you may buy it out for **5× its value**. The owner receives 3× (the bank keeps the difference). The AI does this when it completes their district, breaks your monopoly, or they're simply rich.
 
 ## The Stock Market
@@ -62,7 +63,6 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 - **Buy** at the bank or a stockbroker (or after passing the bank), 1–99 shares per purchase, unlimited holdings.
 - **Sell** only at the start of your turn, before rolling.
 - **Price impact**: trades of **10+ shares** move the price by `price/16 + 1` — up when buying, down when selling. Smaller trades don't move it. The price never falls below its shop-value floor.
-- **Dividends**: whenever rent is paid in a district, all shareholders split a bonus equal to 10% of the rent, proportional to shares — **paid by the bank**, not the renter.
 
 ## Suits, Salary & Promotion
 

@@ -81,9 +81,11 @@ export function Rules({ onClose }: Props) {
 
         <div style={h2}>Shops & Districts</div>
         <div style={p}>
-          Shop value = base × multiplier + invested capital; rent grows with both. Owning more shops
-          in a district multiplies <em>all</em> of yours: ×2, ×3… <span style={hl}>full domination ×5</span>.
-          Investing also pushes the district's stock price up.
+          Shop value = base + invested capital — district ownership never changes value, only rent.
+          Rent = base rent × (district multiplier + capital ÷ base value). The multiplier follows the
+          original game's table: 1 shop ×1, 2 ×1.25, 3 ×2, 4 ×3.25, <span style={hl}>5+ ×6</span> —
+          and max capital scales too (½× value at 1 shop up to 11× at 5). Investing pushes the
+          district's stock price up.
         </div>
 
         <div style={h2}>The Stock Market</div>
@@ -91,8 +93,8 @@ export function Rules({ onClose }: Props) {
           Each district's stock tracks its shop values (4% of the average). Buy at the bank or a
           broker, 1–99 shares per purchase; sell only <span style={hl}>before rolling</span>.
           Trades of <span style={hl}>10+ shares</span> move the price (price/16 + 1) — up on buys,
-          down on sells, never below the shop-value floor. When rent is paid in a district, all
-          shareholders split a <span style={hl}>10% dividend, paid by the bank</span>.
+          down on sells, never below the shop-value floor. Shares earn through price growth —
+          and through <span style={hl}>Boon/Boom squares and venture dividends</span>.
         </div>
 
         <div style={h2}>Suits & Salary</div>

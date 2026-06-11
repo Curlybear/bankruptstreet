@@ -278,10 +278,19 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
         if (prop.ownerId === null && player.cash >= prop.currentPrice) {
           return { type: 'BUY_PROPERTY', propertyId: prop.id };
         }
-        // 5. Own shop, cash above reserve, room to invest
+        // 5. Own shop, cash above reserve, room to invest. The Classic
+        // economy rewards deep investment (rent multiplier grows with
+        // capital), so invest down to the reserve — personality's
+        // investAmount acts as the minimum worth bothering with.
         if (prop.ownerId === botPlayerId && player.cash > personality.cashReserve && prop.capitalInvested < prop.maxCapital) {
-          const amount = Math.min(personality.investAmount, prop.maxCapital - prop.capitalInvested, player.cash);
-          return { type: 'INVEST', propertyId: prop.id, amount };
+          const amount = Math.min(
+            999,
+            prop.maxCapital - prop.capitalInvested,
+            player.cash - personality.cashReserve,
+          );
+          if (amount >= Math.min(personality.investAmount, 100)) {
+            return { type: 'INVEST', propertyId: prop.id, amount };
+          }
         }
         // 6. Opponent shop — consider buyout before paying rent
         if (prop.ownerId !== null && prop.ownerId !== botPlayerId) {

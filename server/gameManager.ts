@@ -66,6 +66,16 @@ function makeDefaultState(roomId: string, playerIds: string[], targetNetWorth = 
   const board = symmetrizeBoard(structuredClone(def.board), def.oneWayEdges);
   const properties = structuredClone(def.properties);
   const districts = structuredClone(def.districts);
+  // Derive shop base fees from the original game's curve (~11% for cheap
+  // shops rising toward ~20% for expensive ones — see docs/research/02).
+  // Authored baseRent values predate the Classic economy and ran ~8.5%.
+  for (const prop of Object.values(properties)) {
+    if (prop.buildingType !== undefined) continue;  // buildings keep special rents
+    const v = prop.basePrice;
+    const rate = (0.24 * v) / (v + 85);
+    prop.baseRent = Math.max(1, Math.floor(v * rate));
+    prop.currentRent = prop.baseRent;
+  }
   // Authored stockPrice values drift from the formula; derive them so prices
   // start exactly at their floor (selling can never push a price *up*).
   for (const d of Object.values(districts)) {

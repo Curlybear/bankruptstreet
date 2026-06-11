@@ -105,7 +105,7 @@ test('recalcDistrictMultipliers: 1 shop owned → multiplier 1', () => {
   assert.equal(updated['a'].currentPrice, 100); // basePrice * 1
 });
 
-test('recalcDistrictMultipliers: 2 shops owned → multiplier 2', () => {
+test('recalcDistrictMultipliers: 2 shops owned → fee x1.25, value unchanged', () => {
   const district = makeDistrict({ propertyIds: ['a', 'b', 'c', 'd'] });
   const properties = {
     a: makeProp('a', { ownerId: 'p1' }),
@@ -114,14 +114,17 @@ test('recalcDistrictMultipliers: 2 shops owned → multiplier 2', () => {
     d: makeProp('d'),
   };
   const updated = recalcDistrictMultipliers(district, properties, {});
-  assert.equal(updated['a'].shopMultiplier, 2);
-  assert.equal(updated['b'].shopMultiplier, 2);
-  assert.equal(updated['a'].currentPrice, 200); // basePrice * 2
+  assert.equal(updated['a'].shopMultiplier, 1.25);
+  assert.equal(updated['b'].shopMultiplier, 1.25);
+  assert.equal(updated['a'].currentPrice, 100);                       // value never scales with count
+  assert.equal(updated['a'].currentRent, Math.floor(20 * 1.25));      // fee scales (baseRent 20)
+  assert.equal(updated['a'].maxCapital, 100);                         // value x 1 at 2 shops
   // Unowned shops stay at multiplier 1
   assert.equal(updated['c'].shopMultiplier, 1);
+  assert.equal(updated['c'].maxCapital, 0);                           // unowned: no investing
 });
 
-test('recalcDistrictMultipliers: full district (4/4) → multiplier 5', () => {
+test('recalcDistrictMultipliers: full district (4/4) → fee x3.25, max capital 9x', () => {
   const district = makeDistrict({ propertyIds: ['a', 'b', 'c', 'd'] });
   const properties = {
     a: makeProp('a', { ownerId: 'p1' }),
@@ -131,9 +134,22 @@ test('recalcDistrictMultipliers: full district (4/4) → multiplier 5', () => {
   };
   const updated = recalcDistrictMultipliers(district, properties, {});
   for (const id of ['a', 'b', 'c', 'd']) {
-    assert.equal(updated[id].shopMultiplier, 5);
-    assert.equal(updated[id].currentPrice, 500);
+    assert.equal(updated[id].shopMultiplier, 3.25);
+    assert.equal(updated[id].currentPrice, 100);                      // value still flat
+    assert.equal(updated[id].currentRent, Math.floor(20 * 3.25));
+    assert.equal(updated[id].maxCapital, 900);                        // value x 9
   }
+});
+
+test('recalcDistrictMultipliers: invested capital raises value and the fee multiplier', () => {
+  // 1 shop owned, capital equal to base value → fee doubles, value doubles
+  const district = makeDistrict({ propertyIds: ['a'] });
+  const properties = {
+    a: makeProp('a', { ownerId: 'p1', capitalInvested: 100 }),  // base 100
+  };
+  const updated = recalcDistrictMultipliers(district, properties, {});
+  assert.equal(updated['a'].currentPrice, 200);                      // base + capital
+  assert.equal(updated['a'].currentRent, Math.floor(20 * (1 + 1))); // baseRent x (mult + cap/base)
 });
 
 // ─── buyStock ─────────────────────────────────────────────────────────────────
@@ -217,9 +233,9 @@ test('sellStock: price clamped to shop-value floor when delta would exceed it', 
 
 // ─── payRent ─────────────────────────────────────────────────────────────────
 
-test('payRent: renter pays full rent; commission is bank-funded on top', () => {
-  // p1 is renter (lands on p2's shop), p3 holds shares
-  // rent = 100; total shares = 20 (p3 holds 20) → commission = floor(100 * 0.10 * 20/20) = 10
+test('payRent: renter pays the fee, owner receives it — shareholders get nothing', () => {
+  // The rent-shareholder dividend was a house rule the original game never
+  // had; it was removed in the Classic economy alignment.
   const prop = makeProp('shop', {
     nodeId: 'shop', ownerId: 'p2', currentRent: 100,
   });
@@ -242,34 +258,7 @@ test('payRent: renter pays full rent; commission is bank-funded on top', () => {
 
   assert.equal(next.players.p1.cash, 1000 - 100);  // paid exactly 100
   assert.equal(next.players.p2.cash, 1000 + 100);  // received full rent
-  assert.equal(next.players.p3.cash, 1000 + 10);   // bank-funded commission
-});
-
-test('payRent: owner also receives commission if they hold district shares', () => {
-  // p1 rents from p2; p2 holds 5/20 shares → gets rent + commission
-  // commission for p2 = floor(100 * 0.10 * 5/20) = floor(2.5) = 2
-  const prop = makeProp('shop', { nodeId: 'shop', ownerId: 'p2', currentRent: 100 });
-  const district = makeDistrict({
-    propertyIds: ['shop'], stockPrice: 40,
-    playerHoldings: { p2: 5, p3: 15 },
-  });
-  const state = makeState({
-    board: { bank: bankNode, shop: { id: 'shop', type: 'property', neighbors: [], coordinates: { x: 1, y: 0 } } },
-    players: {
-      p1: makePlayer('p1', { currentNodeId: 'shop' }),
-      p2: makePlayer('p2'),
-      p3: makePlayer('p3'),
-    },
-    properties: { shop: prop },
-    districts: { d1: district },
-  });
-
-  const next = payRent(state, 'p1', 'shop');
-
-  assert.equal(next.players.p1.cash, 900);         // paid 100, nothing else
-  assert.equal(next.players.p2.cash, 1102);        // 100 rent + 2 commission
-  // p3: floor(100 * 0.10 * 15/20) = floor(7.5) = 7
-  assert.equal(next.players.p3.cash, 1007);
+  assert.equal(next.players.p3.cash, 1000);        // shares alone earn nothing
 });
 
 // ─── collectSalary ────────────────────────────────────────────────────────────
