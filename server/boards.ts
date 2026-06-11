@@ -42,7 +42,7 @@ const ALEFGARD_BOARD: Record<string, Node> = {
   kol_2: { id: 'kol_2', type: 'property', neighbors: ['break_inn'], coordinates: { x: 8, y: 0 } },
   break_inn: { id: 'break_inn', type: 'break', neighbors: ['diamond_suit'], coordinates: { x: 9, y: 0 } },
   diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['kol_3'], coordinates: { x: 10, y: 0 } },
-  kol_3: { id: 'kol_3', type: 'vacant', neighbors: ['kol_4'], coordinates: { x: 10, y: 1 } },
+  kol_3: { id: 'kol_3', type: 'boon', neighbors: ['kol_4'], coordinates: { x: 10, y: 1 } },
   kol_4: { id: 'kol_4', type: 'property', neighbors: ['kol_5'], coordinates: { x: 9, y: 1 } },
   kol_5: { id: 'kol_5', type: 'property', neighbors: ['stockbroker_east'], coordinates: { x: 8, y: 1 } },
   stockbroker_east: { id: 'stockbroker_east', type: 'stockbroker', neighbors: ['cantlin_1'], coordinates: { x: 7, y: 1 } },
@@ -107,7 +107,6 @@ const ALEFGARD_PROPERTIES: Record<string, Property> = {
 
   kol_1: { id: 'kol_1', nodeId: 'kol_1', districtId: 'kol', ownerId: null, basePrice: 220, currentPrice: 220, baseRent: 18, currentRent: 18, capitalInvested: 0, maxCapital: 440, shopMultiplier: 1 },
   kol_2: { id: 'kol_2', nodeId: 'kol_2', districtId: 'kol', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
-  kol_3: { id: 'kol_3', nodeId: 'kol_3', districtId: 'kol', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
   kol_4: { id: 'kol_4', nodeId: 'kol_4', districtId: 'kol', ownerId: null, basePrice: 280, currentPrice: 280, baseRent: 24, currentRent: 24, capitalInvested: 0, maxCapital: 560, shopMultiplier: 1 },
   kol_5: { id: 'kol_5', nodeId: 'kol_5', districtId: 'kol', ownerId: null, basePrice: 300, currentPrice: 300, baseRent: 26, currentRent: 26, capitalInvested: 0, maxCapital: 600, shopMultiplier: 1 },
 
@@ -143,7 +142,7 @@ const ALEFGARD_PROPERTIES: Record<string, Property> = {
 const ALEFGARD_DISTRICTS: Record<string, District> = {
   tantegel: { id: 'tantegel', name: 'Tantegel', stockPrice: 10, propertyIds: ['tantegel_1', 'tantegel_2'], playerHoldings: {} },
   garinham: { id: 'garinham', name: 'Garinham', stockPrice: 8, propertyIds: ['garinham_1', 'garinham_2', 'garinham_3', 'garinham_4', 'garinham_5', 'garinham_6'], playerHoldings: {} },
-  kol:      { id: 'kol',      name: 'Kol',      stockPrice: 9, propertyIds: ['kol_1', 'kol_2', 'kol_3', 'kol_4', 'kol_5'], playerHoldings: {} },
+  kol:      { id: 'kol',      name: 'Kol',      stockPrice: 9, propertyIds: ['kol_1', 'kol_2', 'kol_4', 'kol_5'], playerHoldings: {} },
   domdora:  { id: 'domdora',  name: 'Domdora',  stockPrice: 7, propertyIds: ['domdora_1', 'domdora_2', 'domdora_3', 'domdora_4', 'domdora_5', 'domdora_6', 'domdora_7'], playerHoldings: {} },
   cantlin:  { id: 'cantlin',  name: 'Cantlin',  stockPrice: 11, propertyIds: ['cantlin_1', 'cantlin_2', 'cantlin_3'], playerHoldings: {} },
   rimuldar: { id: 'rimuldar', name: 'Rimuldar', stockPrice: 9, propertyIds: ['rimuldar_1', 'rimuldar_2', 'rimuldar_3', 'rimuldar_4', 'rimuldar_5', 'rimuldar_6'], playerHoldings: {} },
@@ -191,7 +190,7 @@ const TORLAND_BOARD: Record<string, Node> = {
   zahan_1: { id: 'zahan_1', type: 'property', neighbors: ['zahan_2'], coordinates: { x: 8, y: 5 } },
   zahan_2: { id: 'zahan_2', type: 'property', neighbors: ['venture_south'], coordinates: { x: 7, y: 5 } },
   venture_south: { id: 'venture_south', type: 'casino', neighbors: ['zahan_3'], coordinates: { x: 6, y: 5 } },
-  zahan_3: { id: 'zahan_3', type: 'vacant', neighbors: ['moonbrooke_1'], coordinates: { x: 5, y: 5 } },
+  zahan_3: { id: 'zahan_3', type: 'boon', neighbors: ['moonbrooke_1'], coordinates: { x: 5, y: 5 } },
 
   // --- Moonbrooke (south-west) ---
   moonbrooke_1: { id: 'moonbrooke_1', type: 'property', neighbors: ['moonbrooke_2'], coordinates: { x: 4, y: 5 } },
@@ -238,7 +237,6 @@ const TORLAND_PROPERTIES: Record<string, Property> = {
 
   zahan_1: { id: 'zahan_1', nodeId: 'zahan_1', districtId: 'zahan', ownerId: null, basePrice: 300, currentPrice: 300, baseRent: 26, currentRent: 26, capitalInvested: 0, maxCapital: 600, shopMultiplier: 1 },
   zahan_2: { id: 'zahan_2', nodeId: 'zahan_2', districtId: 'zahan', ownerId: null, basePrice: 320, currentPrice: 320, baseRent: 28, currentRent: 28, capitalInvested: 0, maxCapital: 640, shopMultiplier: 1 },
-  zahan_3: { id: 'zahan_3', nodeId: 'zahan_3', districtId: 'zahan', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
 
   moonbrooke_1: { id: 'moonbrooke_1', nodeId: 'moonbrooke_1', districtId: 'moonbrooke', ownerId: null, basePrice: 240, currentPrice: 240, baseRent: 20, currentRent: 20, capitalInvested: 0, maxCapital: 480, shopMultiplier: 1 },
   moonbrooke_2: { id: 'moonbrooke_2', nodeId: 'moonbrooke_2', districtId: 'moonbrooke', ownerId: null, basePrice: 260, currentPrice: 260, baseRent: 22, currentRent: 22, capitalInvested: 0, maxCapital: 520, shopMultiplier: 1 },
@@ -259,7 +257,7 @@ const TORLAND_DISTRICTS: Record<string, District> = {
   cannock:    { id: 'cannock',    name: 'Cannock',    stockPrice: 8,  propertyIds: ['cannock_1', 'cannock_2', 'cannock_3'], playerHoldings: {} },
   hamlin:     { id: 'hamlin',     name: 'Hamlin',     stockPrice: 9,  propertyIds: ['hamlin_1', 'hamlin_2', 'hamlin_3'], playerHoldings: {} },
   beran:      { id: 'beran',      name: 'Beran',      stockPrice: 13, propertyIds: ['beran_1', 'beran_2'], playerHoldings: {} },
-  zahan:      { id: 'zahan',      name: 'Zahan',      stockPrice: 10, propertyIds: ['zahan_1', 'zahan_2', 'zahan_3'], playerHoldings: {} },
+  zahan:      { id: 'zahan',      name: 'Zahan',      stockPrice: 10, propertyIds: ['zahan_1', 'zahan_2'], playerHoldings: {} },
   moonbrooke: { id: 'moonbrooke', name: 'Moonbrooke', stockPrice: 10, propertyIds: ['moonbrooke_1', 'moonbrooke_2', 'moonbrooke_3', 'osterfair_1'], playerHoldings: {} },
   tuhn:       { id: 'tuhn',       name: 'Tuhn',       stockPrice: 8,  propertyIds: ['tuhn_1', 'tuhn_2', 'tuhn_3'], playerHoldings: {} },
   rapids:     { id: 'rapids',     name: 'Rapids',     stockPrice: 7,  propertyIds: ['rapids_1', 'rapids_2'], playerHoldings: {} },
@@ -314,7 +312,7 @@ const ALIAHAN_BOARD: Record<string, Node> = {
   club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['baharata_3'], coordinates: { x: 10, y: 4 } },
   baharata_3: { id: 'baharata_3', type: 'property', neighbors: ['venture_east'], coordinates: { x: 9, y: 4 } },
   venture_east: { id: 'venture_east', type: 'venture', neighbors: ['samanao_vac'], coordinates: { x: 8, y: 4 } },
-  samanao_vac: { id: 'samanao_vac', type: 'vacant', neighbors: ['edinbear_tax'], coordinates: { x: 7, y: 4 } },
+  samanao_vac: { id: 'samanao_vac', type: 'boom', neighbors: ['edinbear_tax'], coordinates: { x: 7, y: 4 } },
 
   // --- Jipang island (inside the east loop; warp in, warp out) ---
   jipang_in: { id: 'jipang_in', type: 'property', neighbors: ['jipang_1'], coordinates: { x: 8, y: 2 } },
@@ -355,7 +353,6 @@ const ALIAHAN_PROPERTIES: Record<string, Property> = {
   baharata_1: { id: 'baharata_1', nodeId: 'baharata_1', districtId: 'baharata', ownerId: null, basePrice: 380, currentPrice: 380, baseRent: 32, currentRent: 32, capitalInvested: 0, maxCapital: 760, shopMultiplier: 1 },
   baharata_2: { id: 'baharata_2', nodeId: 'baharata_2', districtId: 'baharata', ownerId: null, basePrice: 400, currentPrice: 400, baseRent: 34, currentRent: 34, capitalInvested: 0, maxCapital: 800, shopMultiplier: 1 },
   baharata_3: { id: 'baharata_3', nodeId: 'baharata_3', districtId: 'baharata', ownerId: null, basePrice: 420, currentPrice: 420, baseRent: 36, currentRent: 36, capitalInvested: 0, maxCapital: 840, shopMultiplier: 1 },
-  samanao_vac: { id: 'samanao_vac', nodeId: 'samanao_vac', districtId: 'baharata', ownerId: null, basePrice: 200, currentPrice: 200, baseRent: 0, currentRent: 0, capitalInvested: 0, maxCapital: 0, shopMultiplier: 1, buildingType: 'vacant', checkpointToll: 200, circusLevel: 0 },
 
   jipang_in: { id: 'jipang_in', nodeId: 'jipang_in', districtId: 'jipang', ownerId: null, basePrice: 450, currentPrice: 450, baseRent: 38, currentRent: 38, capitalInvested: 0, maxCapital: 900, shopMultiplier: 1 },
   jipang_1: { id: 'jipang_1', nodeId: 'jipang_1', districtId: 'jipang', ownerId: null, basePrice: 550, currentPrice: 550, baseRent: 47, currentRent: 47, capitalInvested: 0, maxCapital: 1100, shopMultiplier: 1 },
@@ -369,7 +366,7 @@ const ALIAHAN_DISTRICTS: Record<string, District> = {
   romaly:   { id: 'romaly',   name: 'Romaly',   stockPrice: 10, propertyIds: ['romaly_1', 'romaly_2', 'roma_road_1', 'roma_road_2'], playerHoldings: {} },
   isis:     { id: 'isis',     name: 'Isis',     stockPrice: 11, propertyIds: ['isis_1', 'isis_2', 'isis_3'], playerHoldings: {} },
   portoga:  { id: 'portoga',  name: 'Portoga',  stockPrice: 14, propertyIds: ['portoga_1', 'portoga_2'], playerHoldings: {} },
-  baharata: { id: 'baharata', name: 'Baharata', stockPrice: 14, propertyIds: ['baharata_1', 'baharata_2', 'baharata_3', 'samanao_vac'], playerHoldings: {} },
+  baharata: { id: 'baharata', name: 'Baharata', stockPrice: 14, propertyIds: ['baharata_1', 'baharata_2', 'baharata_3'], playerHoldings: {} },
   jipang:   { id: 'jipang',   name: 'Jipang',   stockPrice: 22, propertyIds: ['jipang_in', 'jipang_1', 'jipang_2'], playerHoldings: {} },
 };
 

@@ -540,7 +540,7 @@ test('landing on a tax_office square pays 5% of net worth to the bank and auto-a
 
 // ─── Take-a-break square ──────────────────────────────────────────────────────
 
-test('landing on a break square grants roll×20G and auto-advances the turn', () => {
+test('landing on a break square shuts your shops until your next turn', () => {
   const board: Record<string, Node> = {
     bank: { id: 'bank', type: 'bank', neighbors: ['rest1'], coordinates: { x: 0, y: 0 } },
     rest1: { id: 'rest1', type: 'break', neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
@@ -553,16 +553,64 @@ test('landing on a break square grants roll×20G and auto-advances the turn', ()
     },
   });
 
-  // Math.random = 0 → movement roll 1 AND break gift roll 1 (20G)
   const origRandom = Math.random;
-  Math.random = () => 0;
+  Math.random = () => 0;  // movement roll 1
   try {
     const next = applyAction(state, { type: 'ROLL_DICE' });
     assert.equal(next.players.p1.currentNodeId, 'rest1');
-    assert.equal(next.players.p1.cash, 1020);          // 1 × 20G gift
-    assert.equal(next.currentPlayerId, 'p2');          // auto-resolved
-    assert.equal(next.currentPhase, 'PRE_ROLL');
+    assert.equal(next.players.p1.cash, 1000);                          // no gift — authentic rule
+    assert.equal(next.players.p1.shopsClosedUntilNextTurn, true);      // shops shut
+    assert.equal(next.currentPlayerId, 'p2');                          // auto-resolved
     assert.ok(next.log.some(l => l.includes('[BREAK]')));
+
+    // The closure lifts when p1's next turn starts
+    const back = applyAction({ ...next, currentPhase: 'SPACE_ACTION', players: { ...next.players, p2: { ...next.players.p2, currentNodeId: 'bank' } } }, { type: 'END_TURN' });
+    assert.equal(back.currentPlayerId, 'p1');
+    assert.equal(back.players.p1.shopsClosedUntilNextTurn, false);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('boon and boom squares grant 20%/50% commission until next turn', () => {
+  for (const [type, pct] of [['boon', 20], ['boom', 50]] as const) {
+    const board: Record<string, Node> = {
+      bank: { id: 'bank', type: 'bank', neighbors: ['c1'], coordinates: { x: 0, y: 0 } },
+      c1: { id: 'c1', type, neighbors: ['bank'], coordinates: { x: 1, y: 0 } },
+    };
+    const state = makeState({ board });
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const next = applyAction(state, { type: 'ROLL_DICE' });
+      assert.equal(next.players.p1.commissionUntilNextTurn, pct, `${type} commission`);
+      assert.equal(next.currentPlayerId, 'p2');  // auto-resolved
+      assert.ok(next.log.some(l => l.includes(`[${type.toUpperCase()}]`)));
+    } finally {
+      Math.random = origRandom;
+    }
+  }
+});
+
+test('landing on the bank clears arrival memory (free direction next turn)', () => {
+  const board: Record<string, Node> = {
+    a: { id: 'a', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 0 } },
+    bank: { id: 'bank', type: 'bank', neighbors: ['a', 'c'], coordinates: { x: 1, y: 0 } },
+    c: { id: 'c', type: 'property', neighbors: ['bank'], coordinates: { x: 2, y: 0 } },
+  };
+  const state = makeState({
+    board,
+    players: {
+      p1: makePlayer('p1', { currentNodeId: 'a' }),
+      p2: makePlayer('p2', { currentNodeId: 'c' }),
+    },
+  });
+  const origRandom = Math.random;
+  Math.random = () => 0;  // roll 1 → land on bank
+  try {
+    const next = applyAction(state, { type: 'ROLL_DICE' });
+    assert.equal(next.players.p1.currentNodeId, 'bank');
+    assert.equal(next.players.p1.arrivedFromNodeId, undefined);  // privilege granted
   } finally {
     Math.random = origRandom;
   }
@@ -575,7 +623,7 @@ test('roll cannot start back the way the player arrived', () => {
   const board: Record<string, Node> = {
     a: { id: 'a', type: 'property', neighbors: ['b'], coordinates: { x: 0, y: 0 } },
     b: { id: 'b', type: 'property', neighbors: ['a', 'c'], coordinates: { x: 1, y: 0 } },
-    c: { id: 'c', type: 'bank', neighbors: ['b'], coordinates: { x: 2, y: 0 } },
+    c: { id: 'c', type: 'stockbroker', neighbors: ['b'], coordinates: { x: 2, y: 0 } },
   };
   const state = makeState({
     board,

@@ -36,7 +36,7 @@ export interface VentureCard {
 
 export interface Node {
   id: string;
-  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break' | 'casino';
+  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break' | 'casino' | 'boon' | 'boom';
   neighbors: string[];
   coordinates: { x: number; y: number };
   pairedNodeId?: string;

@@ -230,18 +230,32 @@ function resolveSpace(state: GameState): GameState {
   }
 
   if (node.type === 'break') {
-    // Take-a-break square: roll a die, pocket roll × 20G from the bank, rest up.
-    const roll = Math.floor(Math.random() * 6) + 1;
-    const gift = roll * 20;
+    // Take-a-break: your shops shut until your next turn (the authentic rule
+    // — landing here is a rest day for your whole empire).
     const s: GameState = {
       ...state,
       players: {
         ...state.players,
-        [player.id]: { ...player, cash: player.cash + gift },
+        [player.id]: { ...player, shopsClosedUntilNextTurn: true },
       },
-      log: [...state.log, `[BREAK] ${player.name} takes a break at ${node.id}, rolls a ${roll} and pockets ${gift}G!`],
+      log: [...state.log, `[BREAK] ${player.name} takes a break at ${node.id} — all their shops shut until their next turn!`],
     };
-    return advanceSpaceResolution(recalcAllNetWorths(s));
+    return advanceSpaceResolution(s);
+  }
+
+  if (node.type === 'boon' || node.type === 'boom') {
+    // Commission squares: a cut of every payment anyone makes until your
+    // next turn — 20% on Boon, 50% on Boom.
+    const pct = node.type === 'boom' ? 50 : 20;
+    const s: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        [player.id]: { ...player, commissionUntilNextTurn: pct },
+      },
+      log: [...state.log, `[${node.type.toUpperCase()}] ${player.name} lands on the ${node.type} square — ${pct}% commission on all payments until their next turn!`],
+    };
+    return advanceSpaceResolution(s);
   }
 
   if (node.type === 'tax_office') {
@@ -313,8 +327,16 @@ function resolveSpace(state: GameState): GameState {
   }
 
   if (node.type === 'bank') {
+    // Landing on the bank grants a free choice of direction next turn
+    // (the no-walk-back rule doesn't apply when leaving the bank).
+    let s: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        [player.id]: { ...player, arrivedFromNodeId: undefined },
+      },
+    };
     // Auto-collect salary if all 4 suits held — must happen before win check.
-    let s = state;
     const { suits } = player;
     if (suits.heart && suits.diamond && suits.club && suits.spade) {
       s = collectSalary(s, player.id);

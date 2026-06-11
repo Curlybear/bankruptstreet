@@ -340,6 +340,27 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       casinoLabel.anchor.set(0.5, 0.5);
       casinoLabel.position.set(px, py + 12);
       camera.addChild(casinoLabel);
+    } else if (node.type === 'boon' || node.type === 'boom') {
+      const isBoom = node.type === 'boom';
+      g.circle(px, py, 24).fill({ color: isBoom ? 0x7c2d12 : 0x14532d });
+      g.circle(px, py, 24).stroke({ color: isBoom ? 0xfb923c : 0x4ade80, width: 2.5, alpha: 0.9 });
+      camera.addChild(g);
+
+      const icon = new Text({
+        text: isBoom ? '💰' : '🍀',
+        style: new TextStyle({ fontSize: 15 }),
+      });
+      icon.anchor.set(0.5, 0.5);
+      icon.position.set(px, py - 4);
+      camera.addChild(icon);
+
+      const lbl = new Text({
+        text: isBoom ? 'BOOM 50%' : 'BOON 20%',
+        style: new TextStyle({ fontSize: 7, fill: isBoom ? 0xfed7aa : 0xbbf7d0, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 0.5 }),
+      });
+      lbl.anchor.set(0.5, 0.5);
+      lbl.position.set(px, py + 11);
+      camera.addChild(lbl);
     } else if (node.type === 'break') {
       g.circle(px, py, 24).fill({ color: 0x0f3d3e }); // Calm teal — rest stop
       g.circle(px, py, 24).stroke({ color: 0x2dd4bf, width: 2, alpha: 0.8 });

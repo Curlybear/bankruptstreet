@@ -41,7 +41,9 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 | ♥ **Suit** | Gain the suit **and** draw a venture card |
 | ❓ **Venture** | Draw a venture card from the 8×8 grid |
 | 🏛️ **Tax office** | Pay 5% of your net worth to the bank |
-| ☕ **Take-a-break** | Roll a die, pocket roll × 20G |
+| ☕ **Take-a-break** | All YOUR shops shut until your next turn |
+| 🍀 **Boon** | Collect 20% of every payment anyone makes until your next turn |
+| 💰 **Boom** | Same, but 50% |
 | 🎰 **Casino** | Wager 10–500G on a minigame (one bet per visit), or walk away |
 | 🌀 **Warp** | Teleport to the paired square and keep moving |
 | 🏗️ **Vacant plot** | Unowned: build on it. See Buildings |
