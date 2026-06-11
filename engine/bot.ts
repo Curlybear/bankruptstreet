@@ -1,4 +1,5 @@
 import { CHARACTERS, DEFAULT_PERSONALITY, type BotPersonality } from '../shared/characters.js';
+import { auctionMinBid, auctionBidders } from '../engine/economy.js';
 import type { GameState, Action } from '../shared/types.js';
 
 // Purchase price tracking for sell-on-drop logic (rule 1).
@@ -93,6 +94,28 @@ export function greedyBotAction(state: GameState, botPlayerId: string): Action {
   const player = state.players[botPlayerId];
   const phase = state.currentPhase;
   const personality = personalityOf(state, botPlayerId);
+
+  // Live auction: bid while the price is below what the shop is worth to us,
+  // otherwise fold. (Callers route this for any eligible bidder, not just
+  // the current player.)
+  if (state.auction) {
+    const a = state.auction;
+    const eligible = botPlayerId !== a.sellerId && !player.isBankrupt
+      && !a.passed[botPlayerId] && a.highBid?.playerId !== botPlayerId;
+    if (eligible) {
+      const prop = state.properties[a.propertyId];
+      const district = state.districts[prop.districtId];
+      const ownedInDistrict = district.propertyIds
+        .filter(pid => state.properties[pid]?.ownerId === botPlayerId).length;
+      // Worth up to ~95% of value — 120% when it grows our district presence.
+      const maxWilling = Math.floor(prop.currentPrice * (ownedInDistrict > 0 ? 1.2 : 0.95));
+      const minBid = auctionMinBid(state);
+      if (minBid <= maxWilling && minBid <= player.cash - personality.cashReserve) {
+        return { type: 'AUCTION_BID', playerId: botPlayerId, amount: minBid };
+      }
+      return { type: 'AUCTION_PASS', playerId: botPlayerId };
+    }
+  }
 
   // Pending end-game vote (only reachable for sim-driven players — server
   // bots are isBot and ineligible): always vote to keep playing, which

@@ -262,6 +262,7 @@ export default function App() {
   const [stockQty, setStockQty] = useState<Record<string, number>>({});
   const [debtSellQty, setDebtSellQty] = useState<Record<string, number>>({});
   const [casinoWager, setCasinoWager] = useState(100);
+  const [auctionBid, setAuctionBid] = useState<number | null>(null);
   const [diceAnim, setDiceAnim] = useState<{ roll: number; key: number } | null>(null);
   const [sfxOn, setSfxOn] = useState(!isMuted());
   const prevRollSigRef = useRef('');
@@ -2791,6 +2792,149 @@ export default function App() {
 
       {/* 4. Game Over Overlay Screen */}
       {diceAnim && <DiceOverlay key={diceAnim.key} roll={diceAnim.roll} />}
+
+      {/* Live auction: debt sale or forced-auction venture card */}
+      {state.auction && !state.winnerId && (() => {
+        const a = state.auction!;
+        const prop = state.properties[a.propertyId];
+        const seller = state.players[a.sellerId];
+        const value = prop?.currentPrice ?? 0;
+        const minBid = a.highBid ? a.highBid.amount + Math.max(10, Math.floor(value * 0.05)) : a.reservePrice;
+        const me = state.players[PLAYER_ID];
+        const iAmSeller = PLAYER_ID === a.sellerId;
+        const iPassed = !!a.passed[PLAYER_ID];
+        const iAmHigh = a.highBid?.playerId === PLAYER_ID;
+        const canAct = me && !iAmSeller && !me.isBankrupt && !iPassed && !iAmHigh;
+        const myBid = Math.max(minBid, Math.min(auctionBid ?? minBid, me?.cash ?? 0));
+        const bidders = state.turnOrder.filter(pid => pid !== a.sellerId && !state.players[pid].isBankrupt);
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 3, 8, 0.88)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            zIndex: 150,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{
+              background: 'rgba(12, 12, 26, 0.9)',
+              border: '1px solid rgba(250, 204, 21, 0.35)',
+              borderRadius: 20,
+              padding: '28px 32px',
+              maxWidth: 500,
+              width: '100%',
+              textAlign: 'center',
+              fontFamily: "'Outfit', sans-serif",
+              color: '#f1f5f9',
+              boxShadow: '0 0 50px rgba(250, 204, 21, 0.15)',
+            }} className="animate-slide-up">
+              <div style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '2.5px', color: '#fde047',
+                textTransform: 'uppercase', fontFamily: "'Unbounded', sans-serif", marginBottom: 8,
+              }}>
+                🔨 {a.context === 'debt' ? 'Debt Auction' : 'Forced Auction'}
+              </div>
+              <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 2 }}>
+                {prop?.nodeId} <span style={{ color: districtColorHex(prop?.districtId ?? '', state.districts), fontSize: 13 }}>
+                  {state.districts[prop?.districtId ?? '']?.name}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+                {seller?.name} is selling · value <strong style={{ color: '#cbd5e1' }}>{g(value)}</strong> · rent {g(prop?.currentRent ?? 0)}
+                {a.bankFloor !== undefined && <> · bank floor <strong style={{ color: '#fb7185' }}>{g(a.bankFloor)}</strong></>}
+              </div>
+
+              <div style={{
+                borderRadius: 12,
+                background: 'rgba(250, 204, 21, 0.05)',
+                border: '1px solid rgba(250, 204, 21, 0.2)',
+                padding: '10px 16px',
+                marginBottom: 12,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>
+                {a.highBid ? (
+                  <>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>HIGH BID </span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#fde047' }}>{g(a.highBid.amount)}</span>
+                    <span style={{ fontSize: 11, color: '#cbd5e1' }}> — {state.players[a.highBid.playerId]?.name}</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>OPENING BID </span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#fde047' }}>{g(a.reservePrice)}</span>
+                  </>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 14, fontSize: 10.5 }}>
+                {bidders.map(pid => {
+                  const status = a.highBid?.playerId === pid ? 'winning' : a.passed[pid] ? 'passed' : 'thinking…';
+                  return (
+                    <span key={pid} style={{
+                      padding: '3px 10px', borderRadius: 10,
+                      background: status === 'winning' ? 'rgba(250, 204, 21, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                      border: `1px solid ${status === 'winning' ? 'rgba(250, 204, 21, 0.4)' : 'rgba(255, 255, 255, 0.07)'}`,
+                      color: status === 'winning' ? '#fde047' : status === 'passed' ? '#64748b' : '#cbd5e1',
+                      fontWeight: 700,
+                    }}>
+                      {state.players[pid]?.name}: {status}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {canAct ? (
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    min={minBid}
+                    max={me.cash}
+                    value={myBid}
+                    onChange={e => setAuctionBid(parseInt(e.target.value, 10) || minBid)}
+                    style={{
+                      width: 90, padding: '8px 10px', borderRadius: 10,
+                      border: '1px solid rgba(250, 204, 21, 0.3)', background: 'rgba(0, 0, 0, 0.35)',
+                      color: '#f8fafc', fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
+                    }}
+                  />
+                  <button
+                    onClick={() => { emitAction({ type: 'AUCTION_BID', playerId: PLAYER_ID, amount: myBid }); setAuctionBid(null); }}
+                    disabled={myBid > me.cash || myBid < minBid}
+                    style={{
+                      padding: '10px 22px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)',
+                      color: '#190f00', fontSize: 13, fontWeight: 900,
+                      opacity: myBid > me.cash ? 0.5 : 1,
+                    }}
+                  >
+                    🔨 Bid {g(myBid)}
+                  </button>
+                  <button
+                    onClick={() => emitAction({ type: 'AUCTION_PASS', playerId: PLAYER_ID })}
+                    style={{
+                      padding: '10px 22px', borderRadius: 12, cursor: 'pointer',
+                      background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#cbd5e1', fontSize: 13, fontWeight: 700,
+                    }}
+                  >
+                    Pass
+                  </button>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                  {iAmSeller ? 'Your shop is on the block — the table decides…'
+                    : iAmHigh ? `You're winning at ${g(a.highBid!.amount)} — waiting on the others…`
+                    : iPassed ? 'You folded. Watching the hammer…'
+                    : 'Waiting for the bidders…'}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* End-game vote: a bankruptcy didn't end the game — unanimous call to stop */}
       {state.endVote && !state.winnerId && (() => {

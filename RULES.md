@@ -107,7 +107,7 @@ Wagers run 10–500G and you can always walk away without betting.
 
 ## Debt & Bankruptcy
 
-If your cash drops below zero, you enter **debt settlement**: choose any mix of your stocks (sold at market price) and shops (distress sale at **75% of value**) to sell until the debt is covered — nothing is sold automatically on your behalf. You may sell more than you owe if you want out of a position entirely. If even selling everything couldn't cover the debt, you're **bankrupt and eliminated**.
+If your cash drops below zero, you enter **debt settlement**: choose any mix of your stocks (sold at market price) and shops to sell until the debt is covered — nothing is sold automatically on your behalf. **Shops sold in debt go to auction**: the other players bid (opening bid just above the bank's offer), the winning bid is paid to you in full — and if nobody bids, the bank buys at **75% of value**. You may sell more than you owe if you want out of a position entirely. If even selling everything couldn't cover the debt, you're **bankrupt and eliminated**.
 
 **When the game ends** is set at room creation (*Ends After*): after **1 bankruptcy** (default, the classic rule), **2 bankruptcies**, or **last player standing**. When the limit is reached — or a player reaches the target — the game ends; on a bankruptcy ending, the richest surviving player wins.
 

@@ -116,6 +116,8 @@ function actionLabel(action: ReturnType<typeof greedyBotAction>): string {
     case 'SELL_PROPERTY': return `SELL_PROPERTY ${action.propertyId} (distress)`;
     case 'CASINO_BET':    return `CASINO_BET ${action.wager}g on ${action.game} (${action.choice})`;
     case 'VOTE_END':      return `VOTE_END ${action.vote ? 'end game' : 'keep playing'} (${action.playerId})`;
+    case 'AUCTION_BID':   return `AUCTION_BID ${action.amount}g (${action.playerId})`;
+    case 'AUCTION_PASS':  return `AUCTION_PASS (${action.playerId})`;
     case 'END_TURN':      return 'END_TURN';
   }
 }
@@ -132,7 +134,13 @@ while (!state.winnerId && state.round <= MAX_ROUNDS && actionCount < MAX_ACTIONS
     console.log(`\n═══ Round ${state.round} ═══`);
   }
 
-  const pid = state.currentPlayerId;
+  // During an auction the actor is the next undecided bidder.
+  const auctionActor = state.auction
+    ? state.turnOrder.find(x =>
+        x !== state.auction!.sellerId && !state.players[x].isBankrupt
+        && !state.auction!.passed[x] && state.auction!.highBid?.playerId !== x)
+    : undefined;
+  const pid = auctionActor ?? state.currentPlayerId;
   const player = state.players[pid];
   const phase = state.currentPhase;
 

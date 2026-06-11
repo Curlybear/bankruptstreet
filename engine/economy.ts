@@ -728,6 +728,142 @@ export function distressSellProperty(state: GameState, playerId: string, propert
   });
 }
 
+// ─── Auctions ─────────────────────────────────────────────────────────────────
+
+// Eligible bidders: alive players other than the seller.
+export function auctionBidders(state: GameState): string[] {
+  const a = state.auction;
+  if (!a) return [];
+  return state.turnOrder.filter(pid => pid !== a.sellerId && !state.players[pid].isBankrupt);
+}
+
+// Minimum next bid: the reserve, or the high bid plus a 5%-of-value step.
+export function auctionMinBid(state: GameState): number {
+  const a = state.auction!;
+  const value = state.properties[a.propertyId]?.currentPrice ?? 0;
+  if (!a.highBid) return a.reservePrice;
+  return a.highBid.amount + Math.max(10, Math.floor(value * 0.05));
+}
+
+export function openAuction(
+  state: GameState,
+  propertyId: string,
+  sellerId: string,
+  context: 'debt' | 'venture',
+): GameState {
+  const prop = state.properties[propertyId];
+  const seller = state.players[sellerId];
+  if (!prop) throw new Error(`Property ${propertyId} not found`);
+  if (prop.ownerId !== sellerId) throw new Error(`Player does not own property ${propertyId}`);
+
+  const value = prop.currentPrice;
+  const bankFloor = context === 'debt' ? Math.floor(value * DISTRESS_SALE_RATE) : undefined;
+  const reservePrice = context === 'debt' ? (bankFloor! + 10) : value * 2;
+
+  const s: GameState = {
+    ...state,
+    auction: { propertyId, sellerId, reservePrice, bankFloor, passed: {}, context },
+    log: [...state.log,
+      context === 'debt'
+        ? `[AUCTION] ${seller.name} puts the shop at ${prop.nodeId} up for auction! Bank floor ${bankFloor}G — bids from ${reservePrice}G.`
+        : `[AUCTION] ${seller.name} is forced to auction the shop at ${prop.nodeId}! Bidding starts at ${reservePrice}G (twice its value).`],
+  };
+  // Nobody can bid (everyone else bankrupt)? Resolve immediately.
+  return maybeResolveAuction(s);
+}
+
+export function applyAuctionBid(state: GameState, playerId: string, amount: number): GameState {
+  const a = state.auction;
+  if (!a) throw new Error(`No auction in progress`);
+  const bidder = state.players[playerId];
+  if (!bidder) throw new Error(`Player ${playerId} not found`);
+  if (playerId === a.sellerId) throw new Error(`The seller cannot bid`);
+  if (bidder.isBankrupt) throw new Error(`Eliminated players cannot bid`);
+  if (a.passed[playerId]) throw new Error(`You have already passed — passing is final`);
+  if (!Number.isInteger(amount)) throw new Error(`Bid must be an integer`);
+  const minBid = auctionMinBid(state);
+  if (amount < minBid) throw new Error(`Bid must be at least ${minBid}G`);
+  if (amount > bidder.cash) throw new Error(`Cannot bid more than your cash (${bidder.cash}G)`);
+
+  const s: GameState = {
+    ...state,
+    auction: { ...a, highBid: { playerId, amount } },
+    log: [...state.log, `[AUCTION] ${bidder.name} bids ${amount}G!`],
+  };
+  return maybeResolveAuction(s);
+}
+
+export function applyAuctionPass(state: GameState, playerId: string): GameState {
+  const a = state.auction;
+  if (!a) throw new Error(`No auction in progress`);
+  const player = state.players[playerId];
+  if (!player) throw new Error(`Player ${playerId} not found`);
+  if (playerId === a.sellerId) throw new Error(`The seller does not bid`);
+  if (a.passed[playerId]) return state;  // double-pass is a no-op
+  if (a.highBid?.playerId === playerId) throw new Error(`The high bidder cannot pass`);
+
+  const s: GameState = {
+    ...state,
+    auction: { ...a, passed: { ...a.passed, [playerId]: true } },
+    log: [...state.log, `[AUCTION] ${player.name} passes.`],
+  };
+  return maybeResolveAuction(s);
+}
+
+// Resolve once every eligible bidder has either passed or holds the high bid.
+function maybeResolveAuction(state: GameState): GameState {
+  const a = state.auction;
+  if (!a) return state;
+  const undecided = auctionBidders(state).filter(
+    pid => !a.passed[pid] && a.highBid?.playerId !== pid,
+  );
+  if (undecided.length > 0) return state;
+
+  const prop = state.properties[a.propertyId];
+  const seller = state.players[a.sellerId];
+  let s: GameState = { ...state, auction: null, log: [...state.log] };
+
+  if (a.highBid) {
+    // Sold to the high bidder: full amount to the seller.
+    const { playerId: winnerId, amount } = a.highBid;
+    const winner = s.players[winnerId];
+    s.players = {
+      ...s.players,
+      [winnerId]: {
+        ...winner,
+        cash: winner.cash - amount,
+        propertyIds: [...winner.propertyIds, a.propertyId],
+      },
+      [a.sellerId]: {
+        ...seller,
+        cash: seller.cash + amount,
+        propertyIds: seller.propertyIds.filter(id => id !== a.propertyId),
+      },
+    };
+    s.properties = { ...s.properties, [a.propertyId]: { ...prop, ownerId: winnerId } };
+    s.log.push(`[AUCTION] Sold! ${winner.name} wins the shop at ${prop.nodeId} for ${amount}G.`);
+  } else if (a.bankFloor !== undefined) {
+    // Debt sale with no takers: the bank buys at the 75% floor.
+    s.players = {
+      ...s.players,
+      [a.sellerId]: {
+        ...seller,
+        cash: seller.cash + a.bankFloor,
+        propertyIds: seller.propertyIds.filter(id => id !== a.propertyId),
+      },
+    };
+    s.properties = { ...s.properties, [a.propertyId]: { ...prop, ownerId: null } };
+    s.log.push(`[AUCTION] No bids — the bank buys the shop at ${prop.nodeId} for ${a.bankFloor}G (75% of value).`);
+  } else {
+    s.log.push(`[AUCTION] No bids — the shop at ${prop.nodeId} stays with ${seller.name}.`);
+  }
+
+  const district = s.districts[prop.districtId];
+  s.properties = recalcDistrictMultipliers(district, s.properties, s.players);
+  s.districts = { ...s.districts, [prop.districtId]: { ...district, stockPrice: recalcStockPrice(district, s.properties) } };
+  return recalcAllNetWorths(s);
+}
+
 // Max gold a player could raise by selling everything: stock at current
 // prices plus shops at the 75% distress rate.
 export function maxRaisable(state: GameState, playerId: string): number {
@@ -1487,6 +1623,12 @@ export const VENTURE_CARDS_LIST: Omit<VentureCard, 'number'>[] = [
     text: 'Capital venture! The bank invests 400G of its own money in your shops.',
     payout: 400,
     effectType: 'FREE_CAPITAL'
+  },
+  {
+    title: 'Forced Auction',
+    text: 'Misadventure! You are forced to auction your best shop — bidding starts at twice its value.',
+    payout: 0,
+    effectType: 'FORCED_AUCTION'
   }
 ];
 
@@ -2157,6 +2299,21 @@ export function resolveVentureCard(state: GameState, playerId: string, cardIndex
       const half = Math.floor((BASE_SALARY + Math.floor(shopValue * 0.10) + (p.level * PROMO_BONUS_PER_LEVEL)) / 2);
       s.players[playerId] = { ...p, cash: p.cash + half };
       s.log.push(`[VENTURE EFFECT] ${p.name} receives half a salary: ${half}G!`);
+      break;
+    }
+
+    case 'FORCED_AUCTION': {
+      const p = s.players[playerId];
+      const shops = p.propertyIds
+        .map(pid => s.properties[pid])
+        .filter((pr): pr is Property => !!pr)
+        .sort((a, b) => b.currentPrice - a.currentPrice);
+      if (shops.length === 0) {
+        s.log.push(`[VENTURE EFFECT] ${p.name} owns no shops — nothing to auction.`);
+        break;
+      }
+      // Reserve is 2x value, so auctioning the best shop maximizes the windfall.
+      s = openAuction(s, shops[0].id, playerId, 'venture');
       break;
     }
 

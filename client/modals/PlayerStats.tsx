@@ -41,6 +41,7 @@ const LOG_TAG_STYLE: Record<string, { color: string; icon: string }> = {
   'VENTURE EFFECT': { color: '#facc15', icon: '🔮' },
   'VENTURE LINE': { color: '#facc15', icon: '🎰' },
   CASINO: { color: '#facc15', icon: '🎰' },
+  AUCTION: { color: '#fde047', icon: '🔨' },
   DEBT: { color: '#f43f5e', icon: '⚠️' },
   DISTRESS: { color: '#f43f5e', icon: '🚨' },
   BANKRUPT: { color: '#f43f5e', icon: '💀' },
@@ -49,7 +50,7 @@ const LOG_TAG_STYLE: Record<string, { color: string; icon: string }> = {
 
 // Feed filter categories: tag prefix → bucket.
 type FeedFilter = 'all' | 'money' | 'market' | 'moves';
-const MONEY_TAGS = ['BUY', 'BUYOUT', 'INVEST', 'RENT', 'DIVIDEND', 'COMMISSION', 'SALARY', 'TAX', 'TAX BONUS', 'DISTRESS', 'DEBT', 'BANKRUPT', 'BOON', 'BOOM'];
+const MONEY_TAGS = ['BUY', 'BUYOUT', 'INVEST', 'RENT', 'DIVIDEND', 'COMMISSION', 'SALARY', 'TAX', 'TAX BONUS', 'DISTRESS', 'DEBT', 'BANKRUPT', 'BOON', 'BOOM', 'AUCTION'];
 const MARKET_TAGS = ['STOCK', 'VENTURE', 'VENTURE CARD', 'VENTURE EFFECT', 'VENTURE LINE', 'CASINO', 'BREAK', 'WIN'];
 
 function feedCategory(msg: string): Exclude<FeedFilter, 'all'> {

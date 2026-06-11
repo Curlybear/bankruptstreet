@@ -24,6 +24,20 @@ function bump(map: Map<string, Tally>, key: string, won: boolean) {
   map.set(key, t);
 }
 
+
+// During an auction, actions come from undecided bidders, not the current player.
+function nextActorId(state: GameState): string {
+  if (state.auction) {
+    const a = state.auction;
+    const undecided = state.turnOrder.find(pid =>
+      pid !== a.sellerId && !state.players[pid].isBankrupt
+      && !a.passed[pid] && a.highBid?.playerId !== pid,
+    );
+    if (undecided) return undecided;
+  }
+  return state.currentPlayerId;
+}
+
 function shuffled<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -59,7 +73,8 @@ for (const boardId of Object.keys(BOARDS)) {
 
     let actions = 0;
     while (!state.winnerId && state.round <= ROUND_CAP && actions++ < ACTION_CAP) {
-      state = applyAction(state, greedyBotAction(state, state.currentPlayerId));
+      const actor = nextActorId(state);
+      state = applyAction(state, greedyBotAction(state, actor));
     }
 
     if (!state.winnerId) {

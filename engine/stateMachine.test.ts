@@ -785,7 +785,7 @@ test('DEBT_SETTLEMENT: END_TURN throws while still in debt', () => {
   assert.throws(() => applyAction(state, { type: 'ROLL_DICE' }), /DEBT_SETTLEMENT/);
 });
 
-test('DEBT_SETTLEMENT: SELL_PROPERTY distress-sells at 75%', () => {
+test('DEBT_SETTLEMENT: SELL_PROPERTY opens an auction; bank floor applies when all pass', () => {
   const prop: Property = {
     id: 'prop1', nodeId: 'prop1', districtId: 'd1', ownerId: 'p1',
     basePrice: 100, currentPrice: 100, baseRent: 20, currentRent: 20,
@@ -805,12 +805,59 @@ test('DEBT_SETTLEMENT: SELL_PROPERTY distress-sells at 75%', () => {
     districts: { d1: district },
   });
 
-  const next = applyAction(state, { type: 'SELL_PROPERTY', propertyId: 'prop1' });
+  const opened = applyAction(state, { type: 'SELL_PROPERTY', propertyId: 'prop1' });
+  assert.ok(opened.auction, 'an auction must open');
+  assert.equal(opened.auction!.bankFloor, 75);
+  assert.equal(opened.players.p1.cash, -50);            // nothing sold yet
 
-  assert.equal(next.players.p1.cash, 25);               // -50 + 75
-  assert.equal(next.properties.prop1.ownerId, null);
-  assert.equal(next.players.p1.propertyIds.length, 0);
-  assert.equal(next.players.p1.isBankrupt, false);
+  // Other actions are paused while the auction runs
+  assert.throws(() => applyAction(opened, { type: 'END_TURN' }), /auction is in progress/);
+
+  // p2 passes → bank takes it at the 75% floor
+  const resolved = applyAction(opened, { type: 'AUCTION_PASS', playerId: 'p2' });
+  assert.equal(resolved.auction ?? null, null);
+  assert.equal(resolved.players.p1.cash, 25);           // -50 + 75
+  assert.equal(resolved.properties.prop1.ownerId, null);
+  assert.equal(resolved.players.p1.propertyIds.length, 0);
+});
+
+test('debt auction: a rival bid beats the bank floor and transfers the shop', () => {
+  const prop: Property = {
+    id: 'prop1', nodeId: 'prop1', districtId: 'd1', ownerId: 'p1',
+    basePrice: 100, currentPrice: 100, baseRent: 20, currentRent: 20,
+    capitalInvested: 0, maxCapital: 300, shopMultiplier: 1,
+  };
+  const district: District = {
+    id: 'd1', name: 'D1', stockPrice: 4, propertyIds: ['prop1'], playerHoldings: {},
+  };
+  const state = makeState({
+    currentPhase: 'DEBT_SETTLEMENT',
+    debtResume: 'ADVANCE_TURN',
+    players: {
+      p1: makePlayer('p1', { cash: -50, netWorth: 50, propertyIds: ['prop1'] }),
+      p2: makePlayer('p2'),
+      p3: makePlayer('p3'),
+    },
+    turnOrder: ['p1', 'p2', 'p3'],
+    properties: { prop1: prop },
+    districts: { d1: district },
+  });
+
+  const opened = applyAction(state, { type: 'SELL_PROPERTY', propertyId: 'prop1' });
+  assert.ok(opened.auction);
+
+  // Bids below the reserve are rejected
+  assert.throws(() => applyAction(opened, { type: 'AUCTION_BID', playerId: 'p2', amount: 50 }), /at least/);
+
+  const bid = applyAction(opened, { type: 'AUCTION_BID', playerId: 'p2', amount: 95 });
+  assert.equal(bid.auction!.highBid?.amount, 95);
+
+  const done = applyAction(bid, { type: 'AUCTION_PASS', playerId: 'p3' });
+  assert.equal(done.auction ?? null, null);
+  assert.equal(done.players.p1.cash, 45);               // -50 + 95 (full bid to seller)
+  assert.equal(done.players.p2.cash, 1000 - 95);
+  assert.equal(done.properties.prop1.ownerId, 'p2');
+  assert.ok(done.players.p2.propertyIds.includes('prop1'));
 });
 
 test('SELL_PROPERTY is illegal outside DEBT_SETTLEMENT', () => {

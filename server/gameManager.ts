@@ -276,6 +276,18 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
       break;
     }
 
+    case 'AUCTION_BID':
+    case 'AUCTION_PASS': {
+      deltas.push({
+        type: 'AUCTION_UPDATED',
+        payload: {
+          playerId: action.playerId,
+          resolved: !after.auction,
+        }
+      });
+      break;
+    }
+
     case 'VOTE_END': {
       deltas.push({
         type: 'END_VOTE_UPDATED',

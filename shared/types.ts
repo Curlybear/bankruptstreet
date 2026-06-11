@@ -39,7 +39,8 @@ export interface VentureCard {
     | 'SWAP_OTHERS'              // all other players swap places
     | 'MOVE_RESTRICTION'         // all others' next roll is forced to `payout`
     | 'HALF_SALARY'              // receive half a salary (no promotion)
-    | 'SUDDEN_PROMOTION';        // full salary + level up; suits reset
+    | 'SUDDEN_PROMOTION'         // full salary + level up; suits reset
+    | 'FORCED_AUCTION';          // auction the drawer's best shop, reserve 2x value
   targetId?: string; // districtId, suit, etc.
 }
 
@@ -135,6 +136,8 @@ export type Action =
   | { type: 'SELL_PROPERTY'; propertyId: string }  // distress sale at 75%, DEBT_SETTLEMENT only
   | { type: 'CASINO_BET'; game: CasinoGame; wager: number; choice: string }  // casino node, one bet per visit
   | { type: 'VOTE_END'; playerId: string; vote: boolean }  // end-game vote (any alive human, any time during a vote)
+  | { type: 'AUCTION_BID'; playerId: string; amount: number }  // any eligible bidder during an auction
+  | { type: 'AUCTION_PASS'; playerId: string }
   | { type: 'ROLL_DICE' }
   | { type: 'CHOOSE_PATH'; nodeId: string }
   | { type: 'BUY_PROPERTY'; propertyId: string }
@@ -177,6 +180,7 @@ export interface GameState {
   casinoResult?: CasinoResult | null;  // set after CASINO_BET, cleared on turn advance
   bankruptcyLimit?: number;  // bankruptcies that end the game (default 1; 99 = last player standing)
   endVote?: EndVote | null;  // pending unanimous vote to end the game early
+  auction?: Auction | null;  // pending shop auction (pauses all other actions)
   stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
 }
 
@@ -205,4 +209,17 @@ export interface CasinoResult {
 export interface EndVote {
   reason: string;                    // e.g. "Slime went bankrupt (1/2)"
   votes: Record<string, boolean>;    // playerId -> wants to end
+}
+
+// A live shop auction. Opened by debt sales (other players bid; the bank's
+// 75% offer is the floor) and by the forced-auction venture card (reserve
+// 2x value). All other actions pause until it resolves.
+export interface Auction {
+  propertyId: string;
+  sellerId: string;
+  reservePrice: number;              // minimum opening bid
+  bankFloor?: number;                // debt sales: bank buys at this if nobody bids
+  highBid?: { playerId: string; amount: number };
+  passed: Record<string, boolean>;   // folded bidders (folding is final)
+  context: 'debt' | 'venture';
 }

@@ -3,6 +3,7 @@ import {
   buyProperty, invest, payRent, buyStock, sellStock, collectSalary, checkWinCondition,
   buyoutProperty, resolveVentureCard, buildPlot, renovatePlot, checkBankruptcy,
   distressSellProperty, playCasino, recalcAllNetWorths, bumpStats, richestAlive, canPromote,
+  openAuction, applyAuctionBid, applyAuctionPass,
 } from './economy.js';
 import type { GameState, Action, Node } from '../shared/types.js';
 
@@ -355,6 +356,11 @@ export function applyAction(state: GameState, action: Action): GameState {
   const { currentPhase, currentPlayerId } = state;
   const player = currentPlayer(state);
 
+  // A live auction pauses everything until it resolves.
+  if (state.auction && action.type !== 'AUCTION_BID' && action.type !== 'AUCTION_PASS') {
+    throw new Error(`An auction is in progress — only bids and passes are legal`);
+  }
+
   // A pending end-game vote pauses everything until it resolves.
   if (state.endVote && action.type !== 'VOTE_END') {
     throw new Error(`An end-game vote is in progress — only VOTE_END is legal`);
@@ -368,6 +374,14 @@ export function applyAction(state: GameState, action: Action): GameState {
   }
 
   switch (action.type) {
+    case 'AUCTION_BID': {
+      return applyAuctionBid(state, action.playerId, action.amount);
+    }
+
+    case 'AUCTION_PASS': {
+      return applyAuctionPass(state, action.playerId);
+    }
+
     case 'VOTE_END': {
       if (!state.endVote) throw new Error(`No end-game vote in progress`);
       const voter = state.players[action.playerId];
@@ -420,8 +434,11 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (currentPhase !== 'DEBT_SETTLEMENT') {
         throw new Error(`Illegal action SELL_PROPERTY in phase ${currentPhase}`);
       }
-      const sold = distressSellProperty(state, currentPlayerId, action.propertyId);
-      return checkBankruptcy(sold, currentPlayerId);
+      // Authentic debt sale: the shop goes to auction among the other
+      // players, with the bank's 75% offer as the floor. If everyone is
+      // eliminated/uninterested it resolves instantly at the floor.
+      const opened = openAuction(state, action.propertyId, currentPlayerId, 'debt');
+      return opened.auction ? opened : checkBankruptcy(opened, currentPlayerId);
     }
 
     case 'CASINO_BET': {

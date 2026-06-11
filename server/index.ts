@@ -47,7 +47,7 @@ const KNOWN_ACTION_TYPES = new Set([
   'SELL_STOCK', 'ROLL_DICE', 'CHOOSE_PATH', 'BUY_PROPERTY',
   'INVEST', 'PAY_RENT', 'BUY_STOCK', 'COLLECT_SALARY', 'BUYOUT_PROPERTY', 'END_TURN',
   'CHOOSE_VENTURE_CARD', 'BUILD_PLOT', 'RENOVATE_PLOT', 'TELEPORT', 'SELL_PROPERTY',
-  'CASINO_BET', 'VOTE_END',
+  'CASINO_BET', 'VOTE_END', 'AUCTION_BID', 'AUCTION_PASS',
 ]);
 
 const KNOWN_BUILDING_TYPES = new Set([
@@ -139,6 +139,14 @@ function validateAction(p: unknown): string | null {
     if (typeof act.vote !== 'boolean') return 'vote must be a boolean';
   }
 
+  if (act.type === 'AUCTION_BID') {
+    if (typeof act.playerId !== 'string' || !act.playerId.trim()) return 'playerId must be a non-empty string';
+    if (!Number.isInteger(act.amount) || (act.amount as number) <= 0) return 'amount must be a positive integer';
+  }
+  if (act.type === 'AUCTION_PASS') {
+    if (typeof act.playerId !== 'string' || !act.playerId.trim()) return 'playerId must be a non-empty string';
+  }
+
   if (act.type === 'CASINO_BET') {
     if (act.game !== 'derby' && act.game !== 'highlow') return `unknown casino game: ${String(act.game)}`;
     if (!Number.isInteger(act.wager) || (act.wager as number) <= 0) return 'wager must be a positive integer';
@@ -173,16 +181,28 @@ export function attachHandlers(io: Server, manager: GameManager): void {
   const cleanupTimers = new Map<string, NodeJS.Timeout>();
   const activeBotLoops = new Set<string>();
 
+  // During an auction, the next undecided BOT bidder (humans act via the UI).
+  function pendingAuctionBot(state: ReturnType<GameManager['getRoom']>): string | null {
+    if (!state?.auction) return null;
+    const a = state.auction;
+    return state.turnOrder.find(pid =>
+      pid.startsWith('bot') && pid !== a.sellerId && !state.players[pid].isBankrupt
+      && !a.passed[pid] && a.highBid?.playerId !== pid,
+    ) ?? null;
+  }
+
   function runBotTurnsIfNeeded(roomId: string): void {
     const state = manager.getRoom(roomId);
     if (!state) return;
 
-    const currentPlayerId = state.currentPlayerId;
+    const auctionBot = pendingAuctionBot(state);
+    const currentPlayerId = auctionBot ?? state.currentPlayerId;
     const isBot = currentPlayerId.startsWith('bot');
     const hasWinner = state.winnerId !== null;
     const votePending = !!state.endVote;  // humans resolve the vote; bots wait
+    const auctionWaitingOnHumans = !!state.auction && !auctionBot;
 
-    if (!isBot || hasWinner || votePending) {
+    if (!isBot || hasWinner || votePending || auctionWaitingOnHumans) {
       activeBotLoops.delete(roomId);
       return;
     }
@@ -196,8 +216,11 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     setTimeout(() => {
       enqueue(roomId, () => {
         const currentState = manager.getRoom(roomId);
-        if (!currentState || currentState.currentPlayerId !== currentPlayerId || currentState.winnerId) {
+        const stillSameActor = currentState && (pendingAuctionBot(currentState) === currentPlayerId
+          || (!currentState.auction && currentState.currentPlayerId === currentPlayerId));
+        if (!currentState || !stillSameActor || currentState.winnerId) {
           activeBotLoops.delete(roomId);
+          runBotTurnsIfNeeded(roomId);
           return;
         }
 
@@ -429,13 +452,13 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           socket.emit('error', { code: 'ROOM_NOT_FOUND', message: `Room ${roomId} not found` });
           return;
         }
-        const isVote = action.type === 'VOTE_END';
-        if (!isVote && playerId !== state.currentPlayerId) {
+        const isAnyPlayerAction = action.type === 'VOTE_END' || action.type === 'AUCTION_BID' || action.type === 'AUCTION_PASS';
+        if (!isAnyPlayerAction && playerId !== state.currentPlayerId) {
           socket.emit('error', { code: 'NOT_YOUR_TURN', message: `It is ${state.currentPlayerId}'s turn` });
           return;
         }
-        if (isVote && action.playerId !== playerId) {
-          socket.emit('error', { code: 'UNAUTHORIZED', message: 'You can only cast your own vote' });
+        if (isAnyPlayerAction && action.playerId !== playerId) {
+          socket.emit('error', { code: 'UNAUTHORIZED', message: 'You can only act as yourself' });
           return;
         }
 

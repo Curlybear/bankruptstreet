@@ -129,9 +129,10 @@ export function Rules({ onClose }: Props) {
         <div style={h2}>Debt &amp; Bankruptcy</div>
         <div style={p}>
           Cash below zero? You enter <span style={hl}>debt settlement</span>: choose any mix of
-          your stocks (at market price) and shops (distress sale at{' '}
-          <span style={hl}>75% value</span>) to sell until the debt is covered — nothing is sold
-          for you. If even selling everything couldn't cover it, you're{' '}
+          your stocks (at market price) and shops to sell until the debt is covered — nothing is
+          sold for you. Shops sold in debt go to <span style={hl}>auction</span>: rivals bid, the
+          winning bid is paid to you, and if nobody bids the bank buys at{' '}
+          <span style={hl}>75% value</span>. If even selling everything couldn't cover it, you're{' '}
           <span style={hl}>bankrupt and eliminated</span>.
         </div>
         <div style={p}>
