@@ -62,10 +62,18 @@ All three phases are fully implemented. The engine is the source of truth — th
 `vacant` nodes hold a `Property` with optional `buildingType`. `BUILD_PLOT` (in `SPACE_ACTION`) and `RENOVATE_PLOT` (in `PRE_ROLL`) let players construct buildings. Building types: `checkpoint`, `circus`, `balloonport`, `tax_office`, `home`, `estate_agency`, `three_star_shop`. Each has custom rent/price logic in `recalcDistrictMultipliers` and `payRent`.
 
 ### Venture card grid
-`GameState.ventureGrid` is a 64-cell grid (8×8). Landing on a `venture` or `suit` node triggers `CHOOSE_VENTURE_CARD`. Lines of 4+ cleared cells pay bonuses. The card pool (`VENTURE_CARDS_LIST`, 96 cards) is larger than the grid — each game seeds a random 64-card subset via `seedVentureGridCardIds()`; depletion reshuffles with a fresh subset.
+`GameState.ventureGrid` is a 64-cell grid (8×8). Landing on a `venture` or `suit` node triggers `CHOOSE_VENTURE_CARD`. Lines of 4+ cleared cells pay bonuses. The card pool (`VENTURE_CARDS_LIST`, 124 cards) is larger than the grid — each game seeds a random 64-card subset via `seedVentureGridCardIds()`; depletion reshuffles with a fresh subset.
+
+**Interactive venture cards** set `GameState.pendingVenture` instead of resolving instantly; the player answers with a `VENTURE_CHOICE` action (buy/sell stock or shop at a card-specified price). `END_TURN` is blocked while `pendingVenture` is set (so forced/mandatory sales can't be skipped). See `resolveVentureChoice` in `economy.ts`.
+
+### Casino / arcade
+`casino` nodes offer wager games via `CASINO_BET` (Slime Derby, High-Low → `casinoResult`) and free, level-scaled arcade games via `ARCADE_PLAY` (slots/memory/darts → `arcadeResult`), one game per visit. Dart of Gold lands its prize on a *random* player (no chooser action). Both results sit on `GameState` until the turn advances so the client can animate them.
+
+### Board gimmicks
+Auto-resolving squares handled in `resolveSpace` (no new actions): `roll_on` (→ another `PRE_ROLL`), `backstreet` (warp to the paired `backstreetGroup` A–D node), `cannon` (blast to a random rival's square, then resolve it; `skipRelaunch` guards against ping-pong), and change-of-suit (`suit` node with `cycleSuit`, advancing ♥→♦→♣→♠ in `collectSuitsAlongPath`). Deferred: lift/switch squares, cameo NPCs.
 
 ### Board authoring
-Boards are authored with forward edges only; `symmetrizeBoard(board, oneWayEdges?)` (server/gameManager.ts) fills in reverse edges, skipping any `[from, to]` pairs listed as one-way. Native `tax_office` squares charge 5% of net worth to the bank on landing (auto-resolve).
+Boards are authored with forward edges only; `symmetrizeBoard(board, oneWayEdges?)` (server/gameManager.ts) fills in reverse edges, skipping any `[from, to]` pairs listed as one-way. Native `tax_office` squares charge 5% of net worth to the bank on landing (auto-resolve). Three boards ship: Alefgard, Torland, Aliahan. Inline-inserted gimmick nodes need ≥1 full tile of coordinate clearance from neighbours or their link stubs render hidden under overlapping node bodies.
 
 ### Socket protocol
 Client emits `join_room` / `request_action`. Server responds with `state_sync` (full state, on join/reconnect) or `state_delta` (minimal diff, on every action). Client re-joins after each delta to get a fresh `state_sync` — this is intentional (see feedback memory).

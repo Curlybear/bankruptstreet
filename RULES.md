@@ -6,7 +6,7 @@ A multiplayer board game of property, stocks, and timing, inspired by the *Fortu
 
 ## Goal
 
-Be the first player to reach the **target net worth** (set when the room is created, default 15,000G) and then **return to the bank** — landing on it or passing it both count.
+Be the first player to reach the **target net worth** (set when the room is created — each board suggests its own: **Alefgard 5,000G**, **Aliahan 7,000G**, **Torland 9,000G**, adjustable to 5k–15k) and then **return to the bank** — landing on it or passing it both count.
 
 > Net worth = cash + (shares × stock price) + value of all owned shops.
 
@@ -39,12 +39,16 @@ The game also ends immediately if **any player goes bankrupt**: the remaining pl
 | 🏦 **Bank** | Salary if all 4 suits held; win check; buy stock |
 | 📈 **Stockbroker** | Buy stock |
 | ♥ **Suit** | Gain the suit **and** draw a venture card |
+| ♻️ **Change-of-suit** | A suit square whose suit rotates (♥→♦→♣→♠) each time a player passes |
 | ❓ **Venture** | Draw a venture card from the 8×8 grid |
 | 🏛️ **Tax office** | Pay 5% of your net worth to the bank |
 | ☕ **Take-a-break** | All YOUR shops shut until your next turn |
 | 🍀 **Boon** | Collect 20% of every payment anyone makes until your next turn |
 | 💰 **Boom** | Same, but 50% |
-| 🎰 **Casino** | Wager 10–500G on a minigame (one bet per visit), or walk away |
+| 🎰 **Casino** | Play a minigame (one per visit) — free arcade or wager game — or walk away. See The Casino |
+| 🎲 **Roll-on** | Immediately roll again and keep moving |
+| 🔀 **Backstreet** | Slip down the alley to the matching-letter alley across the board |
+| 💥 **Cannon** | Get blasted onto a random rival's square — and resolve whatever you land on |
 | 🌀 **Warp** | Teleport to the paired square and keep moving |
 | 🏗️ **Vacant plot** | Unowned: build on it. See Buildings |
 
@@ -76,7 +80,9 @@ Your suits reset, your level rises. Salaries grow as your empire does.
 
 ## Venture Cards
 
-Landing on a venture or suit square: pick a face-down card from the shared 8×8 grid (64 cards drawn from a 96-card pool, reshuffled when exhausted). Effects range from cash gains/losses, stock moves and dividends, free suits, warps, extra rolls, shop boosts, temporary effects (shops closed, rents halved or doubled, bank commissions) and more.
+Landing on a venture or suit square: pick a face-down card from the shared 8×8 grid (64 cards drawn from a 124-card pool, reshuffled when exhausted). Most effects resolve instantly — cash gains/losses, stock moves and dividends, free suits, warps, extra rolls, shop boosts, temporary effects (shops closed, rents halved or doubled, bank commissions), Suit Yourself cards, and more.
+
+**Interactive cards** hand you a decision instead: buy or sell stock at a premium/discount, buy any unowned shop, or sell one of your shops to the bank above its value — you pick the district/shares/shop and confirm. A few are **forced** (the bank buys you out): you must sell, but at a generous price.
 
 **Line bonus**: clearing the 4th-or-more card in a row, column, or diagonal pays a bonus — 40G for 4 in a line, up to 200G for a full line of 8.
 
@@ -98,12 +104,18 @@ You may **renovate** a plot you own into a different building at the start of yo
 
 ## The Casino
 
-Land on a 🎰 **Casino** square to play one of two games, once per visit:
+Land on a 🎰 **Casino** square to play one game, once per visit — three free arcade games or two wager games — or walk away.
 
-- **🏁 Slime Derby** — back one of four racing slimes. Your pick wins the race 1 time in 4; victory pays **4× your wager**.
+**Free arcade** (no stake; prizes scale with your level):
+
+- **🎰 Round the Blocks** — a slot pull. Three-of-a-kind pays out: 500G × level (7s), 50G × level (mushrooms), free shares, a Suit Yourself card, or a warp.
+- **📦 Memory Block** — open one of nine boxes for a coin (10G × level), shares, a shop boost, a Suit Yourself card, or a Bowser (−5% to your shops).
+- **🎯 Dart of Gold** — throw at the prize wheel; the prize **or penalty** lands on a random player (could be you).
+
+**Wager games** (stake 10–500G):
+
+- **🏁 Slime Derby** — back one of four racing slimes. Your pick wins 1 time in 4; victory pays **4× your wager**.
 - **🃏 High-Low** — a card is dealt; call whether the next is **higher** or **lower**. Right pays **2× your wager**. A tie goes to the house.
-
-Wagers run 10–500G and you can always walk away without betting.
 
 ## Debt & Bankruptcy
 
@@ -120,7 +132,7 @@ If your cash drops below zero, you enter **debt settlement**: choose any mix of 
 | ⚔️ **Erdrick** — Balanced Hero | Steady all-rounder |
 | 🐉 **Dragonlord** — Property Tycoon | Spends big on shops, buys opponents out aggressively |
 | 👸 **Princess Gwaelin** — Stock Baroness | Trades in large blocks, holds through dips, heads for brokers |
-| 🟢 **Slime** — Cautious Hoarder | Keeps a fat cash reserve, chases salaries |
+| 🟢 **Slime** — Cautious Hoarder | Keeps the biggest cash reserve, builds shops steadily and rarely overextends |
 | 🛒 **Torneko** — Merchant Prince | Builder and shrewd buyer |
 | ✨ **Healslime** — Opportunist | Stock-leaning generalist |
 

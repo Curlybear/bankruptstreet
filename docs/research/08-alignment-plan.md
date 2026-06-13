@@ -5,6 +5,27 @@ mechanics, and keep deliberate **HOUSE** rules. Phased so every step ships
 green (tests + balance sims + browser pass) and the game stays playable
 throughout.
 
+## ✅ Status (2026-06-13): plan executed
+
+- **Phase 1 — Faithful fixes**: ✅ done (take-a-break penalty, bank direction
+  privilege, venture text touch-ups).
+- **Phase 2 — Missing content**: ✅ done (Boon/Boom squares; Suit Yourself
+  wildcards; venture pool grown 96 → 124 including the interactive buy/sell
+  cards).
+- **Phase 3 — The economy decision**: ✅ done — went further than a room
+  option and **adopted the original ("Classic") economy as the single model**
+  (`ae0b840`); rent-shareholder dividend removed.
+- **Phase 4 — Later/optional**: partially done — ✅ debt auctions, ✅ arcade
+  minigames (Round the Blocks / Memory Block / Dart of Gold), ✅ board gimmicks
+  (roll-on, backstreet, cannon, change-of-suit). ⏳ **Deferred**: switch & lift
+  squares, cameo NPCs, custom target range, per-board starting cash.
+
+A full balance pass (2026-06-13) then tuned board targets and the Slime
+personality over thousands of simulated games. See `07-deviations.md` for the
+current faithful/house/missing breakdown.
+
+The phased plan below is kept for history.
+
 ## Standing decisions honored (NOT changing)
 
 - No Easy rules (decided 2026-06-09)

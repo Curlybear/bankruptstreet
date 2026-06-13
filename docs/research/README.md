@@ -14,7 +14,8 @@ Street's house rules in an accurate picture of the original.
 | [04-venture-cards.md](04-venture-cards.md) | The complete 128-card catalog (verbatim) and the card-grid bonus rules |
 | [05-squares-minigames.md](05-squares-minigames.md) | Every square type, the four arcade minigames, Suit Yourself cards |
 | [06-modes-limits.md](06-modes-limits.md) | Easy vs Standard rules, Tour/Custom modes, numeric limits |
-| [07-deviations.md](07-deviations.md) | **Systematic comparison against Bankrupt Street's engine** — every known difference, classified |
+| [07-deviations.md](07-deviations.md) | **Systematic comparison against Bankrupt Street's engine** — every known difference, classified (current as of 2026-06-13) |
+| [08-alignment-plan.md](08-alignment-plan.md) | The plan that acted on this research — now executed (economy adopted, content shipped) |
 
 ## Confidence legend
 

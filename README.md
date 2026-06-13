@@ -6,13 +6,17 @@ Buy shops, dominate districts, play the stock market, collect suits for promotio
 
 📜 **[Full game rules](RULES.md)** (also available in-game via the "How to Play" button)
 
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Node](https://img.shields.io/badge/Node-20+-green) ![Tests](https://img.shields.io/badge/tests-119%20passing-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Node](https://img.shields.io/badge/Node-20+-green) ![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen)
 
 ## Features
 
-- **Full game engine** — branching board movement, district stock market with price impact and dividends, suit/promotion salaries, seven buildable structures, 96-card venture deck on a shared 8×8 grid with line bonuses, buyouts, bankruptcy liquidation
-- **Two boards** — *Alefgard* (warp pipes into a lucrative central island) and *Torland* (one-way River Rapids shortcut, royal tax office)
-- **Six AI characters with real personalities** — from the buyout-hungry 🐉 Dragonlord to the stock-hoarding 👸 Princess Gwaelin; empty seats are auto-filled with distinct AI opponents
+- **Full game engine** — branching board movement, the original *Fortune Street* district economy (fees scale ×1/1.25/2/3.25/6 with ownership, capital-driven rent, 4%-of-value stock pricing with price impact), suit/promotion salaries, Suit Yourself wildcards, seven buildable structures, a 124-card venture deck on a shared 8×8 grid with line bonuses, buyouts, and bankruptcy liquidation
+- **Interactive venture cards** — beyond the auto-resolving effects, cards that let you buy/sell stock or shops at the bank on your terms (and forced buy-outs you can't refuse)
+- **Player debt auctions** — going broke puts your shops up for live auction among the other players, with the bank's 75% offer as the floor
+- **Casino & free arcade** — wager games (Slime Derby, High-Low) plus three level-scaled minigames (Round the Blocks slots, Memory Block, Dart of Gold)
+- **Board gimmicks** — roll-on (extra roll), backstreet alleys (paired warps), cannons (blast onto a rival), change-of-suit squares, plus Boon/Boom commission squares and take-a-break penalties
+- **Three boards** — *Alefgard* (warp pipes into a lucrative central island), *Torland* (one-way River Rapids shortcut, royal tax office), and *Aliahan* (twin loops crossing at the bank, desert wind, the Jipang warp island)
+- **Six AI characters with real personalities** — from the buyout-hungry 🐉 Dragonlord to the stock-trading 👸 Princess Gwaelin; empty seats are auto-filled with distinct AI opponents, balance-tuned over thousands of simulated games
 - **Online multiplayer** — lobby system with room browser, board/character selection, reconnection support, and rooms that survive server restarts
 - **End-game rankings** — per-player stat breakdown: laps, rent flows, biggest payday, shares traded, promotions
 - **PixiJS board renderer** — animated tokens, camera follow, warp effects
