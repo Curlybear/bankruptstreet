@@ -53,9 +53,9 @@ export const CHARACTERS: Record<string, Character> = {
   slime: {
     id: 'slime', name: 'Slime', emoji: '🟢', title: 'Cautious Hoarder',
     personality: {
-      cashReserve: 500, investAmount: 50, stockBatch: 5,
+      cashReserve: 350, investAmount: 100, stockBatch: 5,
       buyoutCashMultiplier: 4.0, preferThreeStar: false, sellOnDip: true,
-      pathPreference: 'bank',
+      pathPreference: 'shops',
     },
   },
   torneko: {

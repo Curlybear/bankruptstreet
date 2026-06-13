@@ -42,7 +42,7 @@ const ownShop: Property = {
 };
 const district: District = { id: 'd1', name: 'D1', stockPrice: 10, propertyIds: ['shop1'], playerHoldings: {} };
 
-test('cashReserve: slime (500) skips investing at 400 cash; erdrick (200) invests', () => {
+test('cashReserve: slime (350) skips a tiny invest at 400 cash; erdrick (175) invests', () => {
   const base = makeState({
     properties: { shop1: ownShop },
     districts: { d1: district },
@@ -79,7 +79,7 @@ test('investing goes deep: down to the cash reserve, capped at 999/turn', () => 
     assert.equal((action as { amount: number }).amount, 999, `${charId} invests the cap`);
   }
 
-  // Tight cash → the reserve differentiates them (dragonlord 100 vs slime 500)
+  // Tight cash → the reserve differentiates them (dragonlord 100 vs slime 350)
   const tightDragon: GameState = {
     ...base,
     players: { ...base.players, p1: makeTestPlayer('p1', { cash: 700, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'dragonlord' }) },
@@ -106,8 +106,8 @@ test('stock buying: one aggregated buy down to the reserve; stockBatch is the mi
   // gwaelin (batch 20): only 19 affordable above the reserve → not worth opening
   assert.equal(greedyBotAction(at('gwaelin', 490), 'p1').type, 'END_TURN');
 
-  // slime (reserve 500, batch 5): 6 affordable → buys all 6 in one transaction
-  const small = greedyBotAction(at('slime', 560), 'p1');
+  // slime (reserve 350, batch 5): 6 affordable → buys all 6 in one transaction
+  const small = greedyBotAction(at('slime', 410), 'p1');
   assert.equal(small.type, 'BUY_STOCK');
   assert.equal((small as { shares: number }).shares, 6);
 });
