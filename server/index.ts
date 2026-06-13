@@ -21,6 +21,8 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN
   : ['http://localhost:5173', 'http://localhost:4173'];
 
 const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 100);       // cap total rooms (memory DoS)
+const IDLE_TURN_MS = Number(process.env.IDLE_TURN_MS ?? 5 * 60 * 1000);       // connected but not acting → bot takeover
+const DISCONNECT_GRACE_MS = Number(process.env.DISCONNECT_GRACE_MS ?? 2 * 60 * 1000); // dropped connection → reconnect window
 const RATE_WINDOW_MS = 5000;                                  // per-socket flood guard
 const RATE_MAX_EVENTS = 80;                                   // events allowed per window
 
@@ -238,12 +240,103 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     return hits.length > RATE_MAX_EVENTS;
   }
 
+  // ── Idle / disconnected turn handling ──────────────────────────────────────
+  // One guard per room watches the current human player; if they don't act in
+  // time (5 min connected, 2 min from a dropped connection) the seat is handed
+  // to a bot so the game never stalls. The countdown is mirrored onto
+  // GameState.turnTimer so every client can show it.
+  const turnGuards = new Map<string, { playerId: string; kind: 'idle' | 'disconnect'; timer: NodeJS.Timeout }>();
+  const disconnectedAt = new Map<string, number>();  // `${roomId}:${playerId}` → epoch ms of disconnect
+
+  function isPlayerConnected(roomId: string, playerId: string): boolean {
+    const sockets = roomSockets.get(roomId);
+    if (!sockets) return false;
+    for (const sid of sockets) {
+      if (io.sockets.sockets.get(sid)?.data.playerId === playerId) return true;
+    }
+    return false;
+  }
+
+  function clearTurnGuard(roomId: string): void {
+    const g = turnGuards.get(roomId);
+    if (g) { clearTimeout(g.timer); turnGuards.delete(roomId); }
+  }
+
+  // Drop all per-room timer bookkeeping when a room is deleted.
+  function purgeRoomGuards(roomId: string): void {
+    clearTurnGuard(roomId);
+    for (const key of disconnectedAt.keys()) {
+      if (key.startsWith(`${roomId}:`)) disconnectedAt.delete(key);
+    }
+  }
+
+  // (Re)assess who the game is waiting on and arm/clear the takeover countdown.
+  // Safe to call after every action, join, disconnect, or bot move.
+  function evaluateTurnGuard(roomId: string): void {
+    const state = manager.getRoom(roomId);
+    if (!state) { clearTurnGuard(roomId); return; }
+
+    const cp = state.currentPlayerId;
+    const player = state.players[cp];
+    // No guard during auctions/votes (the game waits on a different actor), when
+    // finished, or when a bot already holds the seat.
+    const needGuard = state.status === 'ACTIVE' && !state.winnerId && !state.auction
+      && !state.endVote && player && !player.isBot && !player.isBankrupt;
+
+    if (!needGuard) {
+      clearTurnGuard(roomId);
+      if (state.turnTimer) { state.turnTimer = null; io.to(roomId).emit('state_sync', state); }
+      return;
+    }
+
+    const connected = isPlayerConnected(roomId, cp);
+    const kind: 'idle' | 'disconnect' = connected ? 'idle' : 'disconnect';
+
+    const existing = turnGuards.get(roomId);
+    // Keep an in-flight guard running if it's still the same player + situation.
+    if (existing && existing.playerId === cp && existing.kind === kind) return;
+
+    clearTurnGuard(roomId);
+    const deadline = connected
+      ? Date.now() + IDLE_TURN_MS
+      : (disconnectedAt.get(`${roomId}:${cp}`) ?? Date.now()) + DISCONNECT_GRACE_MS;
+    const delay = Math.max(0, deadline - Date.now());
+    const timer = setTimeout(() => onTurnGuardExpire(roomId, cp), delay);
+    timer.unref();  // never block process exit
+    turnGuards.set(roomId, { playerId: cp, kind, timer });
+
+    state.turnTimer = { playerId: cp, kind, deadline };
+    io.to(roomId).emit('state_sync', state);
+  }
+
+  function onTurnGuardExpire(roomId: string, playerId: string): void {
+    enqueue(roomId, () => {
+      const state = manager.getRoom(roomId);
+      turnGuards.delete(roomId);
+      // Stale (player already acted / turn moved / game over) → just re-assess.
+      if (!state || state.currentPlayerId !== playerId || state.winnerId
+          || !state.players[playerId] || state.players[playerId].isBot) {
+        evaluateTurnGuard(roomId);
+        return;
+      }
+      state.players[playerId] = { ...state.players[playerId], isBot: true };
+      state.turnTimer = null;
+      disconnectedAt.delete(`${roomId}:${playerId}`);
+      log(roomId, `${playerId} replaced by a bot (turn timeout)`);
+      state.log = [...state.log, `[TIMEOUT] ${state.players[playerId].name} was idle too long — a bot takes over their seat.`].slice(-300);
+      io.to(roomId).emit('state_sync', state);
+      manager.scheduleSave();
+      runBotTurnsIfNeeded(roomId);
+      evaluateTurnGuard(roomId);
+    });
+  }
+
   // During an auction, the next undecided BOT bidder (humans act via the UI).
   function pendingAuctionBot(state: ReturnType<GameManager['getRoom']>): string | null {
     if (!state?.auction) return null;
     const a = state.auction;
     return state.turnOrder.find(pid =>
-      pid.startsWith('bot') && pid !== a.sellerId && !state.players[pid].isBankrupt
+      state.players[pid]?.isBot && pid !== a.sellerId && !state.players[pid].isBankrupt
       && !a.passed[pid] && a.highBid?.playerId !== pid,
     ) ?? null;
   }
@@ -254,7 +347,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 
     const auctionBot = pendingAuctionBot(state);
     const currentPlayerId = auctionBot ?? state.currentPlayerId;
-    const isBot = currentPlayerId.startsWith('bot');
+    const isBot = !!state.players[currentPlayerId]?.isBot;
     const hasWinner = state.winnerId !== null;
     const votePending = !!state.endVote;  // humans resolve the vote; bots wait
     const auctionWaitingOnHumans = !!state.auction && !auctionBot;
@@ -294,6 +387,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           activeBotLoops.delete(roomId);
 
           runBotTurnsIfNeeded(roomId);
+          evaluateTurnGuard(roomId);  // bot advanced the turn — arm/clear for whoever's next
         } catch (e) {
           log(roomId, `BOT ${currentPlayerId} illegal ${action ? action.type : 'ACTION'} error: ${(e as Error).message}`);
           activeBotLoops.delete(roomId);
@@ -315,6 +409,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       cleanupTimers.delete(roomId);
       roomSockets.delete(roomId);
       roomTokens.delete(roomId);
+      purgeRoomGuards(roomId);
       log(roomId, 'deleted after 30min idle');
     }, CLEANUP_DELAY_MS);
     timer.unref(); // don't block process exit
@@ -396,6 +491,14 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       socket.data.playerId = playerId;
       socket.data.roomId = roomId;
 
+      // A returning player resumes control of a seat a bot took over while they
+      // were gone, and their disconnect grace is cancelled.
+      disconnectedAt.delete(`${roomId}:${playerId}`);
+      if (state.players[playerId]?.isBot) {
+        state.players[playerId] = { ...state.players[playerId], isBot: false };
+        log(roomId, `${playerId} resumed control from a bot`);
+      }
+
       // First claim of this name → mint a session token and hand it back, so
       // only this client can reconnect/act as the name afterward.
       if (!existingToken) {
@@ -415,6 +518,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       io.emit('rooms_list', getRoomsList(manager));
       manager.scheduleSave();
       runBotTurnsIfNeeded(roomId);
+      evaluateTurnGuard(roomId);
     });
 
     socket.on('start_game', () => {
@@ -464,6 +568,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       io.emit('rooms_list', getRoomsList(manager));
       manager.scheduleSave();
       runBotTurnsIfNeeded(roomId);
+      evaluateTurnGuard(roomId);
     });
 
     socket.on('leave_lobby', () => {
@@ -486,6 +591,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           // Disband room
           manager.deleteRoom(roomId);
           roomTokens.delete(roomId);
+          purgeRoomGuards(roomId);
           log(roomId, `disbanded because creator left`);
           io.to(roomId).emit('room_disbanded', { message: 'The creator has left. Room disbanded.' });
 
@@ -563,6 +669,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
         log(roomId, `${playerId} → ${action.type} (${deltas.map(d => d.type).join(', ')})`);
 
         runBotTurnsIfNeeded(roomId);
+        evaluateTurnGuard(roomId);  // turn may have advanced — re-arm/clear the takeover countdown
       });
     });
 
@@ -583,6 +690,8 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           if (state.creatorId === playerId) {
             // Disband room
             manager.deleteRoom(roomId);
+            roomTokens.delete(roomId);
+            purgeRoomGuards(roomId);
             log(roomId, `disbanded because creator disconnected`);
             io.to(roomId).emit('room_disbanded', { message: 'The creator has disconnected. Room disbanded.' });
             roomSockets.delete(roomId);
@@ -594,6 +703,11 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           }
           io.emit('rooms_list', getRoomsList(manager));
           manager.scheduleSave();
+        } else if (state && state.status === 'ACTIVE' && state.turnOrder.includes(playerId)) {
+          // Mid-game drop: start the reconnect grace; if it's their turn, the
+          // guard switches to the shorter disconnect countdown.
+          disconnectedAt.set(`${roomId}:${playerId}`, Date.now());
+          evaluateTurnGuard(roomId);
         }
       }
     });

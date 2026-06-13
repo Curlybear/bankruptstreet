@@ -205,6 +205,16 @@ export interface GameState {
   endVote?: EndVote | null;  // pending unanimous vote to end the game early
   auction?: Auction | null;  // pending shop auction (pauses all other actions)
   stats?: Record<string, PlayerStats>;  // playerId -> running counters (initialized lazily)
+  turnTimer?: TurnTimer | null;  // countdown until an idle/absent current player is replaced by a bot
+}
+
+// Server-managed countdown shown to everyone so they know why the game is
+// paused and for how long. `deadline` is epoch ms — clients render the
+// remaining time locally and tick it down without server chatter.
+export interface TurnTimer {
+  playerId: string;
+  kind: 'idle' | 'disconnect';   // connected-but-not-acting vs dropped connection
+  deadline: number;              // epoch ms when the seat is handed to a bot
 }
 
 

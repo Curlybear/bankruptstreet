@@ -125,6 +125,10 @@ If your cash drops below zero, you enter **debt settlement**: choose any mix of 
 
 **The end-game vote**: if a bankruptcy *doesn't* end the game, all surviving players are asked whether to stop anyway. The vote must be **unanimous** (AI players don't vote); a single "keep playing" continues the game. If the vote passes, the current standings become final.
 
+## Idle & disconnected players
+
+The game never stalls waiting on someone who's gone. If the player whose turn it is doesn't act within **5 minutes** (or **2 minutes** after a dropped connection), a bot takes over their seat and play continues. A countdown banner shows everyone who's holding things up and how long is left. If a dropped player reconnects in time — or before the bot has finished their seat — they resume control.
+
 ## Characters
 
 | Character | Style |

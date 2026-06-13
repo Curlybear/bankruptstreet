@@ -46,6 +46,8 @@ and restored on boot. Clients reconnect automatically.
 | `CLIENT_DIST` | `client/dist` | Path to the built client (rarely needed) |
 | `CORS_ORIGIN` | `localhost:5173,4173` | Comma-separated allowed socket origins. Prod is same-origin so this usually needs no change; set it only if you serve the client from a different origin than the server. |
 | `MAX_ROOMS` | `100` | Cap on concurrent rooms (memory-exhaustion guard). |
+| `IDLE_TURN_MS` | `300000` (5 min) | How long a connected player may sit on their turn before a bot takes over their seat. |
+| `DISCONNECT_GRACE_MS` | `120000` (2 min) | Reconnect window for a dropped player before a bot takes over their seat. |
 
 ### Security model (for self-hosters)
 

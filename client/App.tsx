@@ -353,6 +353,49 @@ function ArcadeResultView({ result, players, canAct, emitAction }: {
   );
 }
 
+// A countdown banner shown to everyone when the game is waiting on an idle or
+// disconnected player, so nobody is left wondering why their turn isn't coming.
+function TurnTimerBanner({ state, playerId }: { state: GameState; playerId: string }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!state.turnTimer) return;
+    const id = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [state.turnTimer]);
+
+  const tt = state.turnTimer;
+  if (!tt) return null;
+  const remaining = Math.max(0, tt.deadline - Date.now());
+  const mm = Math.floor(remaining / 60000);
+  const ss = Math.floor((remaining % 60000) / 1000);
+  const clock = `${mm}:${ss.toString().padStart(2, '0')}`;
+  const name = state.players[tt.playerId]?.name ?? tt.playerId;
+  const isMe = tt.playerId === playerId;
+  const disconnected = tt.kind === 'disconnect';
+  const accent = disconnected ? '#fb7185' : '#fde047';
+
+  const msg = isMe
+    ? `You're idle — act within ${clock} or a bot takes over your seat`
+    : disconnected
+      ? `${name} disconnected — ${clock} to reconnect before a bot takes over`
+      : `${name} is idle — ${clock} until a bot takes over`;
+
+  return (
+    <div style={{
+      position: 'fixed', top: 54, left: '50%', transform: 'translateX(-50%)', zIndex: 120,
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 18px', borderRadius: 999,
+      background: 'rgba(12, 12, 26, 0.95)', border: `1px solid ${accent}66`,
+      boxShadow: `0 6px 24px rgba(0,0,0,0.5), 0 0 16px ${accent}33`,
+      fontFamily: "'Outfit', sans-serif", fontSize: 12.5, fontWeight: 700, color: '#f1f5f9',
+    }}>
+      <span style={{ fontSize: 14 }}>{disconnected ? '🔌' : '⏳'}</span>
+      <span>{msg}</span>
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, color: accent }}>{clock}</span>
+    </div>
+  );
+}
+
 // Choice UI for interactive venture cards: stock kinds get a district picker +
 // share count with a price preview; shop kinds get one button per eligible shop.
 function VentureChoicePanel({ state, playerId, emitAction }: {
@@ -3194,6 +3237,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Idle / disconnected player countdown — visible to the whole table */}
+      <TurnTimerBanner state={state} playerId={PLAYER_ID} />
 
       {/* 4. Game Over Overlay Screen */}
       {diceAnim && <DiceOverlay key={diceAnim.key} roll={diceAnim.roll} />}
