@@ -59,6 +59,27 @@ test('impersonation prevention: c2 cannot send actions claiming to be alice', as
   assert.equal(err.message, 'Unauthorized action request');
 });
 
+test('seat auth: a third client cannot claim an existing name without its token', async () => {
+  const c3 = ioclient(`http://localhost:${TEST_PORT}`);
+  const errPromise = nextEvent<{ code: string; message: string }>(c3, 'error');
+  c3.once('connect', () => c3.emit('join_room', { roomId: ROOM, playerId: 'alice' }));  // no token
+  const err = await errPromise;
+  c3.disconnect();
+  assert.equal(err.code, 'NAME_TAKEN');
+});
+
+test('reserved and bot-prefixed names are rejected at join', async () => {
+  const c4 = ioclient(`http://localhost:${TEST_PORT}`);
+  await new Promise<void>(res => c4.once('connect', () => res()));
+  for (const bad of ['__proto__', 'bot1', 'BotKing']) {
+    const errPromise = nextEvent<{ code: string }>(c4, 'error');
+    c4.emit('join_room', { roomId: `r_${bad}`, playerId: bad });
+    const err = await errPromise;
+    assert.equal(err.code, 'BAD_REQUEST', `"${bad}" should be rejected`);
+  }
+  c4.disconnect();
+});
+
 test('negative investment cash exploit check', async () => {
   const errPromise = nextEvent<{ code: string; message: string }>(c1, 'error');
   // alice attempts to invest a negative amount

@@ -12,6 +12,11 @@ export const SOCKET_URL = typeof window !== 'undefined'
       : `${window.location.protocol}//${window.location.hostname}:3001`)
   : 'http://localhost:3001';
 
+const tokenKey = (roomId: string, playerId: string) => `bs_token_${roomId}_${playerId}`;
+function storedToken(roomId: string, playerId: string): string | undefined {
+  try { return localStorage.getItem(tokenKey(roomId, playerId)) ?? undefined; } catch { return undefined; }
+}
+
 export interface ActiveRoom {
   roomId: string;
   status: 'LOBBY' | 'ACTIVE' | 'FINISHED';
@@ -45,6 +50,10 @@ export function useGameSocket(): {
 
     s.on('rooms_list', setRoomsList);
     s.on('state_sync', setState);
+    // Seat token: only this client can later reconnect/act as this name.
+    s.on('session', (d: { roomId: string; playerId: string; token: string }) => {
+      try { localStorage.setItem(tokenKey(d.roomId, d.playerId), d.token); } catch { /* private mode */ }
+    });
     s.on('room_disbanded', (data: { message: string }) => {
       alert(data.message);
       setState(null);
@@ -54,6 +63,7 @@ export function useGameSocket(): {
     return () => {
       s.off('rooms_list');
       s.off('state_sync');
+      s.off('session');
       s.off('room_disbanded');
       s.disconnect();
     };
@@ -63,7 +73,7 @@ export function useGameSocket(): {
     if (socket) {
       setPlayerId(pId);
       setRoomId(rId);
-      socket.emit('join_room', { roomId: rId, playerId: pId, characterId });
+      socket.emit('join_room', { roomId: rId, playerId: pId, characterId, token: storedToken(rId, pId) });
     }
   }
 
@@ -71,7 +81,7 @@ export function useGameSocket(): {
     if (socket) {
       setPlayerId(pId);
       setRoomId(rId);
-      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth, boardId, characterId, bankruptcyLimit });
+      socket.emit('join_room', { roomId: rId, playerId: pId, targetNetWorth, boardId, characterId, bankruptcyLimit, token: storedToken(rId, pId) });
     }
   }
 
@@ -101,7 +111,7 @@ export function useGameSocket(): {
 
     const onDelta = () => {
       if (roomId && playerId) {
-        socket.emit('join_room', { roomId, playerId });
+        socket.emit('join_room', { roomId, playerId, token: storedToken(roomId, playerId) });
       }
     };
 

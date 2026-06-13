@@ -44,3 +44,11 @@ and restored on boot. Clients reconnect automatically.
 |---|---|---|
 | `PORT` | `3001` | Listen port inside the container |
 | `CLIENT_DIST` | `client/dist` | Path to the built client (rarely needed) |
+| `CORS_ORIGIN` | `localhost:5173,4173` | Comma-separated allowed socket origins. Prod is same-origin so this usually needs no change; set it only if you serve the client from a different origin than the server. |
+| `MAX_ROOMS` | `100` | Cap on concurrent rooms (memory-exhaustion guard). |
+
+### Security model (for self-hosters)
+
+- The app binds to `127.0.0.1` — only the reverse proxy reaches it; terminate TLS at Caddy.
+- Players are identified by a **per-seat session token** minted on first join and required to reclaim a name, so seats can't be hijacked by guessing a username. Tokens live in server memory (and the client's `localStorage`); restarting the server invalidates them (players just rejoin to re-mint).
+- Per-socket flood limiting and the room cap above mitigate basic DoS. There is **no account system** — anyone with a room link can join an open seat, which is by design for casual play.

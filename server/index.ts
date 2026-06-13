@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { existsSync, statSync, createReadStream } from 'fs';
 import { join, extname, normalize } from 'path';
@@ -10,6 +11,21 @@ import { greedyBotAction } from '../engine/bot.js';
 import type { Action } from '../shared/types.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
+
+// Allowed CORS origins for the socket handshake. Prod is same-origin (the
+// server serves the client), so a same-origin browser needs no match; this
+// only blocks *other* websites from driving the server. Set CORS_ORIGIN
+// (comma-separated) for any cross-origin setup; defaults cover local dev.
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  : ['http://localhost:5173', 'http://localhost:4173'];
+
+const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 100);       // cap total rooms (memory DoS)
+const RATE_WINDOW_MS = 5000;                                  // per-socket flood guard
+const RATE_MAX_EVENTS = 80;                                   // events allowed per window
+
+// Reserved usernames: object-key hazards + the server's own bot seats.
+const RESERVED_IDS = new Set(['__proto__', 'constructor', 'prototype']);
 
 // In production the same process serves the built client (single container,
 // same-origin websockets). In dev Vite serves the client and this is unused.
@@ -77,6 +93,10 @@ function validateJoin(p: unknown): string | null {
   if (roomId.trim().length > 20) return 'roomId must be at most 20 characters';
   if (typeof playerId !== 'string' || !playerId.trim()) return 'playerId must be a non-empty string';
   if (playerId.trim().length > 20) return 'playerId must be at most 20 characters';
+  if (RESERVED_IDS.has(playerId.trim()) || RESERVED_IDS.has(roomId.trim())) return 'reserved name';
+  if (playerId.trim().toLowerCase().startsWith('bot')) return 'names starting with "bot" are reserved';
+  const { token } = p as Record<string, unknown>;
+  if (token !== undefined && typeof token !== 'string') return 'token must be a string';
   if (targetNetWorth !== undefined) {
     if (!Number.isInteger(targetNetWorth) || (targetNetWorth as number) <= 0) {
       return 'targetNetWorth must be a positive integer';
@@ -205,6 +225,18 @@ export function attachHandlers(io: Server, manager: GameManager): void {
   const roomSockets = new Map<string, Set<string>>();
   const cleanupTimers = new Map<string, NodeJS.Timeout>();
   const activeBotLoops = new Set<string>();
+  // Per-seat secret: roomId → (playerId → token). A name with a token can only
+  // be (re)claimed by presenting it — stops seat hijacking by self-declared name.
+  const roomTokens = new Map<string, Map<string, string>>();
+
+  // Lightweight per-socket flood guard (sliding window of event timestamps).
+  function rateLimited(socket: { data: Record<string, unknown> }): boolean {
+    const now = Date.now();
+    const hits = ((socket.data.rateHits as number[] | undefined) ?? []).filter(t => now - t < RATE_WINDOW_MS);
+    hits.push(now);
+    socket.data.rateHits = hits;
+    return hits.length > RATE_MAX_EVENTS;
+  }
 
   // During an auction, the next undecided BOT bidder (humans act via the UI).
   function pendingAuctionBot(state: ReturnType<GameManager['getRoom']>): string | null {
@@ -282,6 +314,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       manager.deleteRoom(roomId);
       cleanupTimers.delete(roomId);
       roomSockets.delete(roomId);
+      roomTokens.delete(roomId);
       log(roomId, 'deleted after 30min idle');
     }, CLEANUP_DELAY_MS);
     timer.unref(); // don't block process exit
@@ -300,11 +333,28 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     socket.emit('rooms_list', getRoomsList(manager));
 
     socket.on('join_room', (payload: unknown) => {
+      if (rateLimited(socket)) { socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests' }); return; }
       const validErr = validateJoin(payload);
       if (validErr) { socket.emit('error', { code: 'BAD_REQUEST', message: validErr }); return; }
 
-      const { roomId, playerId, targetNetWorth, boardId, characterId, bankruptcyLimit } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string; characterId?: string; bankruptcyLimit?: number };
+      const { roomId, playerId, targetNetWorth, boardId, characterId, bankruptcyLimit, token } = payload as { roomId: string; playerId: string; targetNetWorth?: number; boardId?: string; characterId?: string; bankruptcyLimit?: number; token?: string };
+
+      // Seat auth: a name that already holds a token must present it. First
+      // claim of a name (new seat, or a seeded seat like player2) issues one.
+      // Checked before any mutation so a rejected claim can't alter state.
+      const existingToken = roomTokens.get(roomId)?.get(playerId);
+      if (existingToken && token !== existingToken) {
+        socket.emit('error', { code: 'NAME_TAKEN', message: `The name "${playerId}" is already taken in this room` });
+        return;
+      }
+
       let state = manager.getRoom(roomId);
+
+      // Cap total rooms — a new room is only created below when none exists.
+      if (!state && manager.getRooms().size >= MAX_ROOMS) {
+        socket.emit('error', { code: 'AT_CAPACITY', message: 'The server is at room capacity — try again later' });
+        return;
+      }
 
       if (!state) {
         if (roomId === 'smoke') {
@@ -345,7 +395,17 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       socket.join(roomId);
       socket.data.playerId = playerId;
       socket.data.roomId = roomId;
-      
+
+      // First claim of this name → mint a session token and hand it back, so
+      // only this client can reconnect/act as the name afterward.
+      if (!existingToken) {
+        let tokens = roomTokens.get(roomId);
+        if (!tokens) { tokens = new Map(); roomTokens.set(roomId, tokens); }
+        const minted = randomUUID();
+        tokens.set(playerId, minted);
+        socket.emit('session', { roomId, playerId, token: minted });
+      }
+
       socket.emit('state_sync', state);
       // Broadcast state update to everyone in the room
       io.to(roomId).emit('state_sync', state);
@@ -425,6 +485,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
         if (state.creatorId === playerId) {
           // Disband room
           manager.deleteRoom(roomId);
+          roomTokens.delete(roomId);
           log(roomId, `disbanded because creator left`);
           io.to(roomId).emit('room_disbanded', { message: 'The creator has left. Room disbanded.' });
 
@@ -459,6 +520,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     });
 
     socket.on('request_action', (payload: unknown) => {
+      if (rateLimited(socket)) { socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests' }); return; }
       const validErr = validateAction(payload);
       if (validErr) { socket.emit('error', { code: 'BAD_REQUEST', message: validErr }); return; }
 
@@ -542,7 +604,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const manager = new GameManager('data');  // rooms survive server restarts
   const httpServer = createServer(serveStatic);
-  const io = new Server(httpServer, { cors: { origin: '*' } });
+  const io = new Server(httpServer, { cors: { origin: CORS_ORIGIN } });
   attachHandlers(io, manager);
   httpServer.listen(PORT, () => {
     const hasClient = existsSync(join(CLIENT_DIST, 'index.html'));

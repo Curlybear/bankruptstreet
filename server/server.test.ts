@@ -14,6 +14,7 @@ const ROOM = 'smoke';
 let ioServer: Server;
 let c1: Socket;
 let c2: Socket;
+let player2Token: string;  // seat token issued to player2 on first claim
 
 function nextEvent<T = unknown>(socket: Socket, event: string, timeout = 3000): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -34,9 +35,10 @@ before(async () => {
     c1.once('state_sync', () => res());
   });
 
-  // c2 joins the existing room as 'player2'
+  // c2 joins the existing room as 'player2' and captures its seat token
   c2 = ioclient(`http://localhost:${TEST_PORT}`);
   await new Promise<void>(res => {
+    c2.once('session', (d: { token: string }) => { player2Token = d.token; });
     c2.once('connect', () => c2.emit('join_room', { roomId: ROOM, playerId: 'player2' }));
     c2.once('state_sync', () => res());
   });
@@ -122,7 +124,7 @@ test('reconnecting client receives state_sync with current state', async () => {
     currentPlayerId: string;
   }>(c2new, 'state_sync');
 
-  c2new.once('connect', () => c2new.emit('join_room', { roomId: ROOM, playerId: 'player2' }));
+  c2new.once('connect', () => c2new.emit('join_room', { roomId: ROOM, playerId: 'player2', token: player2Token }));
 
   const sync = await syncPromise;
   c2new.disconnect();
