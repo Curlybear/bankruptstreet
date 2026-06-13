@@ -749,6 +749,7 @@ export default function App() {
                   type="text"
                   placeholder="Hero, Dragonlord, alice…"
                   value={playerNameInput}
+                  maxLength={20}
                   onChange={(e) => setPlayerNameInput(e.target.value)}
                   style={inputStyle}
                 />
@@ -759,6 +760,7 @@ export default function App() {
                   type="text"
                   placeholder="Alefgard Castle…"
                   value={newRoomName}
+                  maxLength={20}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   style={inputStyle}
                 />

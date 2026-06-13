@@ -74,7 +74,9 @@ function validateJoin(p: unknown): string | null {
   if (!p || typeof p !== 'object') return 'payload must be an object';
   const { roomId, playerId, targetNetWorth } = p as Record<string, unknown>;
   if (typeof roomId !== 'string' || !roomId.trim()) return 'roomId must be a non-empty string';
+  if (roomId.trim().length > 20) return 'roomId must be at most 20 characters';
   if (typeof playerId !== 'string' || !playerId.trim()) return 'playerId must be a non-empty string';
+  if (playerId.trim().length > 20) return 'playerId must be at most 20 characters';
   if (targetNetWorth !== undefined) {
     if (!Number.isInteger(targetNetWorth) || (targetNetWorth as number) <= 0) {
       return 'targetNetWorth must be a positive integer';
