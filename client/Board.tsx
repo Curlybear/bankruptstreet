@@ -281,6 +281,20 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       icon.anchor.set(0.5, 0.5);
       icon.position.set(px, py);
       camera.addChild(icon);
+
+      // Change-of-suit: a cycling badge marks that this suit rotates as players pass.
+      if (node.cycleSuit) {
+        const cyc = new Graphics();
+        cyc.circle(px, py, 33).stroke({ color: 0xfacc15, width: 1.5, alpha: 0.6 });
+        camera.addChild(cyc);
+        const badge = new Text({
+          text: '↻',
+          style: new TextStyle({ fontSize: 13, fill: 0xfde047, fontWeight: 'bold' }),
+        });
+        badge.anchor.set(0.5, 0.5);
+        badge.position.set(px + 19, py - 19);
+        camera.addChild(badge);
+      }
     } else if (node.type === 'warp') {
       g.circle(px, py, 24).fill({ color: 0x450a0a });
       g.circle(px, py, 24).stroke({ color: 0xf87171, width: 2 });
@@ -396,6 +410,60 @@ function drawNodes(state: GameState, camera: Container, nodePos: Map<string, { p
       taxLabel.anchor.set(0.5, 0.5);
       taxLabel.position.set(px, py + 14);
       camera.addChild(taxLabel);
+    } else if (node.type === 'roll_on') {
+      g.circle(px, py, 25).fill({ color: 0x14532d }); // Green — go again
+      g.circle(px, py, 25).stroke({ color: 0x4ade80, width: 2.5, alpha: 0.95 });
+      camera.addChild(g);
+
+      const icon = new Text({ text: '🎲', style: new TextStyle({ fontSize: 17 }) });
+      icon.anchor.set(0.5, 0.5);
+      icon.position.set(px, py - 4);
+      camera.addChild(icon);
+
+      const lbl = new Text({
+        text: 'ROLL ON',
+        style: new TextStyle({ fontSize: 7, fill: 0xbbf7d0, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 0.5 }),
+      });
+      lbl.anchor.set(0.5, 0.5);
+      lbl.position.set(px, py + 12);
+      camera.addChild(lbl);
+    } else if (node.type === 'backstreet') {
+      const w = 52;
+      g.roundRect(px - w/2, py - w/2, w, w, 10);
+      g.fill({ color: 0x3b0764 }); // Indigo — back alley
+      g.roundRect(px - w/2, py - w/2, w, w, 10);
+      g.stroke({ color: 0xc084fc, width: 2.5, alpha: 0.9 });
+      camera.addChild(g);
+
+      const icon = new Text({ text: '🔀', style: new TextStyle({ fontSize: 15 }) });
+      icon.anchor.set(0.5, 0.5);
+      icon.position.set(px, py - 6);
+      camera.addChild(icon);
+
+      const lbl = new Text({
+        text: `ALLEY ${node.backstreetGroup ?? ''}`,
+        style: new TextStyle({ fontSize: 7.5, fill: 0xe9d5ff, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 0.5 }),
+      });
+      lbl.anchor.set(0.5, 0.5);
+      lbl.position.set(px, py + 13);
+      camera.addChild(lbl);
+    } else if (node.type === 'cannon') {
+      g.circle(px, py, 25).fill({ color: 0x431407 }); // Scorched orange-black
+      g.circle(px, py, 25).stroke({ color: 0xf97316, width: 2.5, alpha: 0.95 });
+      camera.addChild(g);
+
+      const icon = new Text({ text: '💥', style: new TextStyle({ fontSize: 17 }) });
+      icon.anchor.set(0.5, 0.5);
+      icon.position.set(px, py - 4);
+      camera.addChild(icon);
+
+      const lbl = new Text({
+        text: 'CANNON',
+        style: new TextStyle({ fontSize: 7, fill: 0xfed7aa, fontFamily: 'Outfit', fontWeight: '900', letterSpacing: 0.5 }),
+      });
+      lbl.anchor.set(0.5, 0.5);
+      lbl.position.set(px, py + 12);
+      camera.addChild(lbl);
     } else {
       // Vacant node or built structure
       const prop = Object.values(state.properties).find(p => p.nodeId === node.id);

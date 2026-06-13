@@ -63,11 +63,13 @@ export interface PendingVenture {
 
 export interface Node {
   id: string;
-  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break' | 'casino' | 'boon' | 'boom';
+  type: 'property' | 'bank' | 'stockbroker' | 'suit' | 'warp' | 'venture' | 'vacant' | 'tax_office' | 'break' | 'casino' | 'boon' | 'boom' | 'roll_on' | 'backstreet' | 'cannon';
   neighbors: string[];
   coordinates: { x: number; y: number };
   pairedNodeId?: string;
   suit?: 'heart' | 'diamond' | 'club' | 'spade';
+  cycleSuit?: boolean;             // suit node whose suit advances each time a player passes
+  backstreetGroup?: 'A' | 'B' | 'C' | 'D';  // backstreet warps to the matching-letter square
 }
 
 export type BuildingType =

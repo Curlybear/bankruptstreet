@@ -93,6 +93,8 @@ function advanceTurn(state: GameState): GameState {
 
 // Local getPath function removed; now imported from `./navigation.js`
 
+const SUIT_CYCLE = ['heart', 'diamond', 'club', 'spade'] as const;
+
 function collectSuitsAlongPath(state: GameState, playerId: string, path: string[]): GameState {
   let s = state;
   const p = s.players[playerId];
@@ -101,29 +103,36 @@ function collectSuitsAlongPath(state: GameState, playerId: string, path: string[
   const collectedSuits = { ...p.suits };
   const newLogs: string[] = [];
   let suitsChanged = false;
+  let board = s.board;
+  let boardChanged = false;
 
   for (const nodeId of path.slice(1)) {
-    const node = s.board[nodeId];
+    const node = board[nodeId];
     if (node && node.type === 'suit' && node.suit) {
       if (!collectedSuits[node.suit]) {
         collectedSuits[node.suit] = true;
         newLogs.push(`${p.name} collected ${node.suit} at ${node.id}`);
         suitsChanged = true;
       }
+      // Change-of-suit square: advance its suit for the next player to pass.
+      if (node.cycleSuit) {
+        const next = SUIT_CYCLE[(SUIT_CYCLE.indexOf(node.suit) + 1) % SUIT_CYCLE.length];
+        if (!boardChanged) { board = { ...board }; boardChanged = true; }
+        board[nodeId] = { ...node, suit: next };
+        newLogs.push(`The change-of-suit square at ${node.id} now shows ${next}.`);
+      }
     }
   }
 
-  if (suitsChanged) {
+  if (suitsChanged || boardChanged) {
     s = {
       ...s,
+      board: boardChanged ? board : s.board,
       log: [...s.log, ...newLogs],
-      players: {
+      players: suitsChanged ? {
         ...s.players,
-        [playerId]: {
-          ...p,
-          suits: collectedSuits,
-        }
-      }
+        [playerId]: { ...p, suits: collectedSuits },
+      } : s.players,
     };
   }
 
@@ -213,10 +222,69 @@ function advanceSpaceResolution(state: GameState): GameState {
 
 // Called after player has been moved to their new node.
 // Auto-resolves suit/venture/vacant/bank-salary; puts bank/broker/property into SPACE_ACTION.
-function resolveSpace(state: GameState): GameState {
+// skipRelaunch=true is used when a gimmick (cannon/backstreet) has just teleported
+// the player here — the destination square resolves normally, but a gimmick there
+// does NOT fire again, preventing ping-pong between two transport squares.
+function resolveSpace(state: GameState, skipRelaunch = false): GameState {
   const player = currentPlayer(state);
   if (player.isBankrupt) return advanceTurn(state);  // eliminated mid-move (tolls)
   const node = state.board[player.currentNodeId];
+
+  // Roll-on: take another roll immediately from this square.
+  if (node.type === 'roll_on' && !skipRelaunch) {
+    return {
+      ...state,
+      currentPhase: 'PRE_ROLL',
+      log: [...state.log, `[ROLL-ON] ${player.name} landed on a Roll-On square — roll again!`],
+    };
+  }
+
+  // Backstreet: slip down the alley to the paired matching-letter square.
+  if (node.type === 'backstreet' && !skipRelaunch) {
+    const dest = Object.values(state.board).find(
+      n => n.type === 'backstreet' && n.backstreetGroup === node.backstreetGroup && n.id !== node.id,
+    );
+    if (dest) {
+      const s: GameState = {
+        ...state,
+        players: {
+          ...state.players,
+          [player.id]: { ...player, currentNodeId: dest.id, arrivedFromNodeId: undefined },
+        },
+        log: [...state.log, `[BACKSTREET ${node.backstreetGroup}] ${player.name} slips down the back alley and emerges at ${dest.id}!`],
+      };
+      // The destination backstreet is a dead landing — it doesn't bounce back.
+      return advanceSpaceResolution(s);
+    }
+    return advanceSpaceResolution(state);
+  }
+
+  // Cannon: blast to a random other player's square, then resolve it.
+  if (node.type === 'cannon' && !skipRelaunch) {
+    const targets = state.turnOrder.filter(
+      pid => pid !== player.id
+        && !state.players[pid].isBankrupt
+        && state.players[pid].currentNodeId !== player.currentNodeId,
+    );
+    if (targets.length > 0) {
+      const targetId = targets[Math.floor(Math.random() * targets.length)];
+      const destNodeId = state.players[targetId].currentNodeId;
+      const s: GameState = {
+        ...state,
+        players: {
+          ...state.players,
+          [player.id]: { ...player, currentNodeId: destNodeId, arrivedFromNodeId: undefined },
+        },
+        log: [...state.log, `[CANNON] ${player.name} is blasted across the board onto ${state.players[targetId].name}'s square (${destNodeId})!`],
+      };
+      // Resolve the destination square (rent, card, etc.) but don't re-fire gimmicks.
+      return resolveSpace(s, true);
+    }
+    return advanceSpaceResolution({
+      ...state,
+      log: [...state.log, `[CANNON] ${player.name} lands on the cannon, but there's no one to blast toward — it misfires.`],
+    });
+  }
 
   if (node.type === 'suit') {
     // Landing on a suit node awards a venture card! Put player in SPACE_ACTION phase.

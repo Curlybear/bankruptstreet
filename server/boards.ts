@@ -39,7 +39,9 @@ const ALEFGARD_BOARD: Record<string, Node> = {
   bridge_north_2: { id: 'bridge_north_2', type: 'property', neighbors: ['kol_1'], coordinates: { x: 6, y: 0 } },
 
   // --- Kol Area (Northeast) ---
-  kol_1: { id: 'kol_1', type: 'property', neighbors: ['kol_2'], coordinates: { x: 7, y: 0 } },
+  kol_1: { id: 'kol_1', type: 'property', neighbors: ['alley_a1'], coordinates: { x: 7, y: 0 } },
+  // Backstreet A (north) — slips across the map to alley_a2 in the southwest.
+  alley_a1: { id: 'alley_a1', type: 'backstreet', backstreetGroup: 'A', neighbors: ['kol_2'], coordinates: { x: 7.5, y: 0.55 } },
   kol_2: { id: 'kol_2', type: 'property', neighbors: ['break_inn'], coordinates: { x: 8, y: 0 } },
   break_inn: { id: 'break_inn', type: 'break', neighbors: ['diamond_suit'], coordinates: { x: 9, y: 0 } },
   diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['kol_3'], coordinates: { x: 10, y: 0 } },
@@ -50,13 +52,15 @@ const ALEFGARD_BOARD: Record<string, Node> = {
 
   // --- Cantlin Area (East / Center Transition) ---
   cantlin_1: { id: 'cantlin_1', type: 'property', neighbors: ['cantlin_2'], coordinates: { x: 7, y: 2 } },
-  cantlin_2: { id: 'cantlin_2', type: 'property', neighbors: ['cantlin_3'], coordinates: { x: 8, y: 2 } },
+  cantlin_2: { id: 'cantlin_2', type: 'property', neighbors: ['rollon_cantlin'], coordinates: { x: 8, y: 2 } },
+  // Roll-on — land here and immediately take another roll.
+  rollon_cantlin: { id: 'rollon_cantlin', type: 'roll_on', neighbors: ['cantlin_3'], coordinates: { x: 8.5, y: 2.55 } },
   cantlin_3: { id: 'cantlin_3', type: 'property', neighbors: ['rimuldar_1'], coordinates: { x: 9, y: 2 } },
 
   // --- Rimuldar Area (Southeast) ---
   rimuldar_1: { id: 'rimuldar_1', type: 'property', neighbors: ['rimuldar_2'], coordinates: { x: 10, y: 2 } },
   rimuldar_2: { id: 'rimuldar_2', type: 'property', neighbors: ['club_suit'], coordinates: { x: 10, y: 3 } },
-  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['rimuldar_3'], coordinates: { x: 10, y: 4 } },
+  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', cycleSuit: true, neighbors: ['rimuldar_3'], coordinates: { x: 10, y: 4 } },
   rimuldar_3: { id: 'rimuldar_3', type: 'vacant', neighbors: ['rimuldar_4'], coordinates: { x: 9, y: 4 } },
   rimuldar_4: { id: 'rimuldar_4', type: 'property', neighbors: ['rimuldar_5'], coordinates: { x: 9, y: 3 } },
   rimuldar_5: { id: 'rimuldar_5', type: 'property', neighbors: ['rimuldar_6'], coordinates: { x: 8, y: 3 } },
@@ -71,11 +75,15 @@ const ALEFGARD_BOARD: Record<string, Node> = {
   bridge_south_1: { id: 'bridge_south_1', type: 'property', neighbors: ['domdora_1'], coordinates: { x: 4, y: 4 } },
 
   // --- Domdora Area (Southwest) ---
-  domdora_1: { id: 'domdora_1', type: 'property', neighbors: ['domdora_2'], coordinates: { x: 3, y: 4 } },
+  domdora_1: { id: 'domdora_1', type: 'property', neighbors: ['cannon_dom'], coordinates: { x: 3, y: 4 } },
+  // Cannon — blasts the lander onto a random rival's square.
+  cannon_dom: { id: 'cannon_dom', type: 'cannon', neighbors: ['domdora_2'], coordinates: { x: 2.5, y: 4.55 } },
   domdora_2: { id: 'domdora_2', type: 'property', neighbors: ['domdora_3'], coordinates: { x: 2, y: 4 } },
   domdora_3: { id: 'domdora_3', type: 'vacant', neighbors: ['domdora_4'], coordinates: { x: 1, y: 4 } },
   domdora_4: { id: 'domdora_4', type: 'property', neighbors: ['domdora_5'], coordinates: { x: 0, y: 4 } },
-  domdora_5: { id: 'domdora_5', type: 'property', neighbors: ['domdora_6'], coordinates: { x: 0, y: 3 } },
+  domdora_5: { id: 'domdora_5', type: 'property', neighbors: ['alley_a2'], coordinates: { x: 0, y: 3 } },
+  // Backstreet A (southwest) — the other end of the alley_a1 shortcut.
+  alley_a2: { id: 'alley_a2', type: 'backstreet', backstreetGroup: 'A', neighbors: ['domdora_6'], coordinates: { x: 0.55, y: 3.5 } },
   domdora_6: { id: 'domdora_6', type: 'property', neighbors: ['stockbroker_west'], coordinates: { x: 1, y: 3 } },
   stockbroker_west: { id: 'stockbroker_west', type: 'stockbroker', neighbors: ['domdora_7'], coordinates: { x: 2, y: 3 } },
   domdora_7: { id: 'domdora_7', type: 'property', neighbors: ['bank'], coordinates: { x: 3, y: 3 } },
@@ -165,7 +173,9 @@ const TORLAND_BOARD: Record<string, Node> = {
   bank: { id: 'bank', type: 'bank', neighbors: ['lianport_1'], coordinates: { x: 0, y: 3 } },
 
   // --- Lianport (west coast, going north) ---
-  lianport_1: { id: 'lianport_1', type: 'property', neighbors: ['lianport_2'], coordinates: { x: 0, y: 2 } },
+  lianport_1: { id: 'lianport_1', type: 'property', neighbors: ['alley_b1'], coordinates: { x: 0, y: 2 } },
+  // Backstreet B (west) — alley shortcut across to alley_b2 in the south-east.
+  alley_b1: { id: 'alley_b1', type: 'backstreet', backstreetGroup: 'B', neighbors: ['lianport_2'], coordinates: { x: 0.55, y: 1.5 } },
   lianport_2: { id: 'lianport_2', type: 'property', neighbors: ['heart_suit'], coordinates: { x: 0, y: 1 } },
   heart_suit: { id: 'heart_suit', type: 'suit', suit: 'heart', neighbors: ['cannock_1'], coordinates: { x: 1, y: 0 } },
 
@@ -179,7 +189,9 @@ const TORLAND_BOARD: Record<string, Node> = {
   tax_north: { id: 'tax_north', type: 'tax_office', neighbors: ['hamlin_1'], coordinates: { x: 6, y: 0 } },
 
   // --- Hamlin (north-east) ---
-  hamlin_1: { id: 'hamlin_1', type: 'property', neighbors: ['hamlin_2'], coordinates: { x: 7, y: 0 } },
+  hamlin_1: { id: 'hamlin_1', type: 'property', neighbors: ['rollon_hamlin'], coordinates: { x: 7, y: 0 } },
+  // Roll-on — land here and immediately take another roll.
+  rollon_hamlin: { id: 'rollon_hamlin', type: 'roll_on', neighbors: ['hamlin_2'], coordinates: { x: 7.5, y: 0.55 } },
   hamlin_2: { id: 'hamlin_2', type: 'property', neighbors: ['diamond_suit'], coordinates: { x: 8, y: 0 } },
   diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['hamlin_3'], coordinates: { x: 9, y: 0 } },
   hamlin_3: { id: 'hamlin_3', type: 'vacant', neighbors: ['beran_1'], coordinates: { x: 10, y: 1 } },
@@ -191,15 +203,19 @@ const TORLAND_BOARD: Record<string, Node> = {
   club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['zahan_1'], coordinates: { x: 9, y: 5 } },
 
   // --- Zahan (south-east) ---
-  zahan_1: { id: 'zahan_1', type: 'property', neighbors: ['zahan_2'], coordinates: { x: 8, y: 5 } },
+  zahan_1: { id: 'zahan_1', type: 'property', neighbors: ['alley_b2'], coordinates: { x: 8, y: 5 } },
+  // Backstreet B (south-east) — the other end of the alley_b1 shortcut.
+  alley_b2: { id: 'alley_b2', type: 'backstreet', backstreetGroup: 'B', neighbors: ['zahan_2'], coordinates: { x: 7.5, y: 5.55 } },
   zahan_2: { id: 'zahan_2', type: 'property', neighbors: ['venture_south'], coordinates: { x: 7, y: 5 } },
   venture_south: { id: 'venture_south', type: 'casino', neighbors: ['zahan_3'], coordinates: { x: 6, y: 5 } },
   zahan_3: { id: 'zahan_3', type: 'boon', neighbors: ['moonbrooke_1'], coordinates: { x: 5, y: 5 } },
 
   // --- Moonbrooke (south-west) ---
-  moonbrooke_1: { id: 'moonbrooke_1', type: 'property', neighbors: ['moonbrooke_2'], coordinates: { x: 4, y: 5 } },
+  moonbrooke_1: { id: 'moonbrooke_1', type: 'property', neighbors: ['cannon_moon'], coordinates: { x: 4, y: 5 } },
+  // Cannon — blasts the lander onto a random rival's square.
+  cannon_moon: { id: 'cannon_moon', type: 'cannon', neighbors: ['moonbrooke_2'], coordinates: { x: 3.5, y: 5.55 } },
   moonbrooke_2: { id: 'moonbrooke_2', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 3, y: 5 } },
-  spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['moonbrooke_3', 'tuhn_3'], coordinates: { x: 2, y: 5 } },
+  spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', cycleSuit: true, neighbors: ['moonbrooke_3', 'tuhn_3'], coordinates: { x: 2, y: 5 } },
   moonbrooke_3: { id: 'moonbrooke_3', type: 'property', neighbors: ['break_oasis'], coordinates: { x: 1, y: 5 } },
   break_oasis: { id: 'break_oasis', type: 'break', neighbors: ['osterfair_1'], coordinates: { x: 0, y: 5 } },
   osterfair_1: { id: 'osterfair_1', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 4 } },
@@ -287,13 +303,17 @@ const ALIAHAN_BOARD: Record<string, Node> = {
   romaly_casino: { id: 'romaly_casino', type: 'casino', neighbors: ['romaly_2'], coordinates: { x: 4, y: 0 } },
   romaly_2: { id: 'romaly_2', type: 'property', neighbors: ['heart_suit'], coordinates: { x: 3, y: 0 } },
   heart_suit: { id: 'heart_suit', type: 'suit', suit: 'heart', neighbors: ['noaniels_1'], coordinates: { x: 2, y: 0 } },
-  noaniels_1: { id: 'noaniels_1', type: 'property', neighbors: ['noaniels_2'], coordinates: { x: 1, y: 0 } },
+  noaniels_1: { id: 'noaniels_1', type: 'property', neighbors: ['alley_c1'], coordinates: { x: 1, y: 0 } },
+  // Backstreet C (north-west) — alley shortcut across to alley_c2 in the east loop.
+  alley_c1: { id: 'alley_c1', type: 'backstreet', backstreetGroup: 'C', neighbors: ['noaniels_2'], coordinates: { x: 0.5, y: 0.55 } },
   noaniels_2: { id: 'noaniels_2', type: 'property', neighbors: ['kazave_vac'], coordinates: { x: 0, y: 1 } },
   kazave_vac: { id: 'kazave_vac', type: 'vacant', neighbors: ['kazave_1', 'stockbroker_west'], coordinates: { x: 0, y: 2 } },
   kazave_1: { id: 'kazave_1', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 0, y: 3 } },
   spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['aliahan_1'], coordinates: { x: 1, y: 4 } },
   aliahan_1: { id: 'aliahan_1', type: 'property', neighbors: ['aliahan_2'], coordinates: { x: 2, y: 4 } },
-  aliahan_2: { id: 'aliahan_2', type: 'property', neighbors: ['aliahan_3'], coordinates: { x: 3, y: 4 } },
+  aliahan_2: { id: 'aliahan_2', type: 'property', neighbors: ['cannon_aliahan'], coordinates: { x: 3, y: 4 } },
+  // Cannon — blasts the lander onto a random rival's square.
+  cannon_aliahan: { id: 'cannon_aliahan', type: 'cannon', neighbors: ['aliahan_3'], coordinates: { x: 3.5, y: 4.55 } },
   aliahan_3: { id: 'aliahan_3', type: 'property', neighbors: ['venture_west'], coordinates: { x: 4, y: 4 } },
   venture_west: { id: 'venture_west', type: 'venture', neighbors: ['edinbear_tax'], coordinates: { x: 5, y: 4 } },
 
@@ -308,12 +328,16 @@ const ALIAHAN_BOARD: Record<string, Node> = {
   isis_2: { id: 'isis_2', type: 'property', neighbors: ['diamond_suit'], coordinates: { x: 8, y: 0 } },
   diamond_suit: { id: 'diamond_suit', type: 'suit', suit: 'diamond', neighbors: ['isis_3'], coordinates: { x: 9, y: 0 } },
   isis_3: { id: 'isis_3', type: 'property', neighbors: ['portoga_1'], coordinates: { x: 10, y: 0 } },
-  portoga_1: { id: 'portoga_1', type: 'property', neighbors: ['portoga_2'], coordinates: { x: 11, y: 0 } },
+  portoga_1: { id: 'portoga_1', type: 'property', neighbors: ['rollon_portoga'], coordinates: { x: 11, y: 0 } },
+  // Roll-on — land here and immediately take another roll.
+  rollon_portoga: { id: 'rollon_portoga', type: 'roll_on', neighbors: ['portoga_2'], coordinates: { x: 11.5, y: 0.55 } },
   portoga_2: { id: 'portoga_2', type: 'property', neighbors: ['stockbroker_east'], coordinates: { x: 12, y: 1 } },
   stockbroker_east: { id: 'stockbroker_east', type: 'stockbroker', neighbors: ['baharata_1'], coordinates: { x: 12, y: 2 } },
-  baharata_1: { id: 'baharata_1', type: 'property', neighbors: ['baharata_2'], coordinates: { x: 12, y: 3 } },
+  baharata_1: { id: 'baharata_1', type: 'property', neighbors: ['alley_c2'], coordinates: { x: 12, y: 3 } },
+  // Backstreet C (east) — the other end of the alley_c1 shortcut.
+  alley_c2: { id: 'alley_c2', type: 'backstreet', backstreetGroup: 'C', neighbors: ['baharata_2'], coordinates: { x: 11.5, y: 3.5 } },
   baharata_2: { id: 'baharata_2', type: 'property', neighbors: ['club_suit'], coordinates: { x: 11, y: 4 } },
-  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['baharata_3'], coordinates: { x: 10, y: 4 } },
+  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', cycleSuit: true, neighbors: ['baharata_3'], coordinates: { x: 10, y: 4 } },
   baharata_3: { id: 'baharata_3', type: 'property', neighbors: ['venture_east'], coordinates: { x: 9, y: 4 } },
   venture_east: { id: 'venture_east', type: 'venture', neighbors: ['samanao_vac'], coordinates: { x: 8, y: 4 } },
   samanao_vac: { id: 'samanao_vac', type: 'boom', neighbors: ['edinbear_tax'], coordinates: { x: 7, y: 4 } },
