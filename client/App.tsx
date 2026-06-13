@@ -744,25 +744,41 @@ export default function App() {
 
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Your Name</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Your Name</label>
+                  <span style={{
+                    fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                    color: playerNameInput.length >= 20 ? '#fde047' : '#64748b',
+                  }}>
+                    {playerNameInput.length}/20{playerNameInput.length >= 20 ? ' · max' : ''}
+                  </span>
+                </div>
                 <input
                   type="text"
                   placeholder="Hero, Dragonlord, alice…"
                   value={playerNameInput}
                   maxLength={20}
                   onChange={(e) => setPlayerNameInput(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, marginTop: 8 }}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Room Name</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Room Name</label>
+                  <span style={{
+                    fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                    color: newRoomName.length >= 20 ? '#fde047' : '#64748b',
+                  }}>
+                    {newRoomName.length}/20{newRoomName.length >= 20 ? ' · max' : ''}
+                  </span>
+                </div>
                 <input
                   type="text"
                   placeholder="Alefgard Castle…"
                   value={newRoomName}
                   maxLength={20}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, marginTop: 8 }}
                 />
               </div>
             </div>
