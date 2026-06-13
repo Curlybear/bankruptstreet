@@ -537,6 +537,15 @@ export default function App() {
   const [boardChoice, setBoardChoice] = useState('eldermoor');
   const [characterChoice, setCharacterChoice] = useState('aldric');
   const [bankruptcyChoice, setBankruptcyChoice] = useState(1);
+  const [roomSearch, setRoomSearch] = useState('');
+
+  // A room is "re-joinable" when this player already holds its seat token —
+  // those sort to the top of the listing and get a highlighted Rejoin button.
+  const hasSeat = (rid: string): boolean => {
+    const name = playerNameInput.trim();
+    if (!name) return false;
+    try { return !!localStorage.getItem(`bs_token_${rid}_${name}`); } catch { return false; }
+  };
 
   useEffect(() => {
     pendingActionRef.current = false;
@@ -967,6 +976,20 @@ export default function App() {
                 ◆ Open Tables
               </h2>
 
+              {roomsList.length > 0 && (
+                <input
+                  type="text"
+                  placeholder="🔍 Search rooms…"
+                  value={roomSearch}
+                  onChange={(e) => setRoomSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 10, boxSizing: 'border-box',
+                    background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(34, 211, 238, 0.18)',
+                    color: '#f8fafc', fontSize: 12.5, fontFamily: "'Outfit', sans-serif", outline: 'none',
+                  }}
+                />
+              )}
+
               <div style={{
                 overflowY: 'auto',
                 maxHeight: 430,
@@ -975,21 +998,29 @@ export default function App() {
                 gap: 10,
                 paddingRight: 4,
               }}>
-                {roomsList.length === 0 ? (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '36px 0',
-                    color: '#5b6478',
-                    gap: 8,
-                  }}>
-                    <span style={{ fontSize: 26 }}>🌙</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '1.5px' }}>THE FLOOR IS QUIET</span>
-                    <span style={{ fontSize: 11 }}>Open a venture to deal the first hand.</span>
-                  </div>
-                ) : (
-                  roomsList.map((r) => (
+                {(() => {
+                  if (roomsList.length === 0) return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '36px 0', color: '#5b6478', gap: 8 }}>
+                      <span style={{ fontSize: 26 }}>🌙</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '1.5px' }}>THE FLOOR IS QUIET</span>
+                      <span style={{ fontSize: 11 }}>Open a venture to deal the first hand.</span>
+                    </div>
+                  );
+                  const q = roomSearch.trim().toLowerCase();
+                  const filtered = q
+                    ? roomsList.filter(r => r.roomId.toLowerCase().includes(q) || (r.boardName ?? '').toLowerCase().includes(q))
+                    : roomsList;
+                  // Re-joinable rooms (you hold the seat token) float to the top.
+                  const sorted = [...filtered].sort((a, b) => (hasSeat(a.roomId) ? 0 : 1) - (hasSeat(b.roomId) ? 0 : 1));
+                  if (sorted.length === 0) return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 0', color: '#5b6478', gap: 6 }}>
+                      <span style={{ fontSize: 22 }}>🔍</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700 }}>No rooms match “{roomSearch.trim()}”</span>
+                    </div>
+                  );
+                  return sorted.map((r) => {
+                    const seat = hasSeat(r.roomId);
+                    return (
                     <div
                       key={r.roomId}
                       style={{
@@ -1000,7 +1031,7 @@ export default function App() {
                         borderRadius: 12,
                         background: 'rgba(0, 0, 0, 0.3)',
                         border: '1px solid rgba(255, 255, 255, 0.05)',
-                        borderLeft: r.status === 'LOBBY' ? '3px solid #10b981' : '3px solid #22d3ee',
+                        borderLeft: seat ? '3px solid #fde047' : (r.status === 'LOBBY' ? '3px solid #10b981' : '3px solid #22d3ee'),
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1011,6 +1042,7 @@ export default function App() {
                           </span>
                           <span>👥 {r.playerCount}/{r.maxPlayers}</span>
                           {r.boardName && <span style={{ color: '#a78bfa' }}>🗺 {r.boardName}</span>}
+                          {seat && <span style={{ color: '#fde047', fontWeight: 800 }}>↩ your seat</span>}
                         </div>
                       </div>
                       <button
@@ -1022,22 +1054,25 @@ export default function App() {
                         style={{
                           padding: '8px 16px',
                           borderRadius: 10,
-                          border: r.status === 'LOBBY' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                          background: r.status === 'LOBBY'
-                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                            : 'rgba(255, 255, 255, 0.04)',
-                          color: r.status === 'LOBBY' ? '#ffffff' : '#cbd5e1',
+                          border: seat || r.status === 'LOBBY' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                          background: seat
+                            ? 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)'
+                            : r.status === 'LOBBY'
+                              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                              : 'rgba(255, 255, 255, 0.04)',
+                          color: seat ? '#190f00' : r.status === 'LOBBY' ? '#ffffff' : '#cbd5e1',
                           fontSize: 11.5,
                           fontWeight: 800,
                           cursor: 'pointer',
-                          boxShadow: r.status === 'LOBBY' ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none',
+                          boxShadow: seat ? '0 4px 12px rgba(245, 158, 11, 0.3)' : r.status === 'LOBBY' ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none',
                         }}
                       >
-                        {r.status === 'LOBBY' ? 'Take a Seat' : 'Rejoin'}
+                        {seat ? '↩ Rejoin' : r.status === 'LOBBY' ? 'Take a Seat' : 'Rejoin'}
                       </button>
                     </div>
-                  ))
-                )}
+                    );
+                  });
+                })()}
               </div>
             </div>
 
