@@ -6,7 +6,7 @@ Buy shops, dominate districts, play the stock market, collect suits for promotio
 
 📜 **[Full game rules](RULES.md)** (also available in-game via the "How to Play" button)
 
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Node](https://img.shields.io/badge/Node-20+-green) ![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Node](https://img.shields.io/badge/Node-20+-green) ![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen) ![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 ## Features
 
@@ -104,6 +104,12 @@ cli/         Headless 2-bot simulation harness
 ```
 
 The engine is the single source of truth: `applyAction(state, action) → newState` is a pure function, the server is a thin validated wrapper around it, and the client renders whatever the server broadcasts. Dice rolls only happen server-side.
+
+## License
+
+Licensed under the **GNU Affero General Public License v3.0** — see [LICENSE](LICENSE). Because AGPL covers network use, anyone who runs a modified version of this game as a hosted service must make their source available; the running app links to its source to satisfy this.
+
+This is an original game with its own characters, boards, and house rules. Game *mechanics* (branching boards, a district stock market, suit/promotion) are not copyrightable; no third-party names or assets are used.
 
 ## Architecture Notes
 

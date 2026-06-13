@@ -673,6 +673,20 @@ export default function App() {
       }}>
         <div className="lobby-stars" />
 
+        {/* Source offer — AGPL-3.0 network-use notice */}
+        <a
+          href="https://github.com/Curlybear/bankruptstreet"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'fixed', bottom: 8, right: 12, zIndex: 50,
+            fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+            color: '#475569', textDecoration: 'none', letterSpacing: '0.5px',
+          }}
+        >
+          source · AGPL-3.0
+        </a>
+
         {/* ── Marquee header ── */}
         <div className="lobby-rise" style={{ textAlign: 'center', padding: '52px 24px 26px', position: 'relative' }}>
           <h1 className="marquee-wordmark" style={{ fontSize: 'clamp(40px, 6vw, 72px)', margin: 0 }}>
