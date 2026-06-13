@@ -243,9 +243,9 @@ function CasinoResultView({ result, canAct, onEndTurn }: {
 }
 
 const ARCADE_GAME_NAMES: Record<string, string> = {
-  slots: '🎰 Round the Blocks',
-  memory: '📦 Memory Block',
-  darts: '🎯 Dart of Gold',
+  slots: '🎰 Lucky Reels',
+  memory: '📦 Memory Match',
+  darts: '🎯 Golden Darts',
 };
 
 function arcadePrizeLabel(prize: ArcadePrize): { text: string; good: boolean } {
@@ -534,8 +534,8 @@ export default function App() {
   const [playerNameInput, setPlayerNameInput] = useState(() => localStorage.getItem('playerName') ?? '');
   const [newRoomName, setNewRoomName] = useState('');
   const [targetNetWorth, setTargetNetWorth] = useState(5000);
-  const [boardChoice, setBoardChoice] = useState('alefgard');
-  const [characterChoice, setCharacterChoice] = useState('erdrick');
+  const [boardChoice, setBoardChoice] = useState('eldermoor');
+  const [characterChoice, setCharacterChoice] = useState('aldric');
   const [bankruptcyChoice, setBankruptcyChoice] = useState(1);
 
   useEffect(() => {
@@ -620,16 +620,16 @@ export default function App() {
   if (!roomId || !playerId) {
     const stakes = [5000, 7000, 9000, 12000, 15000];
     const boards = [
-      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — warp pipes to Charlock island', target: 5000 },
-      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis', target: 9000 },
-      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island', target: 7000 },
+      { id: 'eldermoor', name: 'Eldermoor', icon: '🏰', blurb: 'The classic loop — warp pipes to Blackspire island', target: 5000 },
+      { id: 'mistral', name: 'Mistral', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis', target: 9000 },
+      { id: 'aldoria', name: 'Aldoria', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Farisle warp island', target: 7000 },
     ];
     const tickerItems = [
-      'TANTEGEL ▲ 7G', 'GARINHAM ▲ 9G', 'KOL ▲ 9G', 'DOMDORA ▼ 11G', 'CANTLIN ▲ 12G',
-      'RIMULDAR ▲ 13G', 'CHARLOCK ▲ 21G', 'BRIDGES ▼ 7G', '🎰 THE HOUSE ALWAYS PAYS',
-      'LIANPORT ▲ 6G', 'CANNOCK ▲ 8G', 'HAMLIN ▲ 9G', 'BERAN ▲ 13G', 'MOONBROOKE ▲ 10G',
+      'KINGSFORD ▲ 7G', 'GREENDALE ▲ 9G', 'FENWICK ▲ 9G', 'DUNMOOR ▼ 11G', 'CRESTHILL ▲ 12G',
+      'RIVERMOUTH ▲ 13G', 'BLACKSPIRE ▲ 21G', 'BRIDGES ▼ 7G', '🎰 THE HOUSE ALWAYS PAYS',
+      'SEAFORD ▲ 6G', 'ASHBURY ▲ 8G', 'NORTHGATE ▲ 9G', 'EASTPORT ▲ 13G', 'SILVERBROOK ▲ 10G',
       '♠ ♥ ♦ ♣ COLLECT ALL FOUR', 'SALARY DAY AT THE BANK',
-      'JIPANG ▲ 22G', 'ROMALY ▲ 10G', 'BAHARATA ▲ 14G', 'DESERT WIND BLOWS EAST',
+      'FARISLE ▲ 22G', 'GOLDVALE ▲ 10G', 'SPICEWELL ▲ 14G', 'DESERT WIND BLOWS EAST',
     ];
     const tickerText = tickerItems.join('   ·   ');
     const inputStyle: React.CSSProperties = {
@@ -755,7 +755,7 @@ export default function App() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Hero, Dragonlord, alice…"
+                  placeholder="Hero, Aldric, alice…"
                   value={playerNameInput}
                   maxLength={20}
                   onChange={(e) => setPlayerNameInput(e.target.value)}
@@ -774,7 +774,7 @@ export default function App() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Alefgard Castle…"
+                  placeholder="Eldermoor Keep…"
                   value={newRoomName}
                   maxLength={20}
                   onChange={(e) => setNewRoomName(e.target.value)}
@@ -1241,7 +1241,7 @@ export default function App() {
                   🚀 START MATCH NOW
                 </button>
                 <span style={{ fontSize: 11, color: '#64748b', textAlign: 'center', fontStyle: 'italic' }}>
-                  Note: Empty slots will automatically complete with Dragon Quest AI bots!
+                  Note: Empty slots will automatically complete with AI bots!
                 </span>
                 <button
                   onClick={leaveLobby}

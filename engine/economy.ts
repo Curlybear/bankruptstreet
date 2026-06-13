@@ -48,7 +48,7 @@ export function recalcDistrictMultipliers(
     if (ownerId) ownedCount[ownerId] = (ownedCount[ownerId] ?? 0) + 1;
   }
 
-  // Vanilla Fortune Street tables (derived from the modding district
+  // District multiplier tables from the original game (derived from the modding
   // simulator — see docs/research/02-shops-districts.md). Index = shops the
   // owner holds in this district. Values NEVER scale with district count;
   // only the fee and the investment ceiling do.
@@ -800,7 +800,7 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
   const level = player.level;
 
   if (game === 'slots') {
-    // Round the Blocks: line up three-of-a-kind.
+    // Lucky Reels: line up three-of-a-kind.
     const outcome = weightedPick<{ prize: ArcadePrize; symbol: string }>([
       [{ prize: { kind: 'cash', amount: 500 * level }, symbol: '7️⃣' }, 5],
       [{ prize: { kind: 'cash', amount: 50 * level }, symbol: '🍄' }, 22],
@@ -823,13 +823,13 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
     const s: GameState = {
       ...state,
       arcadeResult: { playerId, game, prize: outcome.prize, reels },
-      log: [...state.log, `[ARCADE] ${player.name} plays Round the Blocks: ${reels.join(' ')} — ${describePrize(outcome.prize)}!`],
+      log: [...state.log, `[ARCADE] ${player.name} plays Lucky Reels: ${reels.join(' ')} — ${describePrize(outcome.prize)}!`],
     };
     return applyArcadePrize(s, playerId, outcome.prize);
   }
 
   if (game === 'memory') {
-    // Memory Block: open one of nine boxes.
+    // Memory Match: open one of nine boxes.
     if (!Number.isInteger(pick) || pick! < 0 || pick! > 8) throw new Error(`Memory pick must be 0-8`);
     const prize = weightedPick<ArcadePrize>([
       [{ kind: 'cash', amount: 10 * level }, 35],
@@ -841,13 +841,13 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
     const s: GameState = {
       ...state,
       arcadeResult: { playerId, game, prize, pickIndex: pick },
-      log: [...state.log, `[ARCADE] ${player.name} plays Memory Block and opens box ${pick! + 1}: ${describePrize(prize)}!`],
+      log: [...state.log, `[ARCADE] ${player.name} plays Memory Match and opens box ${pick! + 1}: ${describePrize(prize)}!`],
     };
     return applyArcadePrize(s, playerId, prize);
   }
 
   if (game === 'darts') {
-    // Dart of Gold: throw at the wheel — the prize (or penalty) lands on a
+    // Golden Darts: throw at the wheel — the prize (or penalty) lands on a
     // random alive player.
     const wedge = Math.floor(Math.random() * ARCADE_DART_WEDGES.length);
     const kind = ARCADE_DART_WEDGES[wedge];
@@ -863,7 +863,7 @@ export function playArcade(state: GameState, playerId: string, game: ArcadeGame,
     const s: GameState = {
       ...state,
       arcadeResult: { playerId, game, prize, targetPlayerId },
-      log: [...state.log, `[ARCADE] ${player.name} throws the Dart of Gold: ${describePrize(prize)} — it lands on ${state.players[targetPlayerId].name}!`],
+      log: [...state.log, `[ARCADE] ${player.name} throws the Golden Darts: ${describePrize(prize)} — it lands on ${state.players[targetPlayerId].name}!`],
     };
     return applyArcadePrize(s, targetPlayerId, prize);
   }

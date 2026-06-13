@@ -30,44 +30,44 @@ export const DEFAULT_PERSONALITY: BotPersonality = {
 };
 
 export const CHARACTERS: Record<string, Character> = {
-  erdrick: {
-    id: 'erdrick', name: 'Erdrick', emoji: '⚔️', title: 'Balanced Hero',
+  aldric: {
+    id: 'aldric', name: 'Aldric', emoji: '⚔️', title: 'Balanced Hero',
     personality: { ...DEFAULT_PERSONALITY },
   },
-  dragonlord: {
-    id: 'dragonlord', name: 'Dragonlord', emoji: '🐉', title: 'Property Tycoon',
+  tyrant: {
+    id: 'tyrant', name: 'The Tyrant', emoji: '🐉', title: 'Property Tycoon',
     personality: {
       cashReserve: 100, investAmount: 300, stockBatch: 5,
       buyoutCashMultiplier: 1.5, preferThreeStar: true, sellOnDip: true,
       pathPreference: 'shops',
     },
   },
-  gwaelin: {
-    id: 'gwaelin', name: 'Princess Gwaelin', emoji: '👸', title: 'Stock Baroness',
+  baroness: {
+    id: 'baroness', name: 'Lady Mirelle', emoji: '👸', title: 'Stock Baroness',
     personality: {
       cashReserve: 300, investAmount: 50, stockBatch: 20,
       buyoutCashMultiplier: 3.0, preferThreeStar: false, sellOnDip: false,
       pathPreference: 'stocks',
     },
   },
-  slime: {
-    id: 'slime', name: 'Slime', emoji: '🟢', title: 'Cautious Hoarder',
+  miser: {
+    id: 'miser', name: 'The Miser', emoji: '🟢', title: 'Cautious Hoarder',
     personality: {
       cashReserve: 350, investAmount: 100, stockBatch: 5,
       buyoutCashMultiplier: 4.0, preferThreeStar: false, sellOnDip: true,
       pathPreference: 'shops',
     },
   },
-  torneko: {
-    id: 'torneko', name: 'Torneko', emoji: '🛒', title: 'Merchant Prince',
+  merrick: {
+    id: 'merrick', name: 'Merrick', emoji: '🛒', title: 'Merchant Prince',
     personality: {
       cashReserve: 150, investAmount: 200, stockBatch: 10,
       buyoutCashMultiplier: 2.0, preferThreeStar: true, sellOnDip: true,
       pathPreference: 'shops',
     },
   },
-  healslime: {
-    id: 'healslime', name: 'Healslime', emoji: '✨', title: 'Opportunist',
+  oracle: {
+    id: 'oracle', name: 'The Oracle', emoji: '✨', title: 'Opportunist',
     personality: {
       cashReserve: 250, investAmount: 100, stockBatch: 15,
       buyoutCashMultiplier: 2.5, preferThreeStar: false, sellOnDip: false,

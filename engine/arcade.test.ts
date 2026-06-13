@@ -61,7 +61,7 @@ function withRandom<T>(value: number, fn: () => T): T {
   try { return fn(); } finally { Math.random = orig; }
 }
 
-// ─── Round the Blocks (slots) ─────────────────────────────────────────────────
+// ─── Lucky Reels (slots) ─────────────────────────────────────────────────
 
 test('slots jackpot pays 500G x level and lines up three 7s', () => {
   const state = makeState({
@@ -107,7 +107,7 @@ test('ARCADE_PLAY requires a casino node', () => {
   );
 });
 
-// ─── Memory Block ─────────────────────────────────────────────────────────────
+// ─── Memory Match ─────────────────────────────────────────────────────────────
 
 test('memory pays the coin prize (10G x level) and records the picked box', () => {
   const state = makeState({
@@ -129,7 +129,7 @@ test('memory rejects an out-of-range pick', () => {
   );
 });
 
-// ─── Dart of Gold ─────────────────────────────────────────────────────────────
+// ─── Golden Darts ─────────────────────────────────────────────────────────────
 
 test('darts lands on a random player and applies the prize immediately', () => {
   const state = makeState({

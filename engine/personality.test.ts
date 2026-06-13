@@ -42,23 +42,23 @@ const ownShop: Property = {
 };
 const district: District = { id: 'd1', name: 'D1', stockPrice: 10, propertyIds: ['shop1'], playerHoldings: {} };
 
-test('cashReserve: slime (350) skips a tiny invest at 400 cash; erdrick (175) invests', () => {
+test('cashReserve: miser (350) skips a tiny invest at 400 cash; aldric (175) invests', () => {
   const base = makeState({
     properties: { shop1: ownShop },
     districts: { d1: district },
   });
 
-  const slimeState: GameState = {
+  const miserState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'slime' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'miser' }) },
   };
-  assert.equal(greedyBotAction(slimeState, 'p1').type, 'END_TURN');
+  assert.equal(greedyBotAction(miserState, 'p1').type, 'END_TURN');
 
-  const erdrickState: GameState = {
+  const aldricState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'erdrick' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'aldric' }) },
   };
-  const action = greedyBotAction(erdrickState, 'p1');
+  const action = greedyBotAction(aldricState, 'p1');
   assert.equal(action.type, 'INVEST');
 });
 
@@ -69,7 +69,7 @@ test('investing goes deep: down to the cash reserve, capped at 999/turn', () => 
   });
 
   // Plenty of cash → both personalities max the 999/turn cap
-  for (const charId of ['dragonlord', 'erdrick'] as const) {
+  for (const charId of ['tyrant', 'aldric'] as const) {
     const s: GameState = {
       ...base,
       players: { ...base.players, p1: makeTestPlayer('p1', { cash: 2000, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: charId }) },
@@ -79,10 +79,10 @@ test('investing goes deep: down to the cash reserve, capped at 999/turn', () => 
     assert.equal((action as { amount: number }).amount, 999, `${charId} invests the cap`);
   }
 
-  // Tight cash → the reserve differentiates them (dragonlord 100 vs slime 350)
+  // Tight cash → the reserve differentiates them (tyrant 100 vs miser 350)
   const tightDragon: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 700, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'dragonlord' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 700, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'tyrant' }) },
   };
   assert.equal((greedyBotAction(tightDragon, 'p1') as { amount: number }).amount, 600); // 700 - 100 reserve
 });
@@ -98,21 +98,21 @@ test('stock buying: one aggregated buy down to the reserve; stockBatch is the mi
     players: { ...base.players, p1: makeTestPlayer('p1', { cash, currentNodeId: 'bank', propertyIds: ['shop1'], characterId: charId }) },
   });
 
-  // gwaelin (reserve 300): 2000 cash at 10G/sh → 170 affordable, one buy capped at 99
-  const big = greedyBotAction(at('gwaelin', 2000), 'p1');
+  // baroness (reserve 300): 2000 cash at 10G/sh → 170 affordable, one buy capped at 99
+  const big = greedyBotAction(at('baroness', 2000), 'p1');
   assert.equal(big.type, 'BUY_STOCK');
   assert.equal((big as { shares: number }).shares, 99);
 
-  // gwaelin (batch 20): only 19 affordable above the reserve → not worth opening
-  assert.equal(greedyBotAction(at('gwaelin', 490), 'p1').type, 'END_TURN');
+  // baroness (batch 20): only 19 affordable above the reserve → not worth opening
+  assert.equal(greedyBotAction(at('baroness', 490), 'p1').type, 'END_TURN');
 
-  // slime (reserve 350, batch 5): 6 affordable → buys all 6 in one transaction
-  const small = greedyBotAction(at('slime', 410), 'p1');
+  // miser (reserve 350, batch 5): 6 affordable → buys all 6 in one transaction
+  const small = greedyBotAction(at('miser', 410), 'p1');
   assert.equal(small.type, 'BUY_STOCK');
   assert.equal((small as { shares: number }).shares, 6);
 });
 
-test('buyoutCashMultiplier: dragonlord (1.5x) buys out where slime (4x) pays rent', () => {
+test('buyoutCashMultiplier: tyrant (1.5x) buys out where miser (4x) pays rent', () => {
   const oppShop: Property = { ...ownShop, ownerId: 'p2' };
   const base = makeState({
     properties: { shop1: oppShop },
@@ -123,18 +123,18 @@ test('buyoutCashMultiplier: dragonlord (1.5x) buys out where slime (4x) pays ren
     },
   });
 
-  // buyoutCost = 500; cash 1000 → 2.0× cost: above dragonlord's 1.5, below slime's 4.0
+  // buyoutCost = 500; cash 1000 → 2.0× cost: above tyrant's 1.5, below miser's 4.0
   const dragonState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'dragonlord' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'tyrant' }) },
   };
   assert.equal(greedyBotAction(dragonState, 'p1').type, 'BUYOUT_PROPERTY');
 
-  const slimeState: GameState = {
+  const miserState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'slime' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'miser' }) },
   };
-  assert.equal(greedyBotAction(slimeState, 'p1').type, 'PAY_RENT');
+  assert.equal(greedyBotAction(miserState, 'p1').type, 'PAY_RENT');
 });
 
 test('unknown/missing characterId falls back to default personality', () => {
@@ -152,11 +152,11 @@ test('unknown/missing characterId falls back to default personality', () => {
 });
 
 test('makePlayer assigns character names; pickUnusedCharacter avoids collisions', () => {
-  const bot = makePlayer('bot1', 'dragonlord');
-  assert.equal(bot.name, '🐉 Dragonlord');
-  assert.equal(bot.characterId, 'dragonlord');
+  const bot = makePlayer('bot1', 'tyrant');
+  assert.equal(bot.name, '🐉 The Tyrant');
+  assert.equal(bot.characterId, 'tyrant');
 
-  const human = makePlayer('alice', 'slime');
+  const human = makePlayer('alice', 'miser');
   assert.equal(human.name, '🟢 alice');   // humans keep their own name
 
   const plain = makePlayer('bob');

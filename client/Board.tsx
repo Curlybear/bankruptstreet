@@ -12,7 +12,7 @@ import { districtColor } from './districtColors';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TILE     = 82; // Balanced spacing for 11x5 Alefgard grid
+const TILE     = 82; // Balanced spacing for the board grid
 const PAD      = 60;
 const TILE_W   = 68;
 const TILE_H   = 68;

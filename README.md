@@ -1,6 +1,6 @@
 # 🎲 Bankrupt Street
 
-A multiplayer, browser-based board game of property, stocks, and timing — inspired by the *Fortune Street* / *Itadaki Street* series, with Dragon Quest-flavored boards and its own house rules.
+A multiplayer, browser-based board game of property, stocks, and timing — branching boards, a district stock market, and a suit/promotion mechanic, set in a fantasy world with its own house rules.
 
 Buy shops, dominate districts, play the stock market, collect suits for promotions, and race to the target net worth before your rivals — or before someone goes bankrupt and ends it all.
 
@@ -10,13 +10,13 @@ Buy shops, dominate districts, play the stock market, collect suits for promotio
 
 ## Features
 
-- **Full game engine** — branching board movement, the original *Fortune Street* district economy (fees scale ×1/1.25/2/3.25/6 with ownership, capital-driven rent, 4%-of-value stock pricing with price impact), suit/promotion salaries, Suit Yourself wildcards, seven buildable structures, a 124-card venture deck on a shared 8×8 grid with line bonuses, buyouts, and bankruptcy liquidation
+- **Full game engine** — branching board movement, a deep district economy (fees scale ×1/1.25/2/3.25/6 with ownership, capital-driven rent, 4%-of-value stock pricing with price impact), suit/promotion salaries, Suit Yourself wildcards, seven buildable structures, a 124-card venture deck on a shared 8×8 grid with line bonuses, buyouts, and bankruptcy liquidation
 - **Interactive venture cards** — beyond the auto-resolving effects, cards that let you buy/sell stock or shops at the bank on your terms (and forced buy-outs you can't refuse)
 - **Player debt auctions** — going broke puts your shops up for live auction among the other players, with the bank's 75% offer as the floor
-- **Casino & free arcade** — wager games (Slime Derby, High-Low) plus three level-scaled minigames (Round the Blocks slots, Memory Block, Dart of Gold)
+- **Casino & free arcade** — wager games (Slime Derby, High-Low) plus three level-scaled minigames (Lucky Reels slots, Memory Match, Golden Darts)
 - **Board gimmicks** — roll-on (extra roll), backstreet alleys (paired warps), cannons (blast onto a rival), change-of-suit squares, plus Boon/Boom commission squares and take-a-break penalties
-- **Three boards** — *Alefgard* (warp pipes into a lucrative central island), *Torland* (one-way River Rapids shortcut, royal tax office), and *Aliahan* (twin loops crossing at the bank, desert wind, the Jipang warp island)
-- **Six AI characters with real personalities** — from the buyout-hungry 🐉 Dragonlord to the stock-trading 👸 Princess Gwaelin; empty seats are auto-filled with distinct AI opponents, balance-tuned over thousands of simulated games
+- **Three boards** — *Eldermoor* (warp pipes into a lucrative central island), *Mistral* (one-way River Rapids shortcut, royal tax office), and *Aldoria* (twin loops crossing at the bank, desert wind, the Farisle warp island)
+- **Six AI characters with real personalities** — from the buyout-hungry 🐉 The Tyrant to the stock-trading 👸 Lady Mirelle; empty seats are auto-filled with distinct AI opponents, balance-tuned over thousands of simulated games
 - **Online multiplayer** — lobby system with room browser, board/character selection, reconnection support, and rooms that survive server restarts
 - **End-game rankings** — per-player stat breakdown: laps, rent flows, biggest payday, shares traded, promotions
 - **PixiJS board renderer** — animated tokens, camera follow, warp effects

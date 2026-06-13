@@ -5,26 +5,26 @@
 // to a single default.
 
 const NAMED: Record<string, number> = {
-  // Alefgard
-  tantegel: 0x3b82f6, // royal blue
-  garinham: 0x10b981, // forest green
-  kol:      0x06b6d4, // cyan
-  domdora:  0xf59e0b, // amber
-  cantlin:  0xef4444, // crimson
-  rimuldar: 0x8b5cf6, // violet
-  charlock: 0xec4899, // magenta
+  // Eldermoor
+  kingsford: 0x3b82f6, // royal blue
+  greendale: 0x10b981, // forest green
+  fenwick:      0x06b6d4, // cyan
+  dunmoor:  0xf59e0b, // amber
+  cresthill:  0xef4444, // crimson
+  rivermouth: 0x8b5cf6, // violet
+  blackspire: 0xec4899, // magenta
   bridges:  0x64748b, // steel gray
-  garin_pass: 0x84cc16, // lime
-  hauksness:  0xf97316, // burnt orange
-  galenholm:  0xe879f9, // orchid
-  // Torland
-  lianport:   0x06b6d4, // cyan
-  cannock:    0x10b981, // green
-  hamlin:     0xf59e0b, // amber
-  beran:      0xef4444, // crimson
-  zahan:      0x8b5cf6, // violet
-  moonbrooke: 0x3b82f6, // blue
-  tuhn:       0xec4899, // magenta
+  greenway: 0x84cc16, // lime
+  harrowmere:  0xf97316, // burnt orange
+  stonehollow:  0xe879f9, // orchid
+  // Mistral
+  seaford:   0x06b6d4, // cyan
+  ashbury:    0x10b981, // green
+  northgate:     0xf59e0b, // amber
+  eastport:      0xef4444, // crimson
+  sunder:      0x8b5cf6, // violet
+  silverbrook: 0x3b82f6, // blue
+  thornpass:       0xec4899, // magenta
   rapids:     0x14b8a6, // teal
 };
 

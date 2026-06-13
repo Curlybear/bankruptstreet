@@ -73,7 +73,7 @@ All three phases are fully implemented. The engine is the source of truth — th
 Auto-resolving squares handled in `resolveSpace` (no new actions): `roll_on` (→ another `PRE_ROLL`), `backstreet` (warp to the paired `backstreetGroup` A–D node), `cannon` (blast to a random rival's square, then resolve it; `skipRelaunch` guards against ping-pong), and change-of-suit (`suit` node with `cycleSuit`, advancing ♥→♦→♣→♠ in `collectSuitsAlongPath`). Deferred: lift/switch squares, cameo NPCs.
 
 ### Board authoring
-Boards are authored with forward edges only; `symmetrizeBoard(board, oneWayEdges?)` (server/gameManager.ts) fills in reverse edges, skipping any `[from, to]` pairs listed as one-way. Native `tax_office` squares charge 5% of net worth to the bank on landing (auto-resolve). Three boards ship: Alefgard, Torland, Aliahan. Inline-inserted gimmick nodes need ≥1 full tile of coordinate clearance from neighbours or their link stubs render hidden under overlapping node bodies.
+Boards are authored with forward edges only; `symmetrizeBoard(board, oneWayEdges?)` (server/gameManager.ts) fills in reverse edges, skipping any `[from, to]` pairs listed as one-way. Native `tax_office` squares charge 5% of net worth to the bank on landing (auto-resolve). Three boards ship: Eldermoor, Mistral, Aldoria. Inline-inserted gimmick nodes need ≥1 full tile of coordinate clearance from neighbours or their link stubs render hidden under overlapping node bodies.
 
 ### Socket protocol
 Client emits `join_room` / `request_action`. Server responds with `state_sync` (full state, on join/reconnect) or `state_delta` (minimal diff, on every action). Client re-joins after each delta to get a fresh `state_sync` — this is intentional (see feedback memory).

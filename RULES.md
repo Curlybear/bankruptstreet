@@ -1,12 +1,12 @@
 # Bankrupt Street — Game Rules
 
-A multiplayer board game of property, stocks, and timing, inspired by the *Fortune Street* series — with its own house rules.
+A multiplayer board game of property, stocks, and timing — branching boards, a district stock market, suits and promotions, all in a fantasy setting with its own house rules.
 
 ---
 
 ## Goal
 
-Be the first player to reach the **target net worth** (set when the room is created — each board suggests its own: **Alefgard 5,000G**, **Aliahan 7,000G**, **Torland 9,000G**, adjustable to 5k–15k) and then **return to the bank** — landing on it or passing it both count.
+Be the first player to reach the **target net worth** (set when the room is created — each board suggests its own: **Eldermoor 5,000G**, **Aldoria 7,000G**, **Mistral 9,000G**, adjustable to 5k–15k) and then **return to the bank** — landing on it or passing it both count.
 
 > Net worth = cash + (shares × stock price) + value of all owned shops.
 
@@ -108,9 +108,9 @@ Land on a 🎰 **Casino** square to play one game, once per visit — three free
 
 **Free arcade** (no stake; prizes scale with your level):
 
-- **🎰 Round the Blocks** — a slot pull. Three-of-a-kind pays out: 500G × level (7s), 50G × level (mushrooms), free shares, a Suit Yourself card, or a warp.
-- **📦 Memory Block** — open one of nine boxes for a coin (10G × level), shares, a shop boost, a Suit Yourself card, or a Bowser (−5% to your shops).
-- **🎯 Dart of Gold** — throw at the prize wheel; the prize **or penalty** lands on a random player (could be you).
+- **🎰 Lucky Reels** — a slot pull. Three-of-a-kind pays out: 500G × level (7s), 50G × level (mushrooms), free shares, a Suit Yourself card, or a warp.
+- **📦 Memory Match** — open one of nine boxes for a coin (10G × level), shares, a shop boost, a Suit Yourself card, or a Bandit (−5% to your shops).
+- **🎯 Golden Darts** — throw at the prize wheel; the prize **or penalty** lands on a random player (could be you).
 
 **Wager games** (stake 10–500G):
 
@@ -129,17 +129,17 @@ If your cash drops below zero, you enter **debt settlement**: choose any mix of 
 
 | Character | Style |
 |---|---|
-| ⚔️ **Erdrick** — Balanced Hero | Steady all-rounder |
-| 🐉 **Dragonlord** — Property Tycoon | Spends big on shops, buys opponents out aggressively |
-| 👸 **Princess Gwaelin** — Stock Baroness | Trades in large blocks, holds through dips, heads for brokers |
-| 🟢 **Slime** — Cautious Hoarder | Keeps the biggest cash reserve, builds shops steadily and rarely overextends |
-| 🛒 **Torneko** — Merchant Prince | Builder and shrewd buyer |
-| ✨ **Healslime** — Opportunist | Stock-leaning generalist |
+| ⚔️ **Aldric** — Balanced Hero | Steady all-rounder |
+| 🐉 **The Tyrant** — Property Tycoon | Spends big on shops, buys opponents out aggressively |
+| 👸 **Lady Mirelle** — Stock Baroness | Trades in large blocks, holds through dips, heads for brokers |
+| 🟢 **The Miser** — Cautious Hoarder | Keeps the biggest cash reserve, builds shops steadily and rarely overextends |
+| 🛒 **Merrick** — Merchant Prince | Builder and shrewd buyer |
+| ✨ **The Oracle** — Opportunist | Stock-leaning generalist |
 
 Humans play however they like — the character is your avatar. AI players genuinely play these styles.
 
 ## Boards
 
-- 🗺 **Alefgard** — the classic: twin warp pipes into the lucrative Charlock island at the center, now with a taxed land exit through the **Charlock Gate** and an inn on the Kol road.
-- 🗺 **Torland** — outer ring with an inner pass, a one-way **River Rapids** shortcut (cheap shops, brutal rent, no way back), and a royal tax office on the north road.
-- 🗺 **Aliahan** — twin loops crossing at the bank (every lap passes the Dharma Shrine, the bank, and the Edinbear tax house). The Isis desert wind blows the northern caravan one-way east; premium **Jipang** island is warp-in from the Roma Road, warp-out to Aliahan.
+- 🗺 **Eldermoor** — the classic: twin warp pipes into the lucrative Blackspire island at the center, now with a taxed land exit through the **Blackspire Gate** and an inn on the Fenwick road.
+- 🗺 **Mistral** — outer ring with an inner pass, a one-way **River Rapids** shortcut (cheap shops, brutal rent, no way back), and a royal tax office on the north road.
+- 🗺 **Aldoria** — twin loops crossing at the bank (every lap passes the Temple Shrine, the bank, and the Crown tax house). The Sunspire desert wind blows the northern caravan one-way east; premium **Farisle** island is warp-in from the Gold Road, warp-out to Aldoria.

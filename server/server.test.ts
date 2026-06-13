@@ -64,13 +64,13 @@ test('ROLL_DICE broadcasts state_delta to both clients', async () => {
   assert.equal(rd1.type, 'CHOICES_AVAILABLE', 'first delta is CHOICES_AVAILABLE');
   assert.deepEqual(rd1, rd2, 'both clients receive identical CHOICES_AVAILABLE delta');
 
-  // 2. alice chooses the path to tantegel_2 (a vacant plot, putting her in SPACE_ACTION)
+  // 2. alice chooses the path to kingsford_2 (a vacant plot, putting her in SPACE_ACTION)
   const moveP1 = nextEvent<{ type: string }>(c1, 'state_delta');
   const moveP2 = nextEvent<{ type: string }>(c2, 'state_delta');
   c1.emit('request_action', {
     roomId: ROOM,
     playerId: 'alice',
-    action: { type: 'CHOOSE_PATH', nodeId: 'tantegel_2' },
+    action: { type: 'CHOOSE_PATH', nodeId: 'kingsford_2' },
   });
 
   const [d1, d2] = await Promise.all([moveP1, moveP2]);
@@ -269,19 +269,19 @@ test('symmetrizeBoard makes edges bidirectional except listed one-way edges', ()
   assert.deepEqual([...destinations].sort(), ['a']);
 });
 
-// ─── Board registry & Torland integrity ───────────────────────────────────────
+// ─── Board registry & Mistral integrity ───────────────────────────────────────
 
 test('GameManager creates rooms on the requested board', () => {
   const manager = new GameManager();
-  const state = manager.createRoom('t1', ['alice'], 15000, 'torland');
-  assert.equal(state.boardId, 'torland');
+  const state = manager.createRoom('t1', ['alice'], 15000, 'mistral');
+  assert.equal(state.boardId, 'mistral');
   assert.ok(state.board.rapids_1);
-  assert.ok(state.properties.moonbrooke_1);
+  assert.ok(state.properties.silverbrook_1);
   assert.equal(state.players.alice.currentNodeId, 'bank');
 
   const fallback = manager.createRoom('t2', ['alice']);
-  assert.equal(fallback.boardId, 'alefgard');
-  assert.ok(fallback.board.tantegel_1);
+  assert.equal(fallback.boardId, 'eldermoor');
+  assert.ok(fallback.board.kingsford_1);
 });
 
 test('every board: every node is reachable from the bank', () => {
@@ -304,17 +304,17 @@ test('every board: every node is reachable from the bank', () => {
   }
 });
 
-test('Torland: rapids edges are one-way (no backward traversal)', () => {
+test('Mistral: rapids edges are one-way (no backward traversal)', () => {
   const manager = new GameManager();
-  const { board } = manager.createRoom('t4', ['alice'], 15000, 'torland');
+  const { board } = manager.createRoom('t4', ['alice'], 15000, 'mistral');
 
-  assert.ok(!board.rapids_1.neighbors.includes('tuhn_2'), 'rapids_1 must not flow back to tuhn_2');
+  assert.ok(!board.rapids_1.neighbors.includes('thornpass_2'), 'rapids_1 must not flow back to thornpass_2');
   assert.ok(!board.venture_mid.neighbors.includes('rapids_1'), 'venture_mid must not flow back');
   assert.ok(!board.rapids_2.neighbors.includes('venture_mid'), 'rapids_2 must not flow back');
   assert.ok(!board.stockbroker_east.neighbors.includes('rapids_2'), 'broker must not enter the rapids backward');
 
-  // Forward flow works: from tuhn_2 a roll of 4 can exit the rapids at the broker
-  const { destinations } = findPaths(board, 'tuhn_2', 4);
+  // Forward flow works: from thornpass_2 a roll of 4 can exit the rapids at the broker
+  const { destinations } = findPaths(board, 'thornpass_2', 4);
   assert.ok(destinations.includes('stockbroker_east'), `expected broker exit, got: ${destinations.join(', ')}`);
 });
 
@@ -364,29 +364,29 @@ test('every board: districts and properties are consistent', () => {
   }
 });
 
-test('Aliahan: desert wind is one-way; Jipang island warps in and out', () => {
+test('Aldoria: desert wind is one-way; Farisle island warps in and out', () => {
   const manager = new GameManager();
-  const { board } = manager.createRoom('a1', ['alice'], 15000, 'aliahan');
+  const { board } = manager.createRoom('a1', ['alice'], 15000, 'aldoria');
 
-  assert.ok(!board.isis_2.neighbors.includes('isis_1'), 'isis_2 must not flow back west');
-  assert.ok(!board.diamond_suit.neighbors.includes('isis_2'), 'diamond_suit must not flow back west');
+  assert.ok(!board.sunspire_2.neighbors.includes('sunspire_1'), 'sunspire_2 must not flow back west');
+  assert.ok(!board.diamond_suit.neighbors.includes('sunspire_2'), 'diamond_suit must not flow back west');
 
-  // Roma Road branch reaches the Jipang island via the warp
-  const { destinations } = findPaths(board, 'roma_road_2', 2);
-  assert.ok(destinations.includes('jipang_1'), `expected jipang_1 via warp, got: ${destinations.join(', ')}`);
+  // Gold Road branch reaches the Farisle island via the warp
+  const { destinations } = findPaths(board, 'gold_road_2', 2);
+  assert.ok(destinations.includes('farisle_1'), `expected farisle_1 via warp, got: ${destinations.join(', ')}`);
 
-  // Island exit warps out to Aliahan
-  assert.equal(board.jipang_warp_out.pairedNodeId, 'aliahan_1');
+  // Island exit warps out to Aldoria
+  assert.equal(board.farisle_warp_out.pairedNodeId, 'aldoria_1');
 });
 
-test('Alefgard: Charlock island has a taxed land exit and no dead-end entrance', () => {
+test('Eldermoor: Blackspire island has a taxed land exit and no dead-end entrance', () => {
   const manager = new GameManager();
-  const { board } = manager.createRoom('a2', ['alice'], 15000, 'alefgard');
+  const { board } = manager.createRoom('a2', ['alice'], 15000, 'eldermoor');
 
-  assert.ok(board.charlock_warp_in_1.neighbors.length >= 2, 'island entrance must not be a dead end');
-  assert.equal(board.charlock_gate.type, 'tax_office');
+  assert.ok(board.blackspire_warp_in_1.neighbors.length >= 2, 'island entrance must not be a dead end');
+  assert.equal(board.blackspire_gate.type, 'tax_office');
   // Walking out of the island east through the gate reaches the broker
-  const { destinations } = findPaths(board, 'charlock_2', 2);
+  const { destinations } = findPaths(board, 'blackspire_2', 2);
   assert.ok(destinations.includes('stockbroker_east'), `expected broker via gate, got: ${destinations.join(', ')}`);
 });
 
@@ -410,7 +410,7 @@ test('rooms persist to disk and restore into a fresh GameManager', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'bankrupt-persist-'));
 
   const m1 = new GameManager(dir);
-  const state = m1.createRoom('proom', ['alice', 'bob'], 9000, 'torland');
+  const state = m1.createRoom('proom', ['alice', 'bob'], 9000, 'mistral');
   state.status = 'ACTIVE';
   state.log.push('[TEST] marker entry');
   m1.saveNow();
@@ -418,7 +418,7 @@ test('rooms persist to disk and restore into a fresh GameManager', async () => {
   const m2 = new GameManager(dir);
   const restored = m2.getRoom('proom');
   assert.ok(restored, 'room must be restored');
-  assert.equal(restored.boardId, 'torland');
+  assert.equal(restored.boardId, 'mistral');
   assert.equal(restored.targetNetWorth, 9000);
   assert.equal(restored.status, 'ACTIVE');
   assert.deepEqual(restored.turnOrder, ['alice', 'bob']);

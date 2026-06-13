@@ -65,7 +65,7 @@ test('negative investment cash exploit check', async () => {
   c1.emit('request_action', {
     roomId: ROOM,
     playerId: 'alice',
-    action: { type: 'INVEST', propertyId: 'tantegel_1', amount: -500 }
+    action: { type: 'INVEST', propertyId: 'kingsford_1', amount: -500 }
   });
 
   const err = await errPromise;
@@ -112,7 +112,7 @@ test('invalid stock shares or malformed stock actions validation checks', async 
   c1.emit('request_action', {
     roomId: ROOM,
     playerId: 'alice',
-    action: { type: 'BUY_STOCK', districtId: 'tantegel', shares: 5.5 }
+    action: { type: 'BUY_STOCK', districtId: 'kingsford', shares: 5.5 }
   });
   let err = await errPromise;
   assert.equal(err.code, 'BAD_REQUEST');
@@ -123,7 +123,7 @@ test('invalid stock shares or malformed stock actions validation checks', async 
   c1.emit('request_action', {
     roomId: ROOM,
     playerId: 'alice',
-    action: { type: 'BUY_STOCK', districtId: 'tantegel', shares: -10 }
+    action: { type: 'BUY_STOCK', districtId: 'kingsford', shares: -10 }
   });
   err = await errPromise;
   assert.equal(err.code, 'BAD_REQUEST');

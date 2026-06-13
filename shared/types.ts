@@ -233,7 +233,7 @@ export type ArcadeGame = 'slots' | 'memory' | 'darts';
 export type ArcadePrize =
   | { kind: 'cash'; amount: number }
   | { kind: 'shops_up'; pct: number }     // all recipient's shops: base value & rent +pct%
-  | { kind: 'shops_down'; pct: number }   // ...or -pct% (Bowser)
+  | { kind: 'shops_down'; pct: number }   // ...or -pct% (Bandit)
   | { kind: 'stock'; shares: number }     // shares in the recipient's strongest district
   | { kind: 'suit_yourself' }             // +1 wildcard (cap 9 → 100G instead)
   | { kind: 'warp'; nodeId: string }      // slots only: teleport, turn continues there
