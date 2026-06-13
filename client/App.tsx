@@ -533,7 +533,7 @@ export default function App() {
   // Main menu inputs
   const [playerNameInput, setPlayerNameInput] = useState(() => localStorage.getItem('playerName') ?? '');
   const [newRoomName, setNewRoomName] = useState('');
-  const [targetNetWorth, setTargetNetWorth] = useState(15000);
+  const [targetNetWorth, setTargetNetWorth] = useState(5000);
   const [boardChoice, setBoardChoice] = useState('alefgard');
   const [characterChoice, setCharacterChoice] = useState('erdrick');
   const [bankruptcyChoice, setBankruptcyChoice] = useState(1);
@@ -618,11 +618,11 @@ export default function App() {
 
   // 1. Render Main Menu if not connected to a room
   if (!roomId || !playerId) {
-    const stakes = [8000, 10000, 12000, 15000, 20000];
+    const stakes = [5000, 7000, 9000, 12000, 15000];
     const boards = [
-      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — warp pipes to Charlock island', target: 8000 },
-      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis', target: 15000 },
-      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island', target: 12000 },
+      { id: 'alefgard', name: 'Alefgard', icon: '🏰', blurb: 'The classic loop — warp pipes to Charlock island', target: 5000 },
+      { id: 'torland', name: 'Torland', icon: '🌊', blurb: 'One-way river rapids, tax office, the seaside oasis', target: 9000 },
+      { id: 'aliahan', name: 'Aliahan', icon: '⚔️', blurb: 'Twin loops crossing at the bank — desert wind, Jipang warp island', target: 7000 },
     ];
     const tickerItems = [
       'TANTEGEL ▲ 7G', 'GARINHAM ▲ 9G', 'KOL ▲ 9G', 'DOMDORA ▼ 11G', 'CANTLIN ▲ 12G',

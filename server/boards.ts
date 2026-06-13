@@ -404,7 +404,7 @@ export const BOARDS: Record<string, BoardDef> = {
   alefgard: {
     id: 'alefgard',
     name: 'Alefgard',
-    suggestedTarget: 8000,
+    suggestedTarget: 5000,
     board: ALEFGARD_BOARD,
     properties: ALEFGARD_PROPERTIES,
     districts: ALEFGARD_DISTRICTS,
@@ -413,7 +413,7 @@ export const BOARDS: Record<string, BoardDef> = {
   torland: {
     id: 'torland',
     name: 'Torland',
-    suggestedTarget: 15000,
+    suggestedTarget: 9000,
     board: TORLAND_BOARD,
     properties: TORLAND_PROPERTIES,
     districts: TORLAND_DISTRICTS,
@@ -422,7 +422,7 @@ export const BOARDS: Record<string, BoardDef> = {
   aliahan: {
     id: 'aliahan',
     name: 'Aliahan',
-    suggestedTarget: 12000,
+    suggestedTarget: 7000,
     board: ALIAHAN_BOARD,
     properties: ALIAHAN_PROPERTIES,
     districts: ALIAHAN_DISTRICTS,
