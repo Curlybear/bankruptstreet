@@ -27,7 +27,9 @@ const ELDERMOOR_BOARD: Record<string, Node> = {
   greendale_3: { id: 'greendale_3', type: 'property', neighbors: ['greendale_4'], coordinates: { x: 1, y: 1 } },
   greendale_4: { id: 'greendale_4', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 0, y: 1 } },
   spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['greendale_5'], coordinates: { x: 0, y: 0 } },
-  greendale_5: { id: 'greendale_5', type: 'property', neighbors: ['greendale_6'], coordinates: { x: 1, y: 0 } },
+  greendale_5: { id: 'greendale_5', type: 'property', neighbors: ['change_suit'], coordinates: { x: 1, y: 0 } },
+  // Change-of-suit: a 5th, bonus suit square whose suit rotates as players pass (the four fixed suits stay put).
+  change_suit: { id: 'change_suit', type: 'suit', suit: 'heart', cycleSuit: true, neighbors: ['greendale_6'], coordinates: { x: 1.5, y: -1 } },
   greendale_6: { id: 'greendale_6', type: 'property', neighbors: ['bridge_north_1', 'warp_to_blackspire_1'], coordinates: { x: 2, y: 0 } },
 
   // --- Warp north ---
@@ -60,7 +62,7 @@ const ELDERMOOR_BOARD: Record<string, Node> = {
   // Roll-on — land here and immediately take another roll.
   rollon_east: { id: 'rollon_east', type: 'roll_on', neighbors: ['rivermouth_2'], coordinates: { x: 11, y: 2.5 } },
   rivermouth_2: { id: 'rivermouth_2', type: 'property', neighbors: ['club_suit'], coordinates: { x: 10, y: 3 } },
-  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', cycleSuit: true, neighbors: ['rivermouth_3'], coordinates: { x: 10, y: 4 } },
+  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['rivermouth_3'], coordinates: { x: 10, y: 4 } },
   rivermouth_3: { id: 'rivermouth_3', type: 'vacant', neighbors: ['rivermouth_4'], coordinates: { x: 9, y: 4 } },
   rivermouth_4: { id: 'rivermouth_4', type: 'property', neighbors: ['rivermouth_5'], coordinates: { x: 9, y: 3 } },
   rivermouth_5: { id: 'rivermouth_5', type: 'property', neighbors: ['rivermouth_6'], coordinates: { x: 8, y: 3 } },
@@ -181,7 +183,9 @@ const MISTRAL_BOARD: Record<string, Node> = {
 
   // --- Ashbury (north-west) ---
   ashbury_1: { id: 'ashbury_1', type: 'property', neighbors: ['ashbury_2', 'thornpass_1'], coordinates: { x: 2, y: 0 } },
-  ashbury_2: { id: 'ashbury_2', type: 'property', neighbors: ['venture_north'], coordinates: { x: 3, y: 0 } },
+  ashbury_2: { id: 'ashbury_2', type: 'property', neighbors: ['change_suit'], coordinates: { x: 3, y: 0 } },
+  // Change-of-suit: a 5th, bonus suit square whose suit rotates as players pass (the four fixed suits stay put).
+  change_suit: { id: 'change_suit', type: 'suit', suit: 'heart', cycleSuit: true, neighbors: ['venture_north'], coordinates: { x: 3.5, y: -1 } },
   venture_north: { id: 'venture_north', type: 'venture', neighbors: ['ashbury_3'], coordinates: { x: 4, y: 0 } },
   ashbury_3: { id: 'ashbury_3', type: 'property', neighbors: ['tax_north'], coordinates: { x: 5, y: 0 } },
 
@@ -215,7 +219,7 @@ const MISTRAL_BOARD: Record<string, Node> = {
   // Cannon — blasts the lander onto a random rival's square.
   cannon_moon: { id: 'cannon_moon', type: 'cannon', neighbors: ['silverbrook_2'], coordinates: { x: 3.5, y: 6 } },
   silverbrook_2: { id: 'silverbrook_2', type: 'property', neighbors: ['spade_suit'], coordinates: { x: 3, y: 5 } },
-  spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', cycleSuit: true, neighbors: ['silverbrook_3', 'thornpass_3'], coordinates: { x: 2, y: 5 } },
+  spade_suit: { id: 'spade_suit', type: 'suit', suit: 'spade', neighbors: ['silverbrook_3', 'thornpass_3'], coordinates: { x: 2, y: 5 } },
   silverbrook_3: { id: 'silverbrook_3', type: 'property', neighbors: ['break_oasis'], coordinates: { x: 1, y: 5 } },
   break_oasis: { id: 'break_oasis', type: 'break', neighbors: ['westvale_1'], coordinates: { x: 0, y: 5 } },
   westvale_1: { id: 'westvale_1', type: 'property', neighbors: ['bank'], coordinates: { x: 0, y: 4 } },
@@ -299,7 +303,9 @@ const ALDORIA_BOARD: Record<string, Node> = {
   crown_tax: { id: 'crown_tax', type: 'tax_office', neighbors: [], coordinates: { x: 6, y: 3 } },
 
   // --- West loop (Goldvale north, Aldoria south) ---
-  goldvale_1: { id: 'goldvale_1', type: 'property', neighbors: ['goldvale_casino'], coordinates: { x: 5, y: 0 } },
+  goldvale_1: { id: 'goldvale_1', type: 'property', neighbors: ['change_suit'], coordinates: { x: 5, y: 0 } },
+  // Change-of-suit: a 5th, bonus suit square whose suit rotates as players pass (the four fixed suits stay put).
+  change_suit: { id: 'change_suit', type: 'suit', suit: 'heart', cycleSuit: true, neighbors: ['goldvale_casino'], coordinates: { x: 4.5, y: -0.9 } },
   goldvale_casino: { id: 'goldvale_casino', type: 'casino', neighbors: ['goldvale_2'], coordinates: { x: 4, y: 0 } },
   goldvale_2: { id: 'goldvale_2', type: 'property', neighbors: ['heart_suit'], coordinates: { x: 3, y: 0 } },
   heart_suit: { id: 'heart_suit', type: 'suit', suit: 'heart', neighbors: ['frostmere_1'], coordinates: { x: 2, y: 0 } },
@@ -337,7 +343,7 @@ const ALDORIA_BOARD: Record<string, Node> = {
   // Backstreet C (east) — the other end of the alley_c1 shortcut.
   alley_c2: { id: 'alley_c2', type: 'backstreet', backstreetGroup: 'C', neighbors: ['spicewell_2'], coordinates: { x: 12, y: 4 } },
   spicewell_2: { id: 'spicewell_2', type: 'property', neighbors: ['club_suit'], coordinates: { x: 11, y: 4 } },
-  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', cycleSuit: true, neighbors: ['spicewell_3'], coordinates: { x: 10, y: 4 } },
+  club_suit: { id: 'club_suit', type: 'suit', suit: 'club', neighbors: ['spicewell_3'], coordinates: { x: 10, y: 4 } },
   spicewell_3: { id: 'spicewell_3', type: 'property', neighbors: ['venture_east'], coordinates: { x: 9, y: 4 } },
   venture_east: { id: 'venture_east', type: 'venture', neighbors: ['mirador_vac'], coordinates: { x: 8, y: 4 } },
   mirador_vac: { id: 'mirador_vac', type: 'boom', neighbors: ['crown_tax'], coordinates: { x: 7, y: 4 } },
