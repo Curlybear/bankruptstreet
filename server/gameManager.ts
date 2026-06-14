@@ -371,6 +371,10 @@ export function computeDeltas(action: Action, before: GameState, after: GameStat
 
 export class GameManager {
   private rooms = new Map<string, GameState>();
+  // Per-seat session tokens: roomId → (playerId → token). Persisted alongside
+  // rooms (separate from GameState, so they're never broadcast to clients) so
+  // seats stay locked to their owner across server restarts.
+  private roomTokens = new Map<string, Map<string, string>>();
   private persistDir: string | null;
   private saveTimer: NodeJS.Timeout | null = null;
 
@@ -388,8 +392,17 @@ export class GameManager {
   private loadRooms(): void {
     try {
       if (!existsSync(this.persistFile())) return;
-      const entries: [string, GameState][] = JSON.parse(readFileSync(this.persistFile(), 'utf8'));
-      this.rooms = new Map(entries);
+      const parsed = JSON.parse(readFileSync(this.persistFile(), 'utf8'));
+      // Back-compat: the old format was a bare [roomId, state][] array (no
+      // tokens); the current format is { rooms, tokens }.
+      if (Array.isArray(parsed)) {
+        this.rooms = new Map(parsed as [string, GameState][]);
+      } else {
+        this.rooms = new Map((parsed.rooms ?? []) as [string, GameState][]);
+        this.roomTokens = new Map(
+          ((parsed.tokens ?? []) as [string, [string, string][]][]).map(([rid, pairs]) => [rid, new Map(pairs)]),
+        );
+      }
       console.log(`[persistence] restored ${this.rooms.size} room(s) from ${this.persistFile()}`);
     } catch (e) {
       console.error(`[persistence] failed to load rooms: ${(e as Error).message}`);
@@ -402,11 +415,27 @@ export class GameManager {
     try {
       mkdirSync(this.persistDir, { recursive: true });
       const tmp = this.persistFile() + '.tmp';
-      writeFileSync(tmp, JSON.stringify([...this.rooms]));
+      const payload = {
+        rooms: [...this.rooms],
+        tokens: [...this.roomTokens].map(([rid, m]) => [rid, [...m]]),
+      };
+      writeFileSync(tmp, JSON.stringify(payload));
       renameSync(tmp, this.persistFile());
     } catch (e) {
       console.error(`[persistence] failed to save rooms: ${(e as Error).message}`);
     }
+  }
+
+  // ── Seat session tokens ──
+  getToken(roomId: string, playerId: string): string | undefined {
+    return this.roomTokens.get(roomId)?.get(playerId);
+  }
+
+  setToken(roomId: string, playerId: string, token: string): void {
+    let m = this.roomTokens.get(roomId);
+    if (!m) { m = new Map(); this.roomTokens.set(roomId, m); }
+    m.set(playerId, token);
+    this.scheduleSave();
   }
 
   // Debounced save — call after any state change. No-op without persistDir.
@@ -445,6 +474,7 @@ export class GameManager {
 
   deleteRoom(roomId: string): void {
     this.rooms.delete(roomId);
+    this.roomTokens.delete(roomId);
     this.scheduleSave();
   }
 }

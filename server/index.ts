@@ -227,9 +227,6 @@ export function attachHandlers(io: Server, manager: GameManager): void {
   const roomSockets = new Map<string, Set<string>>();
   const cleanupTimers = new Map<string, NodeJS.Timeout>();
   const activeBotLoops = new Set<string>();
-  // Per-seat secret: roomId → (playerId → token). A name with a token can only
-  // be (re)claimed by presenting it — stops seat hijacking by self-declared name.
-  const roomTokens = new Map<string, Map<string, string>>();
 
   // Lightweight per-socket flood guard (sliding window of event timestamps).
   function rateLimited(socket: { data: Record<string, unknown> }): boolean {
@@ -408,7 +405,6 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       manager.deleteRoom(roomId);
       cleanupTimers.delete(roomId);
       roomSockets.delete(roomId);
-      roomTokens.delete(roomId);
       purgeRoomGuards(roomId);
       log(roomId, 'deleted after 30min idle');
     }, CLEANUP_DELAY_MS);
@@ -437,7 +433,7 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       // Seat auth: a name that already holds a token must present it. First
       // claim of a name (new seat, or a seeded seat like player2) issues one.
       // Checked before any mutation so a rejected claim can't alter state.
-      const existingToken = roomTokens.get(roomId)?.get(playerId);
+      const existingToken = manager.getToken(roomId, playerId);
       if (existingToken && token !== existingToken) {
         socket.emit('error', { code: 'NAME_TAKEN', message: `The name "${playerId}" is already taken in this room` });
         return;
@@ -502,10 +498,8 @@ export function attachHandlers(io: Server, manager: GameManager): void {
       // First claim of this name → mint a session token and hand it back, so
       // only this client can reconnect/act as the name afterward.
       if (!existingToken) {
-        let tokens = roomTokens.get(roomId);
-        if (!tokens) { tokens = new Map(); roomTokens.set(roomId, tokens); }
         const minted = randomUUID();
-        tokens.set(playerId, minted);
+        manager.setToken(roomId, playerId, minted);
         socket.emit('session', { roomId, playerId, token: minted });
       }
 
@@ -590,7 +584,6 @@ export function attachHandlers(io: Server, manager: GameManager): void {
         if (state.creatorId === playerId) {
           // Disband room
           manager.deleteRoom(roomId);
-          roomTokens.delete(roomId);
           purgeRoomGuards(roomId);
           log(roomId, `disbanded because creator left`);
           io.to(roomId).emit('room_disbanded', { message: 'The creator has left. Room disbanded.' });
@@ -690,7 +683,6 @@ export function attachHandlers(io: Server, manager: GameManager): void {
           if (state.creatorId === playerId) {
             // Disband room
             manager.deleteRoom(roomId);
-            roomTokens.delete(roomId);
             purgeRoomGuards(roomId);
             log(roomId, `disbanded because creator disconnected`);
             io.to(roomId).emit('room_disbanded', { message: 'The creator has disconnected. Room disbanded.' });
@@ -724,4 +716,21 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const hasClient = existsSync(join(CLIENT_DIST, 'index.html'));
     console.log(`[${new Date().toISOString()}] server listening on port ${PORT}${hasClient ? ` (serving ${CLIENT_DIST})` : ' (socket only — no client build found)'}`);
   });
+
+  // Graceful shutdown: flush state (the debounced save may be pending) and
+  // stop accepting connections before exit, so a deploy/restart never drops
+  // in-flight games or seat tokens.
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[${new Date().toISOString()}] ${signal} received — saving state and shutting down`);
+    manager.saveNow();
+    io.close();
+    httpServer.close(() => process.exit(0));
+    // Don't hang forever if a connection won't close.
+    setTimeout(() => process.exit(0), 5000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }

@@ -52,5 +52,6 @@ and restored on boot. Clients reconnect automatically.
 ### Security model (for self-hosters)
 
 - The app binds to `127.0.0.1` — only the reverse proxy reaches it; terminate TLS at Caddy.
-- Players are identified by a **per-seat session token** minted on first join and required to reclaim a name, so seats can't be hijacked by guessing a username. Tokens live in server memory (and the client's `localStorage`); restarting the server invalidates them (players just rejoin to re-mint).
+- Players are identified by a **per-seat session token** minted on first join and required to reclaim a name, so seats can't be hijacked by guessing a username. Tokens are persisted with the rooms (in `data/rooms.json`, separate from broadcast state) and flushed on shutdown, so seats stay locked to their owner across restarts.
+- On `SIGTERM`/`SIGINT` (e.g. `docker compose` restarts) the server flushes state and seat tokens before exiting, so in-flight games survive a redeploy.
 - Per-socket flood limiting and the room cap above mitigate basic DoS. There is **no account system** — anyone with a room link can join an open seat, which is by design for casual play.
