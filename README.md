@@ -4,7 +4,7 @@ A multiplayer, browser-based board game of property, stocks, and timing — bran
 
 Buy shops, dominate districts, play the stock market, collect suits for promotions, and race to the target net worth before your rivals — or before someone goes bankrupt and ends it all.
 
-📜 **[Full game rules](RULES.md)** (also available in-game via the "How to Play" button)
+📜 **[Full game rules](RULES.md)** (also available in-game via the "How to Play" button) · 🔒 **[Privacy notice](PRIVACY.md)**
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Node](https://img.shields.io/badge/Node-20+-green) ![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen) ![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
 

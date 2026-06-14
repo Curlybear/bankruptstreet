@@ -545,6 +545,51 @@ function VentureChoicePanel({ state, playerId, emitAction }: {
   );
 }
 
+// On-site privacy notice — what the hosted game collects and keeps.
+function PrivacyNotice({ onClose }: { onClose: () => void }) {
+  const row: React.CSSProperties = { marginBottom: 12, fontSize: 13, lineHeight: '1.55', color: '#cbd5e1' };
+  const h: React.CSSProperties = { color: '#fde047', fontWeight: 800, fontSize: 12, letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: 4 };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(3, 3, 8, 0.85)',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'rgba(12, 12, 26, 0.97)', border: '1px solid rgba(250, 204, 21, 0.25)',
+          borderRadius: 18, padding: '28px 30px', maxWidth: 560, maxHeight: '82vh', overflowY: 'auto',
+          fontFamily: "'Outfit', sans-serif", boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+        }}
+      >
+        <h2 style={{ fontFamily: "'Unbounded', sans-serif", fontSize: 18, fontWeight: 900, color: '#fde047', margin: '0 0 6px' }}>Privacy</h2>
+        <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 18px' }}>This is a casual game with no accounts. Here's everything it collects and keeps.</p>
+
+        <div style={row}><span style={h}>What you provide</span>The display name you type, used to label your seat and shown to the other players in your room. That's the only personal detail asked for — no email, password, or account.</div>
+        <div style={row}><span style={h}>Stored in your browser</span>Your name and a per-room session token are kept in this browser's <code>localStorage</code> so you can rejoin your seat. No tracking cookies; clearing site data removes them.</div>
+        <div style={row}><span style={h}>On the server</span>Active game state (including player names) is held in memory and a local file so games survive restarts. Rooms are deleted about 30 minutes after they go idle. Connection logs (IP address, timestamps) may be kept transiently to run the service and prevent abuse.</div>
+        <div style={row}><span style={h}>Not done</span>No analytics, no advertising, no third-party trackers, and no selling or sharing of data. Fonts are served from this site, so loading the game makes no external requests.</div>
+        <div style={{ ...row, marginBottom: 20 }}><span style={h}>Source & contact</span>The full source is available under AGPL-3.0 — see the <a href="https://github.com/Curlybear/bankruptstreet" target="_blank" rel="noopener noreferrer" style={{ color: '#22d3ee' }}>project repository</a>.</div>
+
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #fde047 0%, #f59e0b 100%)', color: '#190f00',
+            fontWeight: 800, fontSize: 13, fontFamily: "'Outfit', sans-serif",
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const {
     state,
@@ -571,6 +616,7 @@ export default function App() {
   const prevRollSigRef = useRef('');
   const lastLogLineRef = useRef<string | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   // Main menu inputs
@@ -725,19 +771,27 @@ export default function App() {
       }}>
         <div className="lobby-stars" />
 
-        {/* Source offer — AGPL-3.0 network-use notice */}
-        <a
-          href="https://github.com/Curlybear/bankruptstreet"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            position: 'fixed', bottom: 8, right: 12, zIndex: 50,
-            fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-            color: '#475569', textDecoration: 'none', letterSpacing: '0.5px',
-          }}
-        >
-          source · AGPL-3.0
-        </a>
+        {/* Footer: privacy notice + AGPL-3.0 source offer */}
+        <div style={{
+          position: 'fixed', bottom: 8, right: 12, zIndex: 50,
+          display: 'flex', gap: 12, alignItems: 'center',
+          fontSize: 10, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.5px',
+        }}>
+          <button
+            onClick={() => setShowPrivacy(true)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#475569', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.5px' }}
+          >
+            privacy
+          </button>
+          <a
+            href="https://github.com/Curlybear/bankruptstreet"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#475569', textDecoration: 'none' }}
+          >
+            source · AGPL-3.0
+          </a>
+        </div>
 
         {/* ── Marquee header ── */}
         <div className="lobby-rise" style={{ textAlign: 'center', padding: '52px 24px 26px', position: 'relative' }}>
@@ -1141,6 +1195,7 @@ export default function App() {
         </div>
 
         {showRules && <Rules onClose={() => setShowRules(false)} />}
+        {showPrivacy && <PrivacyNotice onClose={() => setShowPrivacy(false)} />}
       </div>
     );
   }
