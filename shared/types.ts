@@ -215,6 +215,7 @@ export interface TurnTimer {
   playerId: string;
   kind: 'idle' | 'disconnect';   // connected-but-not-acting vs dropped connection
   deadline: number;              // epoch ms when the seat is handed to a bot
+  revealAt?: number;             // epoch ms before which clients hide the banner (idle grace)
 }
 
 

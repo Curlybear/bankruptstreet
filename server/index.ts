@@ -22,6 +22,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN
 
 const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 100);       // cap total rooms (memory DoS)
 const IDLE_TURN_MS = Number(process.env.IDLE_TURN_MS ?? 5 * 60 * 1000);       // connected but not acting → bot takeover
+const IDLE_REVEAL_MS = Number(process.env.IDLE_REVEAL_MS ?? 60 * 1000);       // hide the idle banner for this long first
 const DISCONNECT_GRACE_MS = Number(process.env.DISCONNECT_GRACE_MS ?? 2 * 60 * 1000); // dropped connection → reconnect window
 const RATE_WINDOW_MS = 5000;                                  // per-socket flood guard
 const RATE_MAX_EVENTS = 80;                                   // events allowed per window
@@ -302,7 +303,10 @@ export function attachHandlers(io: Server, manager: GameManager): void {
     timer.unref();  // never block process exit
     turnGuards.set(roomId, { playerId: cp, kind, timer });
 
-    state.turnTimer = { playerId: cp, kind, deadline };
+    // Idle banners stay hidden for the first minute so a brief pause doesn't
+    // nag the table; a dropped connection shows immediately.
+    const revealAt = connected ? Date.now() + IDLE_REVEAL_MS : undefined;
+    state.turnTimer = { playerId: cp, kind, deadline, revealAt };
     io.to(roomId).emit('state_sync', state);
   }
 

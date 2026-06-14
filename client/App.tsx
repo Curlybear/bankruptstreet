@@ -365,6 +365,9 @@ function TurnTimerBanner({ state, playerId }: { state: GameState; playerId: stri
 
   const tt = state.turnTimer;
   if (!tt) return null;
+  // Idle grace: stay hidden until revealAt (the interval keeps ticking so it
+  // appears on its own once the grace passes).
+  if (tt.revealAt && Date.now() < tt.revealAt) return null;
   const remaining = Math.max(0, tt.deadline - Date.now());
   const mm = Math.floor(remaining / 60000);
   const ss = Math.floor((remaining % 60000) / 1000);
