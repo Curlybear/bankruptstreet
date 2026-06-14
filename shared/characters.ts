@@ -37,23 +37,23 @@ export const CHARACTERS: Record<string, Character> = {
   tyrant: {
     id: 'tyrant', name: 'The Tyrant', emoji: '🐉', title: 'Property Tycoon',
     personality: {
-      cashReserve: 100, investAmount: 300, stockBatch: 5,
-      buyoutCashMultiplier: 1.5, preferThreeStar: true, sellOnDip: true,
+      cashReserve: 160, investAmount: 300, stockBatch: 5,
+      buyoutCashMultiplier: 2.5, preferThreeStar: true, sellOnDip: true,
       pathPreference: 'shops',
     },
   },
   baroness: {
     id: 'baroness', name: 'Lady Mirelle', emoji: '👸', title: 'Stock Baroness',
     personality: {
-      cashReserve: 300, investAmount: 50, stockBatch: 20,
+      cashReserve: 200, investAmount: 100, stockBatch: 16,
       buyoutCashMultiplier: 3.0, preferThreeStar: false, sellOnDip: false,
-      pathPreference: 'stocks',
+      pathPreference: 'shops',
     },
   },
   miser: {
     id: 'miser', name: 'The Miser', emoji: '🟢', title: 'Cautious Hoarder',
     personality: {
-      cashReserve: 350, investAmount: 100, stockBatch: 5,
+      cashReserve: 250, investAmount: 100, stockBatch: 5,
       buyoutCashMultiplier: 4.0, preferThreeStar: false, sellOnDip: true,
       pathPreference: 'shops',
     },
@@ -69,9 +69,9 @@ export const CHARACTERS: Record<string, Character> = {
   oracle: {
     id: 'oracle', name: 'The Oracle', emoji: '✨', title: 'Opportunist',
     personality: {
-      cashReserve: 250, investAmount: 100, stockBatch: 15,
+      cashReserve: 220, investAmount: 100, stockBatch: 15,
       buyoutCashMultiplier: 2.5, preferThreeStar: false, sellOnDip: false,
-      pathPreference: 'stocks',
+      pathPreference: 'shops',
     },
   },
 };

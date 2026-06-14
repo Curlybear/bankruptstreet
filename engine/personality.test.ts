@@ -42,21 +42,23 @@ const ownShop: Property = {
 };
 const district: District = { id: 'd1', name: 'D1', stockPrice: 10, propertyIds: ['shop1'], playerHoldings: {} };
 
-test('cashReserve: miser (350) skips a tiny invest at 400 cash; aldric (175) invests', () => {
+test('cashReserve: miser (250) skips a tiny invest at 320 cash; aldric (175) invests', () => {
   const base = makeState({
     properties: { shop1: ownShop },
     districts: { d1: district },
   });
 
+  // miser reserve 250: at 320 cash only 70 above reserve → below the 100 floor → skip
   const miserState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'miser' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 320, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'miser' }) },
   };
   assert.equal(greedyBotAction(miserState, 'p1').type, 'END_TURN');
 
+  // aldric reserve 175: 145 above reserve → clears the floor → invests
   const aldricState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'aldric' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 320, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'aldric' }) },
   };
   const action = greedyBotAction(aldricState, 'p1');
   assert.equal(action.type, 'INVEST');
@@ -79,12 +81,12 @@ test('investing goes deep: down to the cash reserve, capped at 999/turn', () => 
     assert.equal((action as { amount: number }).amount, 999, `${charId} invests the cap`);
   }
 
-  // Tight cash → the reserve differentiates them (tyrant 100 vs miser 350)
+  // Tight cash → the reserve differentiates them (tyrant reserve 160)
   const tightDragon: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 700, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'tyrant' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 400, currentNodeId: 'shop1', propertyIds: ['shop1'], characterId: 'tyrant' }) },
   };
-  assert.equal((greedyBotAction(tightDragon, 'p1') as { amount: number }).amount, 600); // 700 - 100 reserve
+  assert.equal((greedyBotAction(tightDragon, 'p1') as { amount: number }).amount, 240); // 400 - 160 reserve
 });
 
 test('stock buying: one aggregated buy down to the reserve; stockBatch is the minimum position', () => {
@@ -98,21 +100,21 @@ test('stock buying: one aggregated buy down to the reserve; stockBatch is the mi
     players: { ...base.players, p1: makeTestPlayer('p1', { cash, currentNodeId: 'bank', propertyIds: ['shop1'], characterId: charId }) },
   });
 
-  // baroness (reserve 300): 2000 cash at 10G/sh → 170 affordable, one buy capped at 99
+  // baroness (reserve 200): 2000 cash at 10G/sh → 180 affordable, one buy capped at 99
   const big = greedyBotAction(at('baroness', 2000), 'p1');
   assert.equal(big.type, 'BUY_STOCK');
   assert.equal((big as { shares: number }).shares, 99);
 
-  // baroness (batch 20): only 19 affordable above the reserve → not worth opening
-  assert.equal(greedyBotAction(at('baroness', 490), 'p1').type, 'END_TURN');
+  // baroness (batch 16): only 15 affordable above the reserve → not worth opening
+  assert.equal(greedyBotAction(at('baroness', 350), 'p1').type, 'END_TURN');
 
-  // miser (reserve 350, batch 5): 6 affordable → buys all 6 in one transaction
-  const small = greedyBotAction(at('miser', 410), 'p1');
+  // miser (reserve 250, batch 5): 6 affordable → buys all 6 in one transaction
+  const small = greedyBotAction(at('miser', 310), 'p1');
   assert.equal(small.type, 'BUY_STOCK');
   assert.equal((small as { shares: number }).shares, 6);
 });
 
-test('buyoutCashMultiplier: tyrant (1.5x) buys out where miser (4x) pays rent', () => {
+test('buyoutCashMultiplier: tyrant (2.5x) buys out where miser (4x) pays rent', () => {
   const oppShop: Property = { ...ownShop, ownerId: 'p2' };
   const base = makeState({
     properties: { shop1: oppShop },
@@ -123,16 +125,16 @@ test('buyoutCashMultiplier: tyrant (1.5x) buys out where miser (4x) pays rent', 
     },
   });
 
-  // buyoutCost = 500; cash 1000 → 2.0× cost: above tyrant's 1.5, below miser's 4.0
+  // buyoutCost = 500; cash 1500 → 3.0× cost: above tyrant's 2.5, below miser's 4.0
   const dragonState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'tyrant' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1500, currentNodeId: 'shop1', characterId: 'tyrant' }) },
   };
   assert.equal(greedyBotAction(dragonState, 'p1').type, 'BUYOUT_PROPERTY');
 
   const miserState: GameState = {
     ...base,
-    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1000, currentNodeId: 'shop1', characterId: 'miser' }) },
+    players: { ...base.players, p1: makeTestPlayer('p1', { cash: 1500, currentNodeId: 'shop1', characterId: 'miser' }) },
   };
   assert.equal(greedyBotAction(miserState, 'p1').type, 'PAY_RENT');
 });
